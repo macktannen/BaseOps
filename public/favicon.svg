@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 400 300" fill="none">
+  <!-- Rotor arcs -->
+  <path d="M40,95 Q120,30 200,28 Q280,30 350,80" stroke="#3ecfb2" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.5"/>
+  <!-- Rotor blades -->
+  <path d="M195,92 L30,72" stroke="#163a5f" stroke-width="8" stroke-linecap="round"/>
+  <path d="M195,92 L55,42" stroke="#163a5f" stroke-width="8" stroke-linecap="round"/>
+  <path d="M195,92 L110,18" stroke="#163a5f" stroke-width="8" stroke-linecap="round"/>
+  <path d="M195,92 L260,16" stroke="#163a5f" stroke-width="8" stroke-linecap="round"/>
+  <path d="M195,92 L340,50" stroke="#163a5f" stroke-width="8" stroke-linecap="round"/>
+  <path d="M195,92 L365,85" stroke="#163a5f" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="195" cy="92" r="8" fill="#163a5f"/>
+  <!-- Fuselage -->
+  <path d="M105,135 C95,133 80,138 70,148 L58,164 C52,174 52,186 58,196 L68,210 L84,222 L106,232 L134,240 L168,244 L205,246 L242,244 L274,240 L300,232 L320,222 L334,210 L342,196 L346,184 L346,172 L340,160 L328,150 L312,142 L292,136 L270,132 L246,128 L222,126 L198,126 L174,126 L150,128 L126,132Z" fill="#163a5f"/>
+  <!-- Cockpit -->
+  <path d="M92,150 L76,162 L68,176 L68,190 L74,200 L86,206 L102,208 L118,204 L130,196 L136,184 L136,170 L130,158 L118,150Z" fill="#1a6b5a"/>
+  <!-- Engines -->
+  <path d="M148,124 C142,112 136,100 132,90 L128,80 C126,74 130,70 136,70 L158,74 C164,74 166,80 164,86 L158,96 L154,108 L152,124Z" fill="#163a5f"/>
+  <path d="M230,122 C234,110 238,98 240,88 L242,78 C243,72 240,68 234,68 L214,72 C208,72 206,78 208,84 L214,94 L218,106 L220,122Z" fill="#163a5f"/>
+  <!-- Transmission -->
+  <path d="M172,126 L172,114 C172,108 180,102 195,102 C210,102 218,108 218,114 L218,126Z" fill="#163a5f"/>
+  <!-- Sponsons -->
+  <path d="M110,190 L88,196 C78,200 72,206 72,214 L72,224 C72,232 78,236 88,236 L110,232 L126,226 L126,200Z" fill="#163a5f"/>
+  <path d="M290,186 L312,192 C322,196 328,202 328,210 L328,220 C328,228 322,232 312,232 L290,228 L274,222 L274,196Z" fill="#163a5f"/>
+  <!-- Tail boom -->
+  <path d="M330,150 L348,138 L362,126 L374,114 L384,104 L392,96 L396,90" stroke="#163a5f" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Tail pylon -->
+  <path d="M390,88 L392,66 L394,54 L396,46 L400,46 L402,50 L402,62 L400,74 L398,84 L396,88Z" fill="#163a5f"/>
+  <!-- Tail rotor -->
+  <circle cx="398" cy="50" r="4" fill="#163a5f"/>
+  <line x1="398" y1="50" x2="386" y2="34" stroke="#163a5f" stroke-width="5" stroke-linecap="round"/>
+  <line x1="398" y1="50" x2="410" y2="34" stroke="#163a5f" stroke-width="5" stroke-linecap="round"/>
+  <line x1="398" y1="50" x2="386" y2="66" stroke="#163a5f" stroke-width="5" stroke-linecap="round"/>
+  <line x1="398" y1="50" x2="410" y2="66" stroke="#163a5f" stroke-width="5" stroke-linecap="round"/>
+  <!-- Stabilizer -->
+  <path d="M378,96 L390,88 L408,82 L410,84 L410,90 L390,94 L378,100Z" fill="#163a5f"/>
+  <!-- Landing gear -->
+  <path d="M130,240 L124,252 L118,264 L112,274 L136,274 L136,264 L130,252 L136,240" fill="#163a5f"/>
+  <ellipse cx="124" cy="278" rx="12" ry="6" fill="#163a5f"/>
+  <path d="M274,238 L280,250 L286,262 L292,272 L268,272 L268,262 L274,250 L268,238" fill="#163a5f"/>
+  <ellipse cx="280" cy="276" rx="12" ry="6" fill="#163a5f"/>
+  <path d="M88,226 L82,238 L76,250 L70,260 L94,260 L94,250 L88,238 L94,226" fill="#163a5f"/>
+  <ellipse cx="82" cy="264" rx="10" ry="5" fill="#163a5f"/>
+  <!-- Teal belly line -->
+  <path d="M76,230 L126,242 L205,246 L280,242 L338,226" stroke="#3ecfb2" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+</svg>

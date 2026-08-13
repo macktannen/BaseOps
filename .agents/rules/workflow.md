@@ -1,0 +1,6 @@
+# Workspace Rules
+
+1. **Version Control**: Every change requires a version bump in `src/App.jsx` (`APP_VERSION`).
+2. **Changelog**: Every change requires an entry in `CHANGELOG.md`.
+3. **Data Sync**: Maintain cross-tab/cross-port sync via `dataSyncService.js`.
+4. **Git Push**: Every change must be committed and pushed to `git push origin main`.

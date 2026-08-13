@@ -1,0 +1,87 @@
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../contexts/useAuth';
+import Logo from '../components/Logo';
+
+const Signup = () => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { signup } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setError('');
+      setLoading(true);
+      await signup(name, email, password);
+      navigate('/');
+    } catch (err) {
+      setError('Failed to create account: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: 'var(--bg-color)', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="card" style={{ width: '100%', maxWidth: '400px', padding: '40px', backgroundColor: 'white' }}>
+        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+          <Logo size={72} style={{ marginBottom: '10px' }} />
+          <h2 style={{ color: 'var(--text-color)', margin: 0 }}>Create Account</h2>
+          <p style={{ color: 'var(--text-muted)', marginTop: '5px' }}>Join BaseOps</p>
+        </div>
+        
+        {error && <div style={{ backgroundColor: '#fed7d7', color: '#c53030', padding: '10px', borderRadius: '4px', marginBottom: '20px', fontSize: '0.875rem' }}>{error}</div>}
+        
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Full Name</label>
+            <input 
+              type="text" 
+              className="form-control" 
+              style={{ width: '100%' }}
+              value={name} 
+              onChange={e => setName(e.target.value)} 
+              required 
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Email</label>
+            <input 
+              type="email" 
+              className="form-control" 
+              style={{ width: '100%' }}
+              value={email} 
+              onChange={e => setEmail(e.target.value)} 
+              required 
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Password</label>
+            <input 
+              type="password" 
+              className="form-control" 
+              style={{ width: '100%' }}
+              value={password} 
+              onChange={e => setPassword(e.target.value)} 
+              required 
+            />
+          </div>
+          <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '10px', marginTop: '10px' }} disabled={loading}>
+            {loading ? 'Creating account...' : 'Sign Up'}
+          </button>
+        </form>
+        
+        <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.875rem' }}>
+          Already have an account? <Link to="/login" style={{ color: 'var(--primary-color)', textDecoration: 'none', fontWeight: 'bold' }}>Log in</Link>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Signup;

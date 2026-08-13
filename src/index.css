@@ -1,0 +1,730 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --primary-color: #0f4c81; /* Corporate Blue */
+  --primary-light: #4376ac;
+  --secondary-color: #f4f6f8;
+  --text-main: #2d3748;
+  --text-muted: #718096;
+  --bg-color: #f7fafc;
+  --white: #ffffff;
+  --border-color: #e2e8f0;
+  --accent-color: #38b2ac;
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  line-height: 1.5;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* Layout */
+.app-container {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 250px;
+  background-color: var(--primary-color);
+  color: var(--white);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  padding: 20px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-menu {
+  list-style: none;
+  padding: 20px 0;
+}
+
+.nav-item {
+  padding: 12px 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: background-color 0.2s;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--white);
+}
+
+.nav-item.active {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: var(--white);
+  border-left: 4px solid var(--accent-color);
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.topbar {
+  height: 60px;
+  background-color: var(--white);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  box-shadow: var(--shadow-sm);
+  justify-content: space-between;
+}
+
+.content-area {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+/* Card */
+.card {
+  background-color: var(--white);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  padding: 20px;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: var(--white);
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-light);
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+}
+
+.btn-outline:hover {
+  background-color: var(--secondary-color);
+}
+
+/* Form Controls */
+.form-control {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: var(--text-main);
+  background-color: var(--white);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-control:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(15, 76, 129, 0.15);
+}
+
+.form-control:disabled {
+  background-color: var(--secondary-color);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* Table */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th, .data-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.data-table th {
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background-color: var(--secondary-color);
+}
+
+.data-table tr:hover {
+  background-color: var(--bg-color);
+}
+
+.expenses-table tbody tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+.expenses-table tbody tr:hover {
+  background-color: #edf2f7;
+}
+
+/* Calendar Grid */
+.calendar-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  position: sticky;
+  top: -24px;
+  z-index: 50;
+  background-color: var(--bg-color);
+  padding: 8px 24px;
+  margin-left: -24px;
+  margin-right: -24px;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background-color: var(--border-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.calendar-grid * {
+  min-width: 0;
+}
+
+.calendar-day-header {
+  background-color: var(--secondary-color);
+  padding: 10px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.calendar-cell {
+  background-color: var(--white);
+  min-height: 120px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.calendar-cell.muted {
+  background-color: var(--bg-color);
+  color: var(--text-muted);
+}
+
+.day-number {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 8px;
+  align-self: flex-end;
+}
+
+/* Event Badge */
+.event-badge {
+  background-color: var(--primary-light);
+  color: var(--white);
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Calendar cell flight list — prevent overflow */
+.calendar-cell > div:nth-child(2) {
+  overflow: hidden;
+  min-width: 0;
+  max-height: calc(100% - 20px);
+  overflow-y: auto;
+}
+
+/* Calendar cell notes — truncate */
+.calendar-cell > div:nth-child(2) > div[style*="margin-bottom"] {
+  overflow: hidden;
+}
+
+.has-tooltip {
+  position: relative;
+}
+.has-tooltip:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 9999;
+  margin-top: 8px;
+}
+
+/* ============================================
+   EVENT MODAL HEADER — DESKTOP RESPONSIVE
+   Wraps and shrinks on narrower desktop screens
+   before mobile layout kicks in.
+   ============================================ */
+
+/* ≤1200px: hide dividers, allow wrapping, shrink items */
+@media (max-width: 1200px) {
+  .flight-card-header-inner {
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+
+  .flight-card-header-inner .header-divider {
+    display: none !important;
+  }
+
+  .flight-card-header-inner .view-toggle-container {
+    order: -1;
+  }
+
+  .flight-card-header-inner .trip-number-field {
+    white-space: nowrap;
+    font-size: 1rem;
+  }
+
+  .flight-card-header-inner .title-field {
+    min-width: 0;
+    flex: 1 1 120px;
+  }
+
+  .flight-card-header-inner .status-tags-row {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+/* ≤1000px: further compress, smaller fonts */
+@media (max-width: 1000px) {
+  .flight-card-header-inner {
+    gap: 8px !important;
+  }
+
+  .flight-card-header-inner .trip-number-field {
+    font-size: 0.9rem;
+  }
+
+  .flight-card-header-inner .title-field input {
+    font-size: 0.9rem;
+  }
+
+  .flight-card-header-inner select {
+    font-size: 0.85rem;
+  }
+
+  .flight-card-header-inner .view-toggle-container button {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+  }
+
+  .flight-card-header {
+    padding: 8px 12px !important;
+  }
+}
+
+/* ≤860px: stack everything vertically */
+@media (max-width: 860px) {
+  .flight-card-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+
+  .flight-card-header-inner {
+    width: 100% !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .flight-card-header-inner > div {
+    width: 100% !important;
+  }
+
+  .flight-card-header-inner .view-toggle-container {
+    width: 100% !important;
+    justify-content: center;
+  }
+
+  .flight-card-header-inner .trip-number-field {
+    flex: 0 0 auto !important;
+  }
+
+  .flight-card-header-inner .title-field {
+    flex: 1 1 auto !important;
+  }
+
+  .flight-card-header-inner .status-tags-row {
+    justify-content: space-between;
+  }
+
+  .flight-card-header .close-btn-container {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+  }
+}
+
+/* ============================================
+   DESKTOP RESPONSIVE — GENERAL LAYOUT
+   Compresses sidebar, content, calendar, and
+   modal at narrower desktop widths.
+   ============================================ */
+
+/* ≤1500px: sidebar shrinks, content padding reduces, calendar header wraps */
+@media (max-width: 1500px) {
+  .sidebar {
+    width: 200px;
+  }
+
+  .sidebar-header {
+    padding: 15px;
+    font-size: 1.1rem;
+  }
+
+  .nav-item {
+    padding: 10px 15px;
+    font-size: 0.85rem;
+  }
+
+  .content-area {
+    padding: 16px;
+  }
+
+  .calendar-cell {
+    min-height: 100px;
+    padding: 6px;
+  }
+
+  .day-number {
+    font-size: 0.8rem;
+    margin-bottom: 4px;
+  }
+
+  .calendar-header {
+    padding: 6px 16px;
+    margin-left: -16px;
+    margin-right: -16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .calendar-header > div:last-child {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .calendar-day-header {
+    padding: 8px 4px;
+    font-size: 0.8rem;
+  }
+}
+
+/* ≤1400px: further compression */
+@media (max-width: 1400px) {
+  .sidebar {
+    width: 180px;
+  }
+
+  .sidebar-header {
+    padding: 12px;
+    font-size: 1rem;
+    gap: 6px;
+  }
+
+  .sidebar-header svg {
+    display: none;
+  }
+
+  .nav-item {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    gap: 8px;
+  }
+
+  .content-area {
+    padding: 12px;
+  }
+
+  .calendar-cell {
+    min-height: 80px;
+    padding: 4px;
+  }
+
+  .day-number {
+    font-size: 0.75rem;
+    margin-bottom: 2px;
+  }
+
+  .event-badge {
+    font-size: 0.65rem !important;
+    padding: 3px 5px !important;
+    white-space: nowrap;
+  }
+
+  .calendar-cell .day-number + div {
+    overflow: hidden;
+  }
+
+  .calendar-header {
+    padding: 4px 12px;
+    margin-left: -12px;
+    margin-right: -12px;
+    gap: 6px;
+  }
+
+  .calendar-header h2 {
+    font-size: 1rem;
+    min-width: 120px !important;
+  }
+
+  .calendar-header > div:last-child {
+    gap: 4px;
+  }
+
+  .calendar-header > div:last-child .btn {
+    padding: 5px 10px;
+    font-size: 0.8rem;
+  }
+
+  .event-badge {
+    padding: 4px 6px !important;
+    font-size: 0.7rem !important;
+  }
+
+  .topbar {
+    padding: 0 12px;
+  }
+}
+
+/* ≤1300px: maximum compression before mobile */
+@media (max-width: 1300px) {
+  .sidebar {
+    width: 160px;
+  }
+
+  .sidebar-header {
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+
+  .nav-item {
+    padding: 7px 10px;
+    font-size: 0.75rem;
+  }
+
+  .content-area {
+    padding: 8px;
+  }
+
+  .calendar-cell {
+    min-height: 70px;
+    padding: 3px;
+  }
+
+  .day-number {
+    font-size: 0.7rem;
+    margin-bottom: 1px;
+  }
+
+  .event-badge {
+    font-size: 0.6rem !important;
+    padding: 2px 4px !important;
+  }
+
+  .calendar-day-header {
+    font-size: 0.7rem;
+    padding: 5px 2px;
+  }
+
+  .calendar-header {
+    padding: 4px 8px;
+    margin-left: -8px;
+    margin-right: -8px;
+  }
+
+  .calendar-header h2 {
+    font-size: 0.9rem;
+    min-width: 100px !important;
+  }
+
+  .calendar-header > div:last-child .btn {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+  }
+
+  .topbar {
+    padding: 0 10px;
+    height: 50px;
+  }
+
+  .topbar h2 {
+    font-size: 0.9rem;
+  }
+}
+
+/* ============================================
+   LOCATIONS PAGE — MAP RESPONSIVE
+   Map drops below hazards/notes when the map
+   column gets too narrow (~2 inches / 192px).
+   ============================================ */
+
+@media (max-width: 1200px) {
+  .location-editor-row {
+    flex-direction: column !important;
+  }
+
+  .location-editor-row .location-map-container {
+    flex: 1 1 auto !important;
+    min-height: 300px;
+    width: 100%;
+  }
+}
+
+/* ============================================
+   EVENT MODAL LEG ROWS — DESKTOP RESPONSIVE
+   Compresses the fixed-width columns in flight
+   leg rows at narrower viewport widths.
+   ============================================ */
+
+@media (max-width: 1500px) {
+  .flight-leg-row .leg-number-col {
+    width: 35px !important;
+    min-width: 35px !important;
+  }
+
+  .flight-leg-row .flight-path-col {
+    width: 100px !important;
+    min-width: 100px !important;
+    font-size: 0.75rem;
+  }
+
+  .flight-leg-row .leg-departure-col,
+  .flight-leg-row .leg-arrival-col {
+    padding: 8px !important;
+  }
+}
+
+@media (max-width: 1400px) {
+  .flight-leg-row .leg-number-col {
+    width: 30px !important;
+    min-width: 30px !important;
+  }
+
+  .flight-leg-row .flight-path-col {
+    width: 80px !important;
+    min-width: 80px !important;
+    font-size: 0.7rem;
+  }
+
+  .flight-leg-row .leg-departure-col,
+  .flight-leg-row .leg-arrival-col {
+    padding: 6px !important;
+  }
+
+  .flight-leg-row .leg-departure-col input,
+  .flight-leg-row .leg-arrival-col input,
+  .flight-leg-row .leg-departure-col select,
+  .flight-leg-row .leg-arrival-col select {
+    font-size: 0.8rem !important;
+    padding: 4px 6px !important;
+  }
+}
+
+@media (max-width: 1300px) {
+  .flight-leg-row .leg-number-col {
+    width: 25px !important;
+    min-width: 25px !important;
+    font-size: 0.7rem;
+  }
+
+  .flight-leg-row .flight-path-col {
+    width: 60px !important;
+    min-width: 60px !important;
+    font-size: 0.65rem;
+    padding: 4px !important;
+  }
+
+  .flight-leg-row .leg-departure-col,
+  .flight-leg-row .leg-arrival-col {
+    padding: 4px !important;
+  }
+
+  .flight-leg-row .leg-departure-col input,
+  .flight-leg-row .leg-arrival-col input,
+  .flight-leg-row .leg-departure-col select,
+  .flight-leg-row .leg-arrival-col select {
+    font-size: 0.75rem !important;
+    padding: 3px 5px !important;
+  }
+}
