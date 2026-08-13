@@ -24,7 +24,7 @@ async function getUserProfile(uid) {
 
 async function ensureUserProfile(fbUser, displayName) {
   const uid = fbUser.uid;
-  const email = fbUser.email;
+  const email = (fbUser.email || '').toLowerCase();
   const existing = await getUserProfile(uid);
 
   if (!existing) {
