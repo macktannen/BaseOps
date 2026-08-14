@@ -1226,7 +1226,8 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       passengers,
       pilotId: firstLeg.pilotId || '',
       flightLog,
-      expenses: savedExpenses
+      expenses: savedExpenses,
+      uploads
     });
     
     setIsSaved(false);

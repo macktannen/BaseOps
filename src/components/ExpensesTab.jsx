@@ -92,22 +92,26 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
     if (!flight) return;
     try {
       const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
-      if (storedFlights.length === 0) return;
+      if (!Array.isArray(storedFlights) || storedFlights.length === 0) return;
 
-      const targetId = flight.id;
-      const targetFlightNumber = flight.flightNumber;
+      const targetId = flight.id ? String(flight.id) : null;
+      const targetFlightNumber = flight.flightNumber ? String(flight.flightNumber) : null;
 
+      let found = false;
       const updatedFlights = storedFlights.map(f => {
-        const isMatch = (targetId && String(f.id) === String(targetId)) ||
-                        (targetFlightNumber && String(f.flightNumber) === String(targetFlightNumber));
+        const isMatch = (targetId && String(f.id) === targetId) ||
+                        (targetFlightNumber && String(f.flightNumber) === targetFlightNumber);
         if (isMatch) {
+          found = true;
           return { ...f, expenses: updatedExpenses };
         }
         return f;
       });
 
-      localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
-      window.dispatchEvent(new Event('storage'));
+      if (found) {
+        localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
+        window.dispatchEvent(new Event('storage'));
+      }
     } catch (e) {
       console.error("Failed to persist expenses to localStorage", e);
     }
@@ -252,7 +256,10 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
   const defaultDate = flightDate || new Date().toISOString().split('T')[0];
 
   const handleAdd = () => {
-    setExpenses([...expenses, { id: Date.now(), category: '', vendor: '', amount: '', description: '', date: defaultDate, payer: '', location: flightAirports[0] || '', fuelType: '', gallons: '', purchaser: aircraftId, receiptCount: 0, _dirty: true, _saved: false }]);
+    const newExp = { id: Date.now(), category: '', vendor: '', amount: '', description: '', date: defaultDate, payer: '', location: flightAirports[0] || '', fuelType: '', gallons: '', purchaser: aircraftId, receiptCount: 0, _dirty: true, _saved: false };
+    const next = [...expenses, newExp];
+    setExpenses(next);
+    persistExpensesToFlight(next);
   };
 
   const handleAutoFillParsedExpense = async (parsedData) => {
@@ -324,14 +331,15 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
     let receiptCount = 0;
 
     const newExpId = Date.now();
+    const flightId = flight?.id || 'flight_' + Date.now();
 
-    if (parsedData._originalFile && flight) {
+    if (parsedData._originalFile) {
       try {
         const validation = FileStorageService.validateFileSize(parsedData._originalFile);
         if (!validation.valid) {
           setUploadError(validation.error);
         } else {
-          const result = await FileStorageService.saveReceipt(flight.id, newExpId, parsedData._originalFile);
+          const result = await FileStorageService.saveReceipt(flightId, newExpId, parsedData._originalFile);
           receiptFiles = [{ storagePath: result.storagePath, name: parsedData._originalFile.name, type: parsedData._originalFile.type, size: result.size, url: result.url }];
           receiptCount = 1;
         }
@@ -364,7 +372,9 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
   };
 
   const handleUpdate = (id, field, value) => {
-    setExpenses(expenses.map(e => e.id === id ? { ...e, [field]: value, _dirty: true } : e));
+    const updated = expenses.map(e => e.id === id ? { ...e, [field]: value, _dirty: true } : e);
+    setExpenses(updated);
+    persistExpensesToFlight(updated);
   };
 
   const handleSaveRow = (id) => {
@@ -454,7 +464,8 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
   };
 
   const handleUploadReceipts = async (files, expId) => {
-    if (!flight || !expId) return;
+    if (!expId) return;
+    const flightId = flight?.id || 'flight_' + Date.now();
     setUploadError(null);
     setUploadProgress('Uploading...');
 
@@ -466,7 +477,7 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
             setUploadError(validation.error);
             return null;
           }
-          const result = await FileStorageService.saveReceipt(flight.id, expId, f);
+          const result = await FileStorageService.saveReceipt(flightId, expId, f);
           return {
             storagePath: result.storagePath,
             name: f.name,

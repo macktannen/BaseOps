@@ -518,6 +518,7 @@ const ExpensesPage = () => {
       }
 
       const targetFlight = storedFlights[0];
+      const newExpId = Date.now();
 
       // Auto-upload document as receipt
       let receiptFiles = [];
@@ -525,7 +526,6 @@ const ExpensesPage = () => {
       if (parsedData._originalFile && targetFlight) {
         try {
           const { FileStorageService } = await import('../services/FileStorageService');
-          const newExpId = Date.now();
           const result = await FileStorageService.saveReceipt(targetFlight.id, newExpId, parsedData._originalFile);
           receiptFiles = [{ storagePath: result.storagePath, name: parsedData._originalFile.name, type: parsedData._originalFile.type, size: result.size, url: result.url }];
           receiptCount = 1;
