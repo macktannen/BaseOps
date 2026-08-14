@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
-import { Calendar as CalendarIcon, Users, Settings, MapPin, Plane, Building, LogOut } from 'lucide-react';
+import { Calendar as CalendarIcon, Users, Settings, MapPin, Helicopter, Building, LogOut } from 'lucide-react';
 import Logo from './components/Logo';
 import packageJson from '../package.json';
 import './index.css';
@@ -76,7 +76,7 @@ function DashboardLayout() {
             className={`nav-item ${activeTab === 'aircraft' ? 'active' : ''}`}
             onClick={() => setActiveTab('aircraft')}
           >
-            <Plane size={20} />
+            <Helicopter size={20} />
             Fleet
           </li>
           {permCan(currentUser, 'manageAccounts') && (

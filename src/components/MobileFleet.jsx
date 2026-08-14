@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { mockAircrafts } from '../data';
-import { Plane, Wrench, Trash2, Save, X, ChevronRight } from 'lucide-react';
+import { Helicopter, Wrench, Trash2, Save, X, ChevronRight } from 'lucide-react';
 import { authService } from '../services/authService';
 import { can as permCan } from '../services/permissionService';
 import SaveButton from './SaveButton';
@@ -206,7 +206,7 @@ const MobileFleet = () => {
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: 'var(--bg-color)' }}>
         <div style={{ padding: '15px', backgroundColor: 'white', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{ backgroundColor: 'var(--primary-light)', padding: '8px', borderRadius: '50%', color: 'var(--primary-color)' }}>
-            <Plane size={20} />
+            <Helicopter size={20} />
           </div>
           <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Fleet</h2>
           <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{aircraft.length} aircraft</span>
@@ -270,7 +270,7 @@ const MobileFleet = () => {
           <ChevronRight size={20} style={{ transform: 'rotate(180deg)' }} />
         </button>
         <div style={{ backgroundColor: 'var(--primary-light)', padding: '6px', borderRadius: '50%', color: 'var(--primary-color)' }}>
-          <Plane size={16} />
+          <Helicopter size={16} />
         </div>
         <span style={{ fontWeight: 700, fontSize: '1rem' }}>{selectedId || 'Aircraft'}</span>
       </div>
@@ -338,8 +338,8 @@ const MobileFleet = () => {
                         )}
                       </div>
                       {statusObj.hasFlight ? (
-                        <div style={{ fontSize: '0.8rem', color: 'var(--primary-color)', marginTop: '2px', fontWeight: 500 }}>
-                          ✈️ {statusObj.flightText}
+                        <div style={{ fontSize: '0.8rem', color: 'var(--primary-color)', marginTop: '2px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Helicopter size={12} /> {statusObj.flightText}
                         </div>
                       ) : (
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -354,7 +354,7 @@ const MobileFleet = () => {
 
             <div className="card" style={{ padding: '15px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Plane size={16} /> Operational Data
+                <Helicopter size={16} /> Operational Data
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
@@ -384,7 +384,7 @@ const MobileFleet = () => {
             <div className="card" style={{ padding: '15px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Plane size={16} /> Logbook Totals
+                  <Helicopter size={16} /> Logbook Totals
                 </label>
                 <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', backgroundColor: '#f7fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
                   <input 

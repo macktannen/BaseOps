@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar as CalendarIcon, Users, Plane, DollarSign, MoreHorizontal, Building, Settings, LogOut, X, ChevronLeft, ChevronRight, BookOpen, Plus, MessageSquare, Filter, RotateCcw } from 'lucide-react';
+import { Calendar as CalendarIcon, Users, Helicopter, DollarSign, MoreHorizontal, Building, Settings, LogOut, X, ChevronLeft, ChevronRight, BookOpen, Plus, MessageSquare, Filter, RotateCcw } from 'lucide-react';
 import Logo from './Logo';
 import packageJson from '../../package.json';
 import { useAuth } from '../contexts/useAuth';
@@ -550,7 +550,7 @@ export default function MobileLayout() {
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                            <Plane size={13} />
+                            <Helicopter size={13} />
                             <span>#{f.flightNumber} {f.title || ''}</span>
                           </div>
                           <span style={{
@@ -604,7 +604,7 @@ export default function MobileLayout() {
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                         <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--primary-color)' }}>
-                          <Plane size={14} style={{ display: 'inline', marginRight: '6px' }} />
+                          <Helicopter size={14} style={{ display: 'inline', marginRight: '6px' }} />
                           #{f.flightNumber} {f.title || ''}
                         </div>
                       </div>
@@ -744,7 +744,7 @@ export default function MobileLayout() {
   const primaryTabs = [
     { id: 'calendar', icon: CalendarIcon, label: 'Flights' },
     { id: 'crew', icon: Users, label: 'Crew' },
-    { id: 'aircraft', icon: Plane, label: 'Fleet' },
+    { id: 'aircraft', icon: Helicopter, label: 'Fleet' },
     { id: 'expenses', icon: DollarSign, label: 'Expenses' }
   ];
 

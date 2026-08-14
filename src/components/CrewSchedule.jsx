@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Filter, Settings, Settings2, Plane, X, GripVertical, Moon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Filter, Settings, Settings2, Helicopter, X, GripVertical, Moon } from 'lucide-react';
 import { startOfWeek, addDays, format, subWeeks, addWeeks } from 'date-fns';
 import airportsData from '../data/airports.json';
 import { mockCustomZones } from '../data';
@@ -544,10 +544,10 @@ const CrewSchedule = () => {
                                  <Moon size={9} color="#f6e05e" fill="#f6e05e" />
                                </div>
                              )}
-                             <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>
-                               <Plane size={10} style={{ display: 'inline', marginRight: '4px' }}/>
-                               #{f.flightNumber}
-                             </div>
+                              <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>
+                                <Helicopter size={10} style={{ display: 'inline', marginRight: '4px' }}/>
+                                #{f.flightNumber}
+                              </div>
                              {f.legs && f.legs.length > 0 && f.legs.map((l, i) => (
                                <div key={i} style={{ opacity: 0.9 }}>
                                  {getName(l.departure)} &#8594; {getName(l.destination)}
@@ -759,7 +759,7 @@ const CrewSchedule = () => {
                 
                 {dayFlights.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
-                    <Plane size={32} style={{ opacity: 0.3, marginBottom: '10px' }} />
+                    <Helicopter size={32} style={{ opacity: 0.3, marginBottom: '10px' }} />
                     <div>No flights scheduled for this day.</div>
                   </div>
                 ) : (
@@ -770,7 +770,7 @@ const CrewSchedule = () => {
                         <div key={f.id} style={{ border: `1px solid ${color}`, borderRadius: '8px', overflow: 'hidden', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
                           <div style={{ backgroundColor: color, color: 'white', padding: '10px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>
-                              <Plane size={16} style={{ display: 'inline', marginRight: '6px' }}/>
+                              <Helicopter size={16} style={{ display: 'inline', marginRight: '6px' }}/>
                               Flight #{f.flightNumber}
                             </div>
                             <button 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay } from 'date-fns';
-import { ChevronLeft, ChevronRight, User, Plane } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Helicopter } from 'lucide-react';
 import { mockPilots } from '../data';
 import { getColorForKey, getAccountColor, TAG_COLORS } from '../services/gridColors';
 
@@ -176,7 +176,7 @@ const MobileCrew = () => {
                           return (
                             <div key={f.id} style={{ display: 'flex', flexDirection: 'column', padding: '8px', border: `1px solid ${flightColor}`, borderRadius: '6px', backgroundColor: '#fff' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                                <Plane size={12} style={{ color: flightColor }} />
+                                <Helicopter size={12} style={{ color: flightColor }} />
                                 <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.85rem' }}>Flight #{f.flightNumber}</span>
                               </div>
                               {f.title && <div style={{ fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '4px' }}>{f.title}</div>}

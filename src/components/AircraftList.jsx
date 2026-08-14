@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
 
-import { Search, Plus, Trash2, Plane, Wrench } from 'lucide-react';
+import { Search, Plus, Trash2, Helicopter, Wrench } from 'lucide-react';
 import SaveButton from './SaveButton';
 import { mockAircrafts } from '../data';
 import { authService } from '../services/authService';
@@ -238,7 +238,7 @@ const AircraftList = () => {
       <div className="card" style={{ width: '350px', display: 'flex', flexDirection: 'column', padding: '15px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
           <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Plane size={18} /> Aircraft
+            <Helicopter size={18} /> Aircraft
           </h3>
           {canAddDeleteAircraft && (
             <button onClick={handleAddNew} className="btn btn-outline" style={{ padding: '4px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -305,7 +305,7 @@ const AircraftList = () => {
       <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '20px', overflowY: 'auto' }}>
         {!selectedAircraft ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
-            <Plane size={48} style={{ marginBottom: '16px', opacity: 0.2 }} />
+            <Helicopter size={48} style={{ marginBottom: '16px', opacity: 0.2 }} />
             <h3>Select an Aircraft</h3>
             <p style={{ fontSize: '0.875rem' }}>Click on an aircraft from the left to view or edit its details.</p>
           </div>
@@ -374,8 +374,8 @@ const AircraftList = () => {
                         )}
                       </div>
                       {statusObj.hasFlight ? (
-                        <div style={{ fontSize: '0.78rem', color: 'var(--primary-color)', marginTop: '2px', fontWeight: 500 }}>
-                          ✈️ {statusObj.flightText}
+                        <div style={{ fontSize: '0.78rem', color: 'var(--primary-color)', marginTop: '2px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Helicopter size={12} /> {statusObj.flightText}
                         </div>
                       ) : (
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -392,7 +392,7 @@ const AircraftList = () => {
               {/* Operational Info */}
               <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '15px', padding: '15px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: 'var(--bg-color)' }}>
                 <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Plane size={16} /> Operational Data
+                  <Helicopter size={16} /> Operational Data
                 </label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                   <label style={{ fontSize: '0.75rem', fontWeight: 500 }}>Base Location</label>
@@ -421,7 +421,7 @@ const AircraftList = () => {
               <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '15px', padding: '15px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: 'var(--bg-color)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Plane size={16} /> Logbook Totals
+                    <Helicopter size={16} /> Logbook Totals
                   </label>
                   <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', backgroundColor: 'white', padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
                     <input 
