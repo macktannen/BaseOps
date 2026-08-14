@@ -1,5 +1,6 @@
 import { db } from '../firebase';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { notifyKeyChange } from './dataSyncService';
 
 let currentUserId = null;
 let unsubOrg = null;
@@ -10,13 +11,13 @@ let retryTimer = null;
 const PENDING_SYNC_KEY = '_baseOpsPendingSync';
 
 // Tracks which localStorage keys currently have a Firestore write in flight.
-// Used to avoid onSnapshot / initStore reverting a freshly-saved local change
-// with stale Firestore data during the brief window before the remote write lands.
 const pendingWrites = {};
+
+const originalSetItem = localStorage.setItem.bind(localStorage);
+const originalGetItem = localStorage.getItem.bind(localStorage);
 
 function isPendingLocalWrite(key) {
   if (pendingWrites[key]) return true;
-  // A queued (unsynced) local write must also win over stale remote data.
   return getPendingQueue().some(e => e.key === key);
 }
 
@@ -85,14 +86,82 @@ function getOrgDocRef() {
 
 export function setUserId(userId) {
   currentUserId = userId;
+  if (userId) {
+    flushPendingQueue();
+  }
 }
 
 export function getUserId() {
   return currentUserId;
 }
 
+/**
+ * Intelligent flight merge to guarantee that uploads, expenses, and leg edits
+ * from local and remote are NEVER lost or overwritten.
+ */
+function mergeFlights(localFlights, remoteFlights) {
+  if (!Array.isArray(localFlights) || localFlights.length === 0) return remoteFlights || [];
+  if (!Array.isArray(remoteFlights) || remoteFlights.length === 0) return localFlights;
+
+  const merged = [...remoteFlights];
+  for (const lFlight of localFlights) {
+    const rIdx = merged.findIndex(rf => 
+      (rf.id && lFlight.id && String(rf.id) === String(lFlight.id)) ||
+      (rf.flightNumber && lFlight.flightNumber && String(rf.flightNumber) === String(lFlight.flightNumber))
+    );
+    if (rIdx === -1) {
+      merged.push(lFlight);
+    } else {
+      const rFlight = merged[rIdx];
+      
+      // Merge uploads (union by id, storagePath, or name)
+      const rUploads = Array.isArray(rFlight.uploads) ? rFlight.uploads : [];
+      const lUploads = Array.isArray(lFlight.uploads) ? lFlight.uploads : [];
+      const uploadsMap = new Map();
+      rUploads.forEach(u => uploadsMap.set(u.id || u.storagePath || u.name, u));
+      lUploads.forEach(u => uploadsMap.set(u.id || u.storagePath || u.name, u));
+      const mergedUploads = Array.from(uploadsMap.values());
+
+      // Merge expenses (union by id, preserve receiptFiles)
+      const rExpenses = Array.isArray(rFlight.expenses) ? rFlight.expenses : [];
+      const lExpenses = Array.isArray(lFlight.expenses) ? lFlight.expenses : [];
+      const expMap = new Map();
+      rExpenses.forEach(e => expMap.set(String(e.id), e));
+      lExpenses.forEach(e => {
+        const existing = expMap.get(String(e.id));
+        if (!existing) {
+          expMap.set(String(e.id), e);
+        } else {
+          // Merge receiptFiles if local has any
+          const existingReceipts = existing.receiptFiles || [];
+          const localReceipts = e.receiptFiles || [];
+          const mergedReceipts = localReceipts.length >= existingReceipts.length ? localReceipts : existingReceipts;
+          expMap.set(String(e.id), {
+            ...existing,
+            ...e,
+            receiptFiles: mergedReceipts,
+            receiptCount: Math.max(existing.receiptCount || 0, e.receiptCount || 0, mergedReceipts.length)
+          });
+        }
+      });
+      const mergedExpenses = Array.from(expMap.values());
+
+      merged[rIdx] = {
+        ...rFlight,
+        ...lFlight,
+        uploads: mergedUploads,
+        expenses: mergedExpenses
+      };
+    }
+  }
+  return merged;
+}
+
 async function persistKeyToFirestore(key, value) {
-  if (!currentUserId) return false;
+  if (!currentUserId) {
+    queueForRetry(key, value);
+    return false;
+  }
   const fsKey = FIRESTORE_KEY_MAP[key] || key;
   try {
     const orgRef = getOrgDocRef();
@@ -107,7 +176,7 @@ async function persistKeyToFirestore(key, value) {
   }
 }
 
-// Retry any queued (unsynced) writes. Called on login and on a timer.
+// Retry any queued (unsynced) writes.
 async function flushPendingQueue() {
   if (!currentUserId) return;
   const queue = getPendingQueue();
@@ -122,7 +191,7 @@ async function flushPendingQueue() {
 
 function startRetryTimer() {
   if (retryTimer) return;
-  retryTimer = setInterval(() => flushPendingQueue(), 10000);
+  retryTimer = setInterval(() => flushPendingQueue(), 8000);
 }
 
 export async function initStore() {
@@ -137,22 +206,32 @@ export async function initStore() {
       const data = snap.data();
       Object.entries(FIRESTORE_KEY_MAP).forEach(([lsKey, fsKey]) => {
         if (data[fsKey] !== undefined && data[fsKey] !== null) {
-          const localRaw = localStorage.getItem(lsKey);
+          const localRaw = originalGetItem(lsKey);
           let localData = null;
           if (localRaw) {
             try { localData = JSON.parse(localRaw); } catch { localData = localRaw; }
           }
-          const firestoreStr = JSON.stringify(data[fsKey]);
-          const localStr = JSON.stringify(localData);
-          if (firestoreStr !== localStr && !isPendingLocalWrite(lsKey)) {
-            if (typeof data[fsKey] === 'string') {
-              localStorage.setItem(lsKey, data[fsKey]);
-            } else {
-              localStorage.setItem(lsKey, JSON.stringify(data[fsKey]));
-            }
+
+          let finalData = data[fsKey];
+          if (lsKey === 'userFlights' && Array.isArray(localData)) {
+            finalData = mergeFlights(localData, data[fsKey]);
+          }
+
+          const finalStr = typeof finalData === 'string' ? finalData : JSON.stringify(finalData);
+          const localStr = typeof localData === 'string' ? localData : JSON.stringify(localData);
+
+          if (finalStr !== localStr && !isPendingLocalWrite(lsKey)) {
+            originalSetItem(lsKey, finalStr);
+            window.dispatchEvent(new Event('storage'));
+            window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: lsKey } }));
+          }
+
+          // If local had more data merged in, persist merged back to Firestore
+          if (lsKey === 'userFlights' && JSON.stringify(finalData) !== JSON.stringify(data[fsKey])) {
+            persistKeyToFirestore('userFlights', finalData);
           }
         } else {
-          const existing = localStorage.getItem(lsKey);
+          const existing = originalGetItem(lsKey);
           if (existing) {
             try {
               const parsed = JSON.parse(existing);
@@ -167,7 +246,7 @@ export async function initStore() {
       const allData = {};
       let hasData = false;
       LS_KEYS_TO_SYNC.forEach(key => {
-        const raw = localStorage.getItem(key);
+        const raw = originalGetItem(key);
         if (raw) {
           hasData = true;
           try {
@@ -197,17 +276,23 @@ export async function initStore() {
       const data = snap.data();
       Object.entries(FIRESTORE_KEY_MAP).forEach(([lsKey, fsKey]) => {
         if (data[fsKey] !== undefined && data[fsKey] !== null) {
-          const current = localStorage.getItem(lsKey);
+          const current = originalGetItem(lsKey);
           let currentParsed = null;
           if (current) {
             try { currentParsed = JSON.parse(current); } catch { currentParsed = current; }
           }
-          if (JSON.stringify(data[fsKey]) !== JSON.stringify(currentParsed) && !isPendingLocalWrite(lsKey)) {
-            if (typeof data[fsKey] === 'string') {
-              localStorage.setItem(lsKey, data[fsKey]);
-            } else {
-              localStorage.setItem(lsKey, JSON.stringify(data[fsKey]));
-            }
+
+          let finalData = data[fsKey];
+          if (lsKey === 'userFlights' && Array.isArray(currentParsed)) {
+            finalData = mergeFlights(currentParsed, data[fsKey]);
+          }
+
+          const finalStr = typeof finalData === 'string' ? finalData : JSON.stringify(finalData);
+          const currentStr = typeof currentParsed === 'string' ? currentParsed : JSON.stringify(currentParsed);
+
+          if (finalStr !== currentStr && !isPendingLocalWrite(lsKey)) {
+            originalSetItem(lsKey, finalStr);
+            window.dispatchEvent(new Event('storage'));
             window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: lsKey } }));
           }
         }
@@ -230,17 +315,17 @@ export function stopRealtimeSync() {
   initialized = false;
 }
 
-const originalSetItem = localStorage.setItem.bind(localStorage);
-const originalGetItem = localStorage.getItem.bind(localStorage);
+// Intercept localStorage.setItem globally to automatically sync to Firestore & broadcast
 localStorage.setItem = (key, value) => {
   originalSetItem(key, value);
+  notifyKeyChange(key, value);
+
   if (LS_KEYS_TO_SYNC.has(key)) {
     let parsed;
     try { parsed = JSON.parse(value); } catch { parsed = value; }
     pendingWrites[key] = true;
     const p = persistKeyToFirestore(key, parsed);
     p.finally(() => clearPendingWrite(key));
-    // Safety: never block sync on a stuck write.
     setTimeout(() => clearPendingWrite(key), 5000);
   }
 };

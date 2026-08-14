@@ -144,7 +144,7 @@ const ExpensesPage = () => {
     } catch { setAccounts(mockAccounts); }
   }, []);
 
-  // Listen for storage events to refresh expenses when line-level saves occur
+  // Listen for storage and firestore-sync events to refresh expenses when saves or cloud sync occurs
   useEffect(() => {
     const handleStorageSync = () => {
       loadExpensesData();
@@ -154,7 +154,11 @@ const ExpensesPage = () => {
       } catch { /* ignore */ }
     };
     window.addEventListener('storage', handleStorageSync);
-    return () => window.removeEventListener('storage', handleStorageSync);
+    window.addEventListener('firestore-sync', handleStorageSync);
+    return () => {
+      window.removeEventListener('storage', handleStorageSync);
+      window.removeEventListener('firestore-sync', handleStorageSync);
+    };
   }, []);
 
   useEffect(() => {

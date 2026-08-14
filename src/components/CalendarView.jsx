@@ -211,7 +211,7 @@ const CalendarView = () => {
     } catch { setAccountsList(mockAccounts); }
   }, []);
 
-  // Listen for storage events (fired by line-level expense saves, etc.) and refresh flights
+  // Listen for storage events and firestore sync to refresh flights
   useEffect(() => {
     const handleStorageSync = () => {
       try {
@@ -222,7 +222,11 @@ const CalendarView = () => {
       } catch { /* ignore parse errors */ }
     };
     window.addEventListener('storage', handleStorageSync);
-    return () => window.removeEventListener('storage', handleStorageSync);
+    window.addEventListener('firestore-sync', handleStorageSync);
+    return () => {
+      window.removeEventListener('storage', handleStorageSync);
+      window.removeEventListener('firestore-sync', handleStorageSync);
+    };
   }, []);
 
   const monthStart = startOfMonth(currentDate);
@@ -248,35 +252,16 @@ const CalendarView = () => {
       const sourceDepDate = pendingDuplicateFlight.legs?.[0]?.date || pendingDuplicateFlight.date?.split?.('T')[0] || new Date().toISOString().split('T')[0];
       const targetDateStr = format(date, 'yyyy-MM-dd');
 
-      let offsetDays = 0;
-      if (sourceDepDate && sourceDepDate !== targetDateStr) {
-         const sourceD = new Date(sourceDepDate + 'T12:00:00Z');
-         const targetD = new Date(targetDateStr + 'T12:00:00Z');
-         offsetDays = Math.round((targetD.getTime() - sourceD.getTime()) / (1000 * 60 * 60 * 24));
-      }
-      
       const shiftedLegs = (pendingDuplicateFlight.legs || []).map(l => {
-         let newDepDate = l.date || sourceDepDate;
-         let newArrDate = l.arrDate || newDepDate;
-
-         if (l.date && offsetDays !== 0) {
-           const d = new Date(l.date + 'T12:00:00Z');
-           d.setDate(d.getDate() + offsetDays);
-           newDepDate = d.toISOString().split('T')[0];
-         }
-         if (l.arrDate && offsetDays !== 0) {
-           const a = new Date(l.arrDate + 'T12:00:00Z');
-           a.setDate(a.getDate() + offsetDays);
-           newArrDate = a.toISOString().split('T')[0];
-         }
-         
-         return {
-           ...l,
-           date: newDepDate,
-           arrDate: newArrDate
-         };
+        const legDateStr = l.date || sourceDepDate;
+        let dayOffset = 0;
+        try {
+          dayOffset = differenceInCalendarDays(parseISO(legDateStr), parseISO(sourceDepDate));
+        } catch {}
+        const newLegDate = format(addDays(parseISO(targetDateStr), dayOffset), 'yyyy-MM-dd');
+        return { ...l, date: newLegDate, arrDate: newLegDate };
       });
-      
+
       const flightData = { 
         ...pendingDuplicateFlight, 
         date: new Date(targetDateStr + 'T12:00:00Z').toISOString(), 
@@ -303,22 +288,60 @@ const CalendarView = () => {
   };
 
   const handleSaveFlight = (flightData) => {
+    let currentStored = [];
+    try {
+      currentStored = JSON.parse(localStorage.getItem('userFlights') || '[]');
+    } catch {}
+    if (!Array.isArray(currentStored) || currentStored.length === 0) {
+      currentStored = flights;
+    }
+
     let updatedFlights;
     let savedFlight = { ...flightData };
-    if (editingFlight) {
-      updatedFlights = flights.map(f => f.id === flightData.id ? flightData : f);
+
+    if (editingFlight || flightData.id) {
+      const targetId = flightData.id || editingFlight?.id;
+      const existing = currentStored.find(f => String(f.id) === String(targetId) || (flightData.flightNumber && String(f.flightNumber) === String(flightData.flightNumber)));
+      
+      // Preserve uploads & expenses if existing record had them
+      if (existing) {
+        if ((!savedFlight.uploads || savedFlight.uploads.length === 0) && (existing.uploads && existing.uploads.length > 0)) {
+          savedFlight.uploads = existing.uploads;
+        }
+        if ((!savedFlight.expenses || savedFlight.expenses.length === 0) && (existing.expenses && existing.expenses.length > 0)) {
+          savedFlight.expenses = existing.expenses;
+        }
+      }
+
+      let found = false;
+      updatedFlights = currentStored.map(f => {
+        if (String(f.id) === String(targetId) || (flightData.flightNumber && String(f.flightNumber) === String(flightData.flightNumber))) {
+          found = true;
+          return { ...f, ...savedFlight };
+        }
+        return f;
+      });
+      if (!found) {
+        updatedFlights.push(savedFlight);
+      }
+      setEditingFlight(savedFlight);
     } else {
       savedFlight.id = Date.now();
-      updatedFlights = [...flights, savedFlight];
+      updatedFlights = [...currentStored, savedFlight];
       setEditingFlight(savedFlight);
     }
+
     setFlights(updatedFlights);
     localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
-    // Do not close modal automatically, allow user to continue editing or close manually
   };
 
   const handleDeleteFlight = (flightId) => {
-    const updatedFlights = flights.filter(f => f.id !== flightId);
+    let currentStored = [];
+    try {
+      currentStored = JSON.parse(localStorage.getItem('userFlights') || '[]');
+    } catch {}
+    const base = currentStored.length > 0 ? currentStored : flights;
+    const updatedFlights = base.filter(f => f.id !== flightId);
     setFlights(updatedFlights);
     localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
     setIsModalOpen(false);

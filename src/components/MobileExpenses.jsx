@@ -117,7 +117,11 @@ const MobileExpenses = () => {
     loadFlightsData();
     const handleStorage = () => { loadExpensesData(); loadFlightsData(); };
     window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
+    window.addEventListener('firestore-sync', handleStorage);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('firestore-sync', handleStorage);
+    };
   }, []);
 
   const persistExpenseToFlight = (flightId, updatedExpenses) => {

@@ -669,15 +669,33 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const [draggableLegIndex, setDraggableLegIndex] = useState(null);
 
   const persistUploadsToFlight = (nextUploads) => {
-    if (!flight || !flight.id) return;
+    if (!flight && (!nextUploads || nextUploads.length === 0)) return;
     try {
       const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
-      const flightIdx = storedFlights.findIndex(f => String(f.id) === String(flight.id));
-      if (flightIdx >= 0) {
-        storedFlights[flightIdx] = { ...storedFlights[flightIdx], uploads: nextUploads };
-        localStorage.setItem('userFlights', JSON.stringify(storedFlights));
-        window.dispatchEvent(new Event('storage'));
+      const targetId = flight?.id ? String(flight.id) : null;
+      const targetFlightNumber = flight?.flightNumber ? String(flight.flightNumber) : null;
+
+      let found = false;
+      const updatedFlights = storedFlights.map(f => {
+        const isMatch = (targetId && String(f.id) === targetId) ||
+                        (targetFlightNumber && String(f.flightNumber) === targetFlightNumber);
+        if (isMatch) {
+          found = true;
+          return { ...f, uploads: nextUploads };
+        }
+        return f;
+      });
+
+      if (!found && flight) {
+        updatedFlights.push({
+          ...flight,
+          id: flight.id || Date.now(),
+          uploads: nextUploads
+        });
       }
+
+      localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
+      window.dispatchEvent(new Event('storage'));
     } catch (e) {
       console.error('Failed to persist uploads to flight:', e);
     }

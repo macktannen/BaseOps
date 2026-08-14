@@ -11,14 +11,7 @@ if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
   }
 }
 
-// Override setItem to broadcast changes
-const originalSetItem = localStorage.setItem.bind(localStorage);
-localStorage.setItem = (key, value) => {
-  originalSetItem(key, value);
-  notifyKeyChange(key, value);
-};
-
-function notifyKeyChange(key, value) {
+export function notifyKeyChange(key, value) {
   if (channel) {
     try {
       channel.postMessage({ type: 'STORAGE_CHANGE', key, value, timestamp: Date.now() });
