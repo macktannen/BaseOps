@@ -668,6 +668,21 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const dragOverItem = useRef(null);
   const [draggableLegIndex, setDraggableLegIndex] = useState(null);
 
+  const persistUploadsToFlight = (nextUploads) => {
+    if (!flight || !flight.id) return;
+    try {
+      const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
+      const flightIdx = storedFlights.findIndex(f => String(f.id) === String(flight.id));
+      if (flightIdx >= 0) {
+        storedFlights[flightIdx] = { ...storedFlights[flightIdx], uploads: nextUploads };
+        localStorage.setItem('userFlights', JSON.stringify(storedFlights));
+        window.dispatchEvent(new Event('storage'));
+      }
+    } catch (e) {
+      console.error('Failed to persist uploads to flight:', e);
+    }
+  };
+
   const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
@@ -675,7 +690,9 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     setUploading(true);
     try {
       const results = await Promise.all(files.map(f => FileStorageService.saveFile(flightId, f)));
-      setUploads(prev => [...prev, ...results]);
+      const nextUploads = [...uploads, ...results];
+      setUploads(nextUploads);
+      persistUploadsToFlight(nextUploads);
     } catch (err) {
       console.error('Upload failed:', err);
       alert('Upload failed: ' + (err.message || 'Unknown error'));
@@ -689,7 +706,9 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     if (!window.confirm(`Delete "${upload.name}"?`)) return;
     try {
       await FileStorageService.deleteFile(upload.storagePath, upload);
-      setUploads(prev => prev.filter(u => u.id !== upload.id));
+      const nextUploads = uploads.filter(u => u.id !== upload.id);
+      setUploads(nextUploads);
+      persistUploadsToFlight(nextUploads);
     } catch (err) {
       console.error('Delete failed:', err);
     }
