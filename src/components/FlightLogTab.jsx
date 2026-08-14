@@ -230,7 +230,7 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList,
               <th colSpan="2" style={{ textAlign: 'center', padding: '2px 4px', backgroundColor: '#e2e8f0' }}>Flight Info</th>
             </tr>
             <tr style={{ backgroundColor: '#f7fafc' }}>
-              <th style={{ minWidth: '90px', padding: '2px 4px', borderRight: '1px solid #e2e8f0' }}>Trip</th>
+              <th style={{ minWidth: '90px', padding: '2px 4px', borderRight: '1px solid #e2e8f0' }}>MSN #</th>
               <th style={{ padding: '2px 4px' }}>Flight (Hrs)</th>
               <th style={{ padding: '2px 4px' }}>Block (Hrs)</th>
               <th style={{ borderRight: '1px solid #e2e8f0', padding: '2px 4px' }}>Hobbs</th>
@@ -433,7 +433,7 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList,
         <table className="data-table" style={{ width: '100%', fontSize: '0.7rem' }}>
           <thead>
             <tr>
-              <th style={{ padding: '2px 4px' }}>Trip</th>
+              <th style={{ padding: '2px 4px' }}>MSN #</th>
               <th style={{ padding: '2px 4px' }}>Date (UTC)</th>
               <th style={{ padding: '2px 4px' }}>Flt Hrs</th>
               <th style={{ padding: '2px 4px' }}>Blk Hrs</th>

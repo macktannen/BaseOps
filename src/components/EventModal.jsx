@@ -1368,11 +1368,11 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
              </div>
             )}
             <div className="header-divider" style={{ width: '1px', height: '30px', backgroundColor: 'var(--border-color)' }}></div>
-            <div className="trip-number-field" style={{ fontSize: '1.2rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>TRIP # <strong style={{ color: 'var(--text-color)' }}>{flightNumber || 'NEW'}</strong></div>
+            <div className="trip-number-field" style={{ fontSize: '1.2rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>MISSION # <strong style={{ color: 'var(--text-color)' }}>{flightNumber || 'NEW'}</strong></div>
             <div className="header-divider" style={{ width: '1px', height: '30px', backgroundColor: 'var(--border-color)' }}></div>
             <div className="title-field" style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: '150px' }}>
                <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>TITLE</span>
-               <input type="text" value={title} onChange={e => setTitle(e.target.value)} style={{ border: 'none', fontWeight: 'bold', fontSize: '1rem', outline: 'none', color: 'var(--text-color)', width: '100%' }} placeholder="Enter Trip Title..." />
+               <input type="text" value={title} onChange={e => setTitle(e.target.value)} style={{ border: 'none', fontWeight: 'bold', fontSize: '1rem', outline: 'none', color: 'var(--text-color)', width: '100%' }} placeholder="Enter Mission Title..." />
             </div>
             <div className="header-divider" style={{ width: '1px', height: '30px', backgroundColor: 'var(--border-color)' }}></div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -1555,7 +1555,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
               fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary-color)',
               backgroundColor: 'var(--primary-light)', padding: '3px 8px', borderRadius: '4px'
             }}>
-              TRIP #{flightNumber || 'NEW'}
+              MSN #{flightNumber || 'NEW'}
             </span>
             <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {title || 'Untitled Flight'}
@@ -1573,20 +1573,20 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
 
         {isMobile && !headerCollapsed && (
           <>
-            {/* Row 1: Trip + Title */}
+            {/* Row 1: Mission + Title */}
             <div style={{
               display: 'flex', alignItems: 'center', gap: '10px',
               padding: '8px 15px', backgroundColor: '#f7fafc', borderBottom: '1px solid var(--border-color)',
               flexShrink: 0
             }}>
               <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary-color)', whiteSpace: 'nowrap' }}>
-                TRIP #{flightNumber || 'NEW'}
+                MSN #{flightNumber || 'NEW'}
               </span>
               <input
                 type="text"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
-                placeholder="Enter Trip Title..."
+                placeholder="Enter Mission Title..."
                 style={{
                   flex: 1, border: 'none', background: 'transparent', outline: 'none',
                   fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', minWidth: 0

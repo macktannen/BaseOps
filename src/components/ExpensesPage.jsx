@@ -891,7 +891,7 @@ const ExpensesPage = () => {
                 <thead style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 1 }}>
                   <tr>
                     <th style={{ padding: '12px', cursor: 'pointer' }} onClick={() => handleHeaderClick('date')}>Date</th>
-                    <th style={{ padding: '12px', cursor: 'pointer' }} onClick={() => handleHeaderClick('flightNumber')}>Trip</th>
+                    <th style={{ padding: '12px', cursor: 'pointer' }} onClick={() => handleHeaderClick('flightNumber')}>MSN #</th>
                     <th style={{ padding: '12px', cursor: 'pointer' }} onClick={() => handleHeaderClick('flightAircraft')}>Aircraft</th>
                     <th style={{ padding: '12px', cursor: 'pointer' }} onClick={() => handleHeaderClick('flightAccount')}>Account</th>
                     <th style={{ padding: '12px', cursor: 'pointer' }} onClick={() => handleHeaderClick('vendor')}>Vendor</th>
@@ -1195,28 +1195,28 @@ const ExpensesPage = () => {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div style={{ gridColumn: '1 / -1' }}>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#2d3748', marginBottom: '4px' }}>Trip</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#2d3748', marginBottom: '4px' }}>Mission #</label>
                 {isMobile ? (
                   <MobileDropdownMenu
                     value={manualForm.flightId}
                     onChange={val => handleManualFieldChange('flightId', val)}
                     options={[
-                      { value: '', label: 'Department (no flight)' },
+                      { value: '', label: 'Department (no mission)' },
                       ...flightsList.map(f => ({
                         value: String(f.id),
                         label: `#${f.flightNumber || f.id} — ${f.title || 'Untitled'} (${(f.date || '').split('T')[0]})`
                       }))
                     ]}
-                    placeholder="Select trip"
+                    placeholder="Select mission"
                     style={{ width: '100%' }}
                   />
                 ) : (
                   <select
                     value={manualForm.flightId}
                     onChange={(e) => handleManualFieldChange('flightId', e.target.value)}
-                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e0', borderRadius: '6px', fontSize: '0.9rem', backgroundColor: 'white' }}
                   >
-                    <option value="">Department (no flight)</option>
+                    <option value="">Department (no mission)</option>
                     {flightsList.map(f => (
                       <option key={f.id} value={String(f.id)}>
                         #{f.flightNumber || f.id} — {f.title || 'Untitled'} ({(f.date || '').split('T')[0]})
