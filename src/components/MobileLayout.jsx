@@ -601,8 +601,13 @@ export default function MobileLayout() {
         zIndex: 100
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Logo size={22} light={true} iconOnly={true} />
-          <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{TAB_TITLES[activeTab] || 'BaseOps'}</span>
+          <Logo size={20} light={true} />
+          {activeTab !== 'calendar' && TAB_TITLES[activeTab] && (
+            <>
+              <span style={{ opacity: 0.35, fontSize: '0.8rem' }}>|</span>
+              <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'rgba(255,255,255,0.95)' }}>{TAB_TITLES[activeTab]}</span>
+            </>
+          )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <SyncStatusIndicator />
