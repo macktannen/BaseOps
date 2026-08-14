@@ -751,7 +751,6 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
             }
             e.target.value = '';
           }}
-          accept="image/*,.pdf"
           multiple
         />
       </div>

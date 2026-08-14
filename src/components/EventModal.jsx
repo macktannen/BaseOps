@@ -2148,7 +2148,6 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                   multiple
                   onChange={handleFileUpload}
                   style={{ display: 'none' }}
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.png,.jpg,.jpeg,.gif,.heic,.heif,.dwg,.dxf,.kml,.kmz,.geojson,.json,.gpx,.shp,.shx,.dbf,.prj,.mp4,.webm,.mov,.mp3,.wav,.html,.xml,.svg"
                 />
                 <button
                   className="btn btn-primary"

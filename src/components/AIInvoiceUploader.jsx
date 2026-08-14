@@ -66,7 +66,7 @@ const AIInvoiceUploader = ({ onExpenseParsed, buttonStyle = {}, compact = false 
         <input
           type="file"
           id={`ai-pdf-input-${compact ? 'compact' : 'full'}`}
-          accept=".pdf,.png,.jpg,.jpeg"
+          accept=".pdf,.png,.jpg,.jpeg,.csv,.txt"
           onChange={handleFileChange}
           style={{ display: 'none' }}
           disabled={isProcessing}
