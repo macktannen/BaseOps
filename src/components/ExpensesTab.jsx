@@ -89,13 +89,11 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   const persistExpensesToFlight = (updatedExpenses) => {
-    if (!flight) return;
+    if (!flight && (!updatedExpenses || updatedExpenses.length === 0)) return;
     try {
       const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
-      if (!Array.isArray(storedFlights) || storedFlights.length === 0) return;
-
-      const targetId = flight.id ? String(flight.id) : null;
-      const targetFlightNumber = flight.flightNumber ? String(flight.flightNumber) : null;
+      const targetId = flight?.id ? String(flight.id) : null;
+      const targetFlightNumber = flight?.flightNumber ? String(flight.flightNumber) : null;
 
       let found = false;
       const updatedFlights = storedFlights.map(f => {
@@ -108,10 +106,16 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
         return f;
       });
 
-      if (found) {
-        localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
-        window.dispatchEvent(new Event('storage'));
+      if (!found && flight) {
+        updatedFlights.push({
+          ...flight,
+          id: flight.id || Date.now(),
+          expenses: updatedExpenses
+        });
       }
+
+      localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
+      window.dispatchEvent(new Event('storage'));
     } catch (e) {
       console.error("Failed to persist expenses to localStorage", e);
     }
@@ -702,17 +706,17 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
                     <input type="text" value={exp.description || ''} onChange={e => handleUpdate(exp.id, 'description', e.target.value)} onFocus={e => e.target.select()} placeholder="Notes" style={inputStyle} />
                   </td>
                   <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '2px' }}>
-                    {exp._dirty || (!exp._saved && exp._saved !== undefined) || (!exp.autoParsed && !exp._saved && (exp.vendor || exp.amount || exp.category)) ? (
+                    {exp._dirty ? (
                       <button 
                         type="button" 
                         onClick={() => handleSaveRow(exp.id)} 
-                        style={{ background: '#3182ce', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '3px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}
+                        style={{ background: '#3182ce', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '3px 6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}
                         title="Click to Save changes to this expense line"
                       >
                         <Save size={13} />
                       </button>
-                    ) : filled && valid ? (
-                      <Check size={16} color="#48bb78" title="Expense saved" />
+                    ) : (filled || exp._saved || exp.autoParsed) ? (
+                      <Check size={16} color="#48bb78" title="Expense saved to flight" />
                     ) : (
                       <button type="button" onClick={handleAdd} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }} title="Add expense">
                         <Plus size={15} />
