@@ -29,9 +29,8 @@ const Login = () => {
     <div style={{ display: 'flex', height: '100vh', backgroundColor: 'var(--bg-color)', alignItems: 'center', justifyContent: 'center' }}>
       <div className="card" style={{ width: '100%', maxWidth: '400px', padding: '40px', backgroundColor: 'white' }}>
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-          <Logo size={72} style={{ marginBottom: '10px' }} />
-          <h2 style={{ color: 'var(--text-color)', margin: 0 }}>BaseOps</h2>
-          <p style={{ color: 'var(--text-muted)', marginTop: '5px' }}>Log in to your account</p>
+          <Logo size={48} style={{ marginBottom: '16px' }} />
+          <p style={{ color: 'var(--text-muted)', marginTop: '0px', fontSize: '0.95rem' }}>Log in to your account</p>
         </div>
         
         {error && <div style={{ backgroundColor: '#fed7d7', color: '#c53030', padding: '10px', borderRadius: '4px', marginBottom: '20px', fontSize: '0.875rem' }}>{error}</div>}

@@ -601,7 +601,7 @@ export default function MobileLayout() {
         zIndex: 100
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Logo size={20} light={true} />
+          <Logo size={22} light={true} iconOnly={true} />
           <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{TAB_TITLES[activeTab] || 'BaseOps'}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

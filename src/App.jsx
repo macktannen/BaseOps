@@ -46,12 +46,9 @@ function DashboardLayout() {
     <div className="app-container">
       {/* Sidebar */}
       <div className="sidebar">
-        <div className="sidebar-header">
-          <Logo size={36} light={true} />
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span>BaseOps</span>
-            <span style={{fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', fontWeight: 400, marginTop: '2px'}}>{APP_VERSION}</span>
-          </div>
+        <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px' }}>
+          <Logo size={28} light={true} />
+          <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', fontWeight: 500, padding: '2px 6px', background: 'rgba(255,255,255,0.12)', borderRadius: '4px', letterSpacing: '0.5px' }}>{APP_VERSION}</span>
         </div>
         <ul className="nav-menu">
           <li 
