@@ -539,11 +539,11 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
   const totalAmount = expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
   const totalGallons = expenses.reduce((sum, e) => sum + (parseFloat(e.gallons) || 0), 0);
 
-  const tdStyle = { padding: '4px', verticalAlign: 'middle' };
-  const inputStyle = { width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '0.75rem' };
+  const tdStyle = { padding: '3px 2px', verticalAlign: 'middle' };
+  const inputStyle = { width: '100%', padding: '5px 4px', border: '1px solid #cbd5e0', borderRadius: '4px', fontSize: '0.72rem', boxSizing: 'border-box' };
 
   return (
-    <div style={{ padding: '20px', display: 'block', minHeight: '100%', overflowY: 'auto', backgroundColor: '#fff' }}>
+    <div style={{ padding: '15px', display: 'block', minHeight: '100%', overflowY: 'auto', backgroundColor: '#fff' }}>
       {uploadError && (
         <div style={{ marginBottom: '12px', padding: '10px 14px', backgroundColor: '#fff5f5', border: '1px solid #fed7d7', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px', color: '#c53030', fontSize: '0.85rem' }}>
           <AlertCircle size={16} />
@@ -552,22 +552,22 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
         </div>
       )}
 
-      <div style={{ overflowX: 'auto' }}>
-        <table className="expense-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1400px' }}>
+      <div style={{ overflowX: 'auto', width: '100%' }}>
+        <table className="expense-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr>
-              <th style={{ width: '30px', padding: '8px' }}></th>
-              <th style={{ padding: '8px', textAlign: 'left', fontSize: '0.75rem', color: '#718096', fontWeight: 500, cursor: 'pointer' }} onClick={() => handleHeaderClick('date')}>Date</th>
-              <th style={{ padding: '8px', textAlign: 'left', fontSize: '0.75rem', color: '#718096', fontWeight: 500, cursor: 'pointer' }} onClick={() => handleHeaderClick('vendor')}>Vendor</th>
-              <th style={{ padding: '8px', textAlign: 'left', fontSize: '0.75rem', color: '#718096', fontWeight: 500, cursor: 'pointer' }} onClick={() => handleHeaderClick('category')}>Category</th>
-              <th style={{ padding: '8px', textAlign: 'left', fontSize: '0.75rem', color: '#718096', fontWeight: 500, cursor: 'pointer' }} onClick={() => handleHeaderClick('payer')}>Payment</th>
-              <th style={{ padding: '8px', textAlign: 'left', fontSize: '0.75rem', color: '#718096', fontWeight: 500, cursor: 'pointer' }} onClick={() => handleHeaderClick('location')}>Airport / Location</th>
-              <th style={{ padding: '8px', textAlign: 'left', fontSize: '0.75rem', color: '#718096', fontWeight: 500, cursor: 'pointer' }} onClick={() => handleHeaderClick('fuelType')}>Fuel</th>
-              <th style={{ padding: '8px', textAlign: 'left', fontSize: '0.75rem', color: '#718096', fontWeight: 500, width: '60px', cursor: 'pointer' }} onClick={() => handleHeaderClick('gallons')}>Gal</th>
-              <th style={{ padding: '8px', textAlign: 'left', fontSize: '0.75rem', color: '#718096', fontWeight: 500, cursor: 'pointer' }} onClick={() => handleHeaderClick('purchaser')}>Purchaser</th>
-              <th style={{ padding: '8px', textAlign: 'right', fontSize: '0.75rem', color: '#718096', fontWeight: 500, width: '80px', cursor: 'pointer' }} onClick={() => handleHeaderClick('amount')}>Amount</th>
-              <th style={{ padding: '8px', textAlign: 'left', fontSize: '0.75rem', color: '#718096', fontWeight: 500, cursor: 'pointer' }} onClick={() => handleHeaderClick('description')}>Notes</th>
-              <th style={{ width: '60px', padding: '8px' }}></th>
+              <th style={{ width: '38px', padding: '6px 2px' }}></th>
+              <th style={{ width: '92px', padding: '6px 2px', textAlign: 'left', fontSize: '0.7rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('date')}>Date</th>
+              <th style={{ width: '13%', minWidth: '90px', padding: '6px 2px', textAlign: 'left', fontSize: '0.7rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('vendor')}>Vendor</th>
+              <th style={{ width: '14%', minWidth: '95px', padding: '6px 2px', textAlign: 'left', fontSize: '0.7rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('category')}>Category</th>
+              <th style={{ width: '10%', minWidth: '80px', padding: '6px 2px', textAlign: 'left', fontSize: '0.7rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('payer')}>Payment</th>
+              <th style={{ width: '9%', minWidth: '75px', padding: '6px 2px', textAlign: 'left', fontSize: '0.7rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('location')}>Location</th>
+              <th style={{ width: '8%', minWidth: '70px', padding: '6px 2px', textAlign: 'left', fontSize: '0.7rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('fuelType')}>Fuel</th>
+              <th style={{ width: '48px', padding: '6px 2px', textAlign: 'left', fontSize: '0.7rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('gallons')}>Gal</th>
+              <th style={{ width: '8%', minWidth: '70px', padding: '6px 2px', textAlign: 'left', fontSize: '0.7rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('purchaser')}>Purchaser</th>
+              <th style={{ width: '72px', padding: '6px 2px', textAlign: 'right', fontSize: '0.7rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('amount')}>Amount</th>
+              <th style={{ width: '12%', minWidth: '85px', padding: '6px 2px', textAlign: 'left', fontSize: '0.7rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('description')}>Notes</th>
+              <th style={{ width: '28px', padding: '6px 2px' }}></th>
             </tr>
           </thead>
           <tbody>
@@ -577,8 +577,8 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
               const hasReceipts = exp.receiptCount > 0 || exp.hasReceipt || (exp.receiptFiles && exp.receiptFiles.length > 0);
               return (
                 <tr key={exp.id} style={{ borderBottom: '1px solid #edf2f7' }}>
-                  <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                  <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '2px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
                       <button 
                         type="button" 
                         onClick={() => { 
@@ -589,25 +589,25 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
                             fileInputRef.current?.click(); 
                           } 
                         }} 
-                        style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', color: hasReceipts ? '#3182ce' : '#e53e3e', padding: '4px', display: 'flex', alignItems: 'center' }} 
+                        style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', color: hasReceipts ? '#3182ce' : '#e53e3e', padding: '2px', display: 'flex', alignItems: 'center' }} 
                         title="Upload Receipt"
                       >
-                        <FileText size={24} />
+                        <FileText size={18} />
                         {(exp.receiptCount > 1) && (
-                          <div style={{ position: 'absolute', top: '-6px', right: '-6px', backgroundColor: '#e53e3e', color: 'white', borderRadius: '50%', width: '16px', height: '16px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                          <div style={{ position: 'absolute', top: '-5px', right: '-5px', backgroundColor: '#e53e3e', color: 'white', borderRadius: '50%', width: '14px', height: '14px', fontSize: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
                             {exp.receiptCount}
                           </div>
                         )}
                       </button>
-                      <button type="button" onClick={() => handleRemove(exp.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a0aec0', padding: '4px', display: 'flex', alignItems: 'center' }} title="Remove Expense">
-                        <X size={20} />
+                      <button type="button" onClick={() => handleRemove(exp.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a0aec0', padding: '2px', display: 'flex', alignItems: 'center' }} title="Remove Expense">
+                        <X size={15} />
                       </button>
                     </div>
                   </td>
                   <td style={tdStyle}>
                     <input type="date" value={exp.date || ''} onChange={e => handleUpdate(exp.id, 'date', e.target.value)} onFocus={e => e.target.select()} style={inputStyle} />
                   </td>
-                  <td style={{ padding: '0 4px', width: '12%' }}>
+                  <td style={tdStyle}>
                     {isMobile ? (
                       <MobileDropdownMenu
                         value={exp.vendor || ''}
@@ -620,7 +620,7 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
                       <select
                         value={exp.vendor || ''}
                         onChange={(e) => handleUpdate(exp.id, 'vendor', e.target.value)}
-                        style={getStyle(exp, 'vendor', { width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '0.75rem' })}
+                        style={getStyle(exp, 'vendor', { ...inputStyle, padding: '5px 2px' })}
                       >
                         <option value="">Vendor</option>
                         {sortedVendors.map(v => (
@@ -643,12 +643,12 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
                       <MobileDropdownMenu
                         value={exp.payer || ''}
                         onChange={val => handleUpdate(exp.id, 'payer', val)}
-                        options={[{ value: '', label: 'Select Payment' }, ...sortedPayers.map(pOpt => ({ value: pOpt, label: pOpt }))]}
-                        placeholder="Select Payment"
+                        options={[{ value: '', label: 'Payment' }, ...sortedPayers.map(pOpt => ({ value: pOpt, label: pOpt }))]}
+                        placeholder="Payment"
                       />
                     ) : (
-                      <select value={exp.payer || ''} onChange={e => handleUpdate(exp.id, 'payer', e.target.value)} style={{ ...inputStyle, color: exp.payer ? 'inherit' : '#a0aec0' }}>
-                        <option value="" disabled>Select Payment</option>
+                      <select value={exp.payer || ''} onChange={e => handleUpdate(exp.id, 'payer', e.target.value)} style={{ ...inputStyle, padding: '5px 2px', color: exp.payer ? 'inherit' : '#a0aec0' }}>
+                        <option value="" disabled>Payment</option>
                         {sortedPayers.map(pOpt => (
                           <option key={pOpt} value={pOpt}>{pOpt}</option>
                         ))}
@@ -660,12 +660,12 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
                       <MobileDropdownMenu
                         value={exp.location || ''}
                         onChange={val => handleUpdate(exp.id, 'location', val)}
-                        options={[{ value: '', label: 'Select Airport' }, ...flightAirports.map(apt => ({ value: apt, label: apt }))]}
-                        placeholder="Select Airport"
+                        options={[{ value: '', label: 'Airport' }, ...flightAirports.map(apt => ({ value: apt, label: apt }))]}
+                        placeholder="Airport"
                       />
                     ) : (
-                      <select value={exp.location || ''} onChange={e => handleUpdate(exp.id, 'location', e.target.value)} style={getStyle(exp, 'location', { ...inputStyle, color: exp.location ? 'inherit' : '#a0aec0' })}>
-                        <option value="" disabled>Select Airport</option>
+                      <select value={exp.location || ''} onChange={e => handleUpdate(exp.id, 'location', e.target.value)} style={getStyle(exp, 'location', { ...inputStyle, padding: '5px 2px', color: exp.location ? 'inherit' : '#a0aec0' })}>
+                        <option value="" disabled>Airport</option>
                         {flightAirports.map(apt => (
                           <option key={apt} value={apt}>{apt}</option>
                         ))}
@@ -677,12 +677,12 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
                       <MobileDropdownMenu
                         value={exp.fuelType || ''}
                         onChange={val => handleUpdate(exp.id, 'fuelType', val)}
-                        options={[{ value: '', label: '-- Select Fuel --' }, ...sortedFuelTypes.map(fOpt => ({ value: fOpt, label: fOpt }))]}
-                        placeholder="-- Select Fuel --"
+                        options={[{ value: '', label: 'Fuel' }, ...sortedFuelTypes.map(fOpt => ({ value: fOpt, label: fOpt }))]}
+                        placeholder="Fuel"
                       />
                     ) : (
-                      <select value={exp.fuelType || ''} onChange={e => handleUpdate(exp.id, 'fuelType', e.target.value)} style={{ ...inputStyle, color: exp.fuelType ? 'inherit' : '#a0aec0' }}>
-                        <option value="">-- Select Fuel --</option>
+                      <select value={exp.fuelType || ''} onChange={e => handleUpdate(exp.id, 'fuelType', e.target.value)} style={{ ...inputStyle, padding: '5px 2px', color: exp.fuelType ? 'inherit' : '#a0aec0' }}>
+                        <option value="">Fuel</option>
                         {sortedFuelTypes.map(fOpt => (
                           <option key={fOpt} value={fOpt}>{fOpt}</option>
                         ))}
@@ -701,21 +701,21 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
                   <td style={tdStyle}>
                     <input type="text" value={exp.description || ''} onChange={e => handleUpdate(exp.id, 'description', e.target.value)} onFocus={e => e.target.select()} placeholder="Notes" style={inputStyle} />
                   </td>
-                  <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                  <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '2px' }}>
                     {exp._dirty || (!exp._saved && exp._saved !== undefined) || (!exp.autoParsed && !exp._saved && (exp.vendor || exp.amount || exp.category)) ? (
                       <button 
                         type="button" 
                         onClick={() => handleSaveRow(exp.id)} 
-                        style={{ background: '#3182ce', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '4px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}
+                        style={{ background: '#3182ce', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '3px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}
                         title="Click to Save changes to this expense line"
                       >
-                        <Save size={14} />
+                        <Save size={13} />
                       </button>
                     ) : filled && valid ? (
-                      <Check size={18} color="#48bb78" title="Expense saved" />
+                      <Check size={16} color="#48bb78" title="Expense saved" />
                     ) : (
-                      <button type="button" onClick={handleAdd} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }} title="Add expense">
-                        <Plus size={16} />
+                      <button type="button" onClick={handleAdd} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }} title="Add expense">
+                        <Plus size={15} />
                       </button>
                     )}
                   </td>
@@ -725,12 +725,12 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
             
             {(expenses && expenses.length > 0) && (
               <tr>
-                <td colSpan="7" style={{ padding: '12px 12px 12px 0', textAlign: 'right', fontWeight: 'bold', fontSize: '0.875rem', color: '#2d3748' }}>Total:</td>
-                <td style={{ padding: '12px 4px', textAlign: 'center', fontWeight: 'bold', fontSize: '0.875rem', color: '#2d3748' }}>
+                <td colSpan="7" style={{ padding: '10px 8px 10px 0', textAlign: 'right', fontWeight: 'bold', fontSize: '0.8rem', color: '#2d3748' }}>Total:</td>
+                <td style={{ padding: '10px 2px', textAlign: 'center', fontWeight: 'bold', fontSize: '0.8rem', color: '#2d3748' }}>
                   {totalGallons > 0 ? totalGallons : ''}
                 </td>
                 <td></td>
-                <td style={{ padding: '12px 4px', textAlign: 'right', fontWeight: 'bold', fontSize: '0.875rem', color: '#2d3748' }}>
+                <td style={{ padding: '10px 2px', textAlign: 'right', fontWeight: 'bold', fontSize: '0.8rem', color: '#2d3748' }}>
                   ${totalAmount.toFixed(2)}
                 </td>
                 <td colSpan="2"></td>
