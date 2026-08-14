@@ -170,12 +170,12 @@ const ExpensesPage = () => {
     const loadFiles = async () => {
       const loaded = await Promise.all(
         files.map(async (f) => {
-          if (f.storagePath) {
+          if (f.storagePath || f.localKey || f.url) {
             try {
-              const url = await FileStorageService.getReceiptUrl(f.storagePath);
-              return { ...f, url };
+              const url = await FileStorageService.getReceiptUrl(f.storagePath, f);
+              return { ...f, url: url || f.url };
             } catch {
-              return { ...f, url: null, error: 'Failed to load' };
+              return { ...f, url: f.url || null, error: f.url ? null : 'Failed to load' };
             }
           }
           if (f.url) return f;
@@ -191,8 +191,8 @@ const ExpensesPage = () => {
     if (!viewingExpense) return;
     const files = viewingExpense.receiptFiles || [];
     const fileToDelete = files[fileIndex];
-    if (fileToDelete && fileToDelete.storagePath) {
-      try { await FileStorageService.deleteReceipt(fileToDelete.storagePath); } catch {}
+    if (fileToDelete) {
+      try { await FileStorageService.deleteReceipt(fileToDelete.storagePath, fileToDelete); } catch {}
     }
     const newFiles = files.filter((_, idx) => idx !== fileIndex);
     const updatedExpenses = expenses.map(e => {
@@ -220,18 +220,40 @@ const ExpensesPage = () => {
   const handleDownloadReceipt = async (receipt) => {
     try {
       let url = receipt.url;
-      if (!url && receipt.storagePath) url = await FileStorageService.getReceiptUrl(receipt.storagePath);
+      if (!url && receipt.storagePath) url = await FileStorageService.getReceiptUrl(receipt.storagePath, receipt);
       if (!url) return;
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = receipt.name || 'receipt';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
+
+      if (url.startsWith('blob:') || url.startsWith('data:')) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = receipt.name || 'receipt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
+      }
+
+      try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = receipt.name || 'receipt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      } catch {
+        const a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.download = receipt.name || 'receipt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
     } catch (err) { console.error("Download failed:", err); }
   };
 

@@ -678,7 +678,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       setUploads(prev => [...prev, ...results]);
     } catch (err) {
       console.error('Upload failed:', err);
-      alert('Upload failed: ' + err.message);
+      alert('Upload failed: ' + (err.message || 'Unknown error'));
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -688,7 +688,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const handleDeleteUpload = async (upload) => {
     if (!window.confirm(`Delete "${upload.name}"?`)) return;
     try {
-      await FileStorageService.deleteFile(upload.storagePath);
+      await FileStorageService.deleteFile(upload.storagePath, upload);
       setUploads(prev => prev.filter(u => u.id !== upload.id));
     } catch (err) {
       console.error('Delete failed:', err);
@@ -697,17 +697,40 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
 
   const handleDownloadUpload = async (upload) => {
     try {
-      const url = upload.url || await FileStorageService.getFileUrl(upload.storagePath);
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = upload.name || 'download';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
+      const url = await FileStorageService.getFileUrl(upload.storagePath, upload) || upload.url;
+      if (!url) return;
+
+      if (url.startsWith('blob:') || url.startsWith('data:')) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = upload.name || 'download';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
+      }
+
+      try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = upload.name || 'download';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      } catch {
+        const a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.download = upload.name || 'download';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
     } catch (err) {
       console.error('Download failed:', err);
     }
@@ -715,10 +738,11 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
 
   const handleViewUpload = async (upload) => {
     try {
-      const url = upload.url || await FileStorageService.getFileUrl(upload.storagePath);
+      const url = await FileStorageService.getFileUrl(upload.storagePath, upload) || upload.url;
       setViewerFile({ ...upload, url });
     } catch (err) {
       console.error('View failed:', err);
+      if (upload.url) setViewerFile(upload);
     }
   };
 
