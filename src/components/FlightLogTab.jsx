@@ -8,7 +8,7 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList,
   const isMobile = useIsMobile();
   const [log, setLog] = useState({
     legsActuals: legs.map(() => ({
-      flightHrs: '', blockHrs: '', hobbs: '', engineCycles: '', engine1Cycles: '', engine2Cycles: '', engine1Hrs: '', engine2Hrs: '', landings: '', landingType: '', totalPax: ''
+      flightHrs: '', blockHrs: '', hobbs: '', engineCycles: '', engine1Cycles: '', engine2Cycles: '', engine1Hrs: '', engine2Hrs: '', landings: '', landingType: '', totalPax: '', fuelPurchased: false
     })),
     signature: null, // { name: '', timestamp: '' }
     isLocked: false,
@@ -70,7 +70,7 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList,
   const handleUpdateLeg = (index, field, value) => {
     const newLegs = [...log.legsActuals];
     if (!newLegs[index]) {
-       newLegs[index] = { flightHrs: '', blockHrs: '', hobbs: '', engineCycles: '', engine1Cycles: '', engine2Cycles: '', engine1Hrs: '', engine2Hrs: '', landings: '', landingType: '', totalPax: '' };
+       newLegs[index] = { flightHrs: '', blockHrs: '', hobbs: '', engineCycles: '', engine1Cycles: '', engine2Cycles: '', engine1Hrs: '', engine2Hrs: '', landings: '', landingType: '', totalPax: '', fuelPurchased: false };
     }
     newLegs[index][field] = value;
     setLog(prev => ({ ...prev, legsActuals: newLegs }));
@@ -80,6 +80,7 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList,
     let flight = 0, block = 0, hobbs = 0, pax = 0, lndgs = 0;
     let cycles1 = 0, cycles2 = 0;
     let eng1HrsTotal = 0, eng2HrsTotal = 0;
+    let fuelPurchasedCount = 0;
 
     log.legsActuals.forEach(l => {
       const fHrs = parseFloat(l.flightHrs || 0);
@@ -88,6 +89,7 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList,
       hobbs += parseFloat(l.hobbs || 0);
       pax += parseInt(l.totalPax || 0);
       lndgs += parseInt(l.landings || 0);
+      if (l.fuelPurchased) fuelPurchasedCount++;
 
       // Engine 1
       const c1 = parseInt(l.engine1Cycles !== undefined && l.engine1Cycles !== '' ? l.engine1Cycles : (l.engineCycles || 0));
@@ -110,6 +112,7 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList,
       lndgs,
       cycles1,
       cycles2,
+      fuelPurchasedCount,
       eng1HrsTotal: eng1HrsTotal.toFixed(1),
       eng2HrsTotal: eng2HrsTotal.toFixed(1)
     };
@@ -227,7 +230,7 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList,
               <th colSpan={isTwin ? 4 : 2} style={{ textAlign: 'center', borderRight: '1px solid #e2e8f0', padding: '2px 4px', backgroundColor: '#edf2f7' }}>
                 {isTwin ? 'Twin Engine Meters & Cycles' : 'Engine Cycles & Landings'}
               </th>
-              <th colSpan="2" style={{ textAlign: 'center', padding: '2px 4px', backgroundColor: '#e2e8f0' }}>Flight Info</th>
+              <th colSpan="4" style={{ textAlign: 'center', padding: '2px 4px', backgroundColor: '#e2e8f0' }}>Flight Info</th>
             </tr>
             <tr style={{ backgroundColor: '#f7fafc' }}>
               <th style={{ minWidth: '90px', padding: '2px 4px', borderRight: '1px solid #e2e8f0' }}>MSN #</th>
@@ -249,6 +252,7 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList,
               <th style={{ padding: '2px 4px' }}>Landings (#)</th>
               <th style={{ padding: '2px 4px' }}>Landing Type</th>
               <th style={{ padding: '2px 4px' }}>Total Pax</th>
+              <th style={{ padding: '2px 4px', textAlign: 'center', minWidth: '85px' }}>Fuel Purchased</th>
             </tr>
           </thead>
           <tbody>
@@ -308,6 +312,16 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList,
                        )}
                     </td>
                    <td style={{ padding: '2px 4px' }}><input type="number" value={act.totalPax} disabled={!isEditable} onChange={e => handleUpdateLeg(index, 'totalPax', e.target.value)} style={{ width: '40px', padding: '1px 2px', fontSize: '0.7rem' }} /></td>
+                   <td style={{ padding: '2px 4px', textAlign: 'center' }}>
+                     <input 
+                       type="checkbox" 
+                       checked={!!act.fuelPurchased} 
+                       disabled={!isEditable} 
+                       onChange={e => handleUpdateLeg(index, 'fuelPurchased', e.target.checked)} 
+                       style={{ cursor: isEditable ? 'pointer' : 'default', width: '16px', height: '16px', accentColor: '#2b6cb0' }} 
+                       title="Fuel purchased for this leg"
+                     />
+                   </td>
                  </tr>
                );
             })}
@@ -329,6 +343,9 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList,
               <td style={{ padding: '2px 4px' }}>{totals.lndgs}</td>
               <td style={{ padding: '2px 4px' }}></td>
               <td style={{ padding: '2px 4px' }}>{totals.pax}</td>
+              <td style={{ padding: '2px 4px', textAlign: 'center', fontSize: '0.7rem' }}>
+                {totals.fuelPurchasedCount > 0 ? `${totals.fuelPurchasedCount} leg${totals.fuelPurchasedCount > 1 ? 's' : ''}` : '-'}
+              </td>
             </tr>
           </tbody>
         </table>

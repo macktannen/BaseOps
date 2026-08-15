@@ -3,7 +3,8 @@
 ## Project Overview
 **BaseOps:** A web-based application to manage a fleet of helicopters, crew scheduling, mission planning, document uploads, and flight expenses. The app uses React, localStorage with offline retry queues, IndexedDB localforage resilience, and live synchronization with Firebase Firestore & Firebase Storage.
 
-## Current Status (v0.3.65)
+## Current Status (v0.3.66)
+- **Flight Log Fuel Purchased Checkbox Column:** Added a dedicated `Fuel Purchased` checkbox column under the Flight Info section of the Flight Log table in the event modal (`FlightLogTab.jsx`), enabling pilots and dispatchers to record fuel purchases per leg with automatic totals tracking.
 - **Clickable Stat Card Filtering:** Clicking `NET 15` instantly filters the expenses table/list to overdue invoices (> 15 days from transaction date and unpaid). Clicking `Paid` filters to paid expenses, `Unpaid` filters to unpaid expenses, and clicking `Total Expenses` resets the filter to show all rows. Active state borders and a filter clear badge are included on desktop (`ExpensesPage.jsx`) and mobile (`MobileExpenses.jsx`).
 - **NET 15 Overdue Invoices Tracking:** Added dedicated `NET 15` stat card to both desktop (`ExpensesPage.jsx`) and mobile (`MobileExpenses.jsx`), tracking unpaid expenses whose transaction dates are over 15 days past today.
 - **Paid / Unpaid Clean Labeling:** Streamlined the status counter label to `Paid / Unpaid` across desktop and mobile.

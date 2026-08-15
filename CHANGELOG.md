@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.66] - 2026-08-15
+
+### Added
+- **Flight Log Fuel Purchased Checkbox Column** — Added a dedicated `Fuel Purchased` checkbox column under the Flight Info section of the Flight Log table in the event modal (`FlightLogTab.jsx`), enabling pilots and dispatchers to record fuel purchases per leg with automatic totals tracking.
+
 ## [v0.3.65] - 2026-08-15
 
 ### Added
