@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { DollarSign, Search, Calendar, FileText, Building, Plus, Trash2, Edit2, Check, X, BarChart3, Paperclip, Download, CheckSquare } from 'lucide-react';
+import { DollarSign, Search, Calendar, FileText, Building, Plus, Trash2, Edit2, Check, X, BarChart3, Paperclip, Download, CheckSquare, Clock } from 'lucide-react';
 import { mockVendors, mockAccounts } from '../data';
 import EventModal from './EventModal';
 import AIInvoiceUploader from './AIInvoiceUploader';
@@ -446,6 +446,20 @@ const ExpensesPage = () => {
   const totalUnpaid = filteredExpenses.reduce((sum, e) => sum + (!e.isPaid ? parseFloat(e.amount || 0) : 0), 0);
   const paidCount = filteredExpenses.filter(e => e.isPaid).length;
   const unpaidCount = filteredExpenses.filter(e => !e.isPaid).length;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const net15Expenses = filteredExpenses.filter(e => {
+    if (e.isPaid) return false;
+    if (!e.date) return false;
+    const expDate = new Date(e.date + 'T00:00:00');
+    if (isNaN(expDate.getTime())) return false;
+    const diffDays = Math.floor((today.getTime() - expDate.getTime()) / (1000 * 60 * 60 * 24));
+    return diffDays > 15;
+  });
+  const net15Count = net15Expenses.length;
+  const net15Amount = net15Expenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+
   const categories = [
     'All', 'Catering', 'Cleaning / Detailing', 'Crew Meal', 'Customs / Border Fees', 
     'De-icing', 'Fuel', 'GPU / Start Cart', 'Ground Transportation', 'Handling', 
@@ -826,47 +840,60 @@ const ExpensesPage = () => {
 
       {activeTab === 'overview' && (
         <>
-          <div style={{ display: 'flex', gap: '20px' }}>
-            <div className="card" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <div style={{ padding: '15px', backgroundColor: '#e6fffa', borderRadius: '50%', color: '#319795' }}>
-                <DollarSign size={24} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '14px' }}>
+            <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px' }}>
+              <div style={{ padding: '12px', backgroundColor: '#e6fffa', borderRadius: '50%', color: '#319795', flexShrink: 0 }}>
+                <DollarSign size={20} />
               </div>
-              <div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Total Expenses</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>${totalAmount.toFixed(2)}</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Total Expenses</div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${totalAmount.toFixed(2)}</div>
               </div>
             </div>
             
-            <div className="card" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <div style={{ padding: '15px', backgroundColor: '#f0fff4', borderRadius: '50%', color: '#38a169' }}>
-                <Check size={24} />
+            <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px' }}>
+              <div style={{ padding: '12px', backgroundColor: '#f0fff4', borderRadius: '50%', color: '#38a169', flexShrink: 0 }}>
+                <Check size={20} />
               </div>
-              <div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Paid</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#38a169' }}>${totalPaid.toFixed(2)}</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Paid</div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 'bold', color: '#38a169', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${totalPaid.toFixed(2)}</div>
               </div>
             </div>
 
-            <div className="card" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <div style={{ padding: '15px', backgroundColor: '#fff5f5', borderRadius: '50%', color: '#e53e3e' }}>
-                <X size={24} />
+            <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px' }}>
+              <div style={{ padding: '12px', backgroundColor: '#fff5f5', borderRadius: '50%', color: '#e53e3e', flexShrink: 0 }}>
+                <X size={20} />
               </div>
-              <div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Unpaid</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#e53e3e' }}>${totalUnpaid.toFixed(2)}</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Unpaid</div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 'bold', color: '#e53e3e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${totalUnpaid.toFixed(2)}</div>
               </div>
             </div>
             
-            <div className="card" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <div style={{ padding: '15px', backgroundColor: unpaidCount === 0 && filteredExpenses.length > 0 ? '#f0fff4' : '#fffaf0', borderRadius: '50%', color: unpaidCount === 0 && filteredExpenses.length > 0 ? '#38a169' : '#dd6b20' }}>
-                <CheckSquare size={24} />
+            <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px' }}>
+              <div style={{ padding: '12px', backgroundColor: unpaidCount === 0 && filteredExpenses.length > 0 ? '#f0fff4' : '#fffaf0', borderRadius: '50%', color: unpaidCount === 0 && filteredExpenses.length > 0 ? '#38a169' : '#dd6b20', flexShrink: 0 }}>
+                <CheckSquare size={20} />
               </div>
-              <div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Paid / Unpaid Lines</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Paid / Unpaid</div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
                   <span style={{ color: '#38a169' }}>{paidCount}</span>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '1.2rem', fontWeight: 'normal', margin: '0 4px' }}>/</span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '1.1rem', fontWeight: 'normal', margin: '0 3px' }}>/</span>
                   <span style={{ color: unpaidCount > 0 ? '#e53e3e' : 'var(--text-muted)' }}>{unpaidCount}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px' }}>
+              <div style={{ padding: '12px', backgroundColor: net15Count > 0 ? '#fff5f5' : '#f0fff4', borderRadius: '50%', color: net15Count > 0 ? '#e53e3e' : '#38a169', flexShrink: 0 }}>
+                <Clock size={20} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title="Invoices > 15 days from date and still unpaid">NET 15</div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 'bold', color: net15Count > 0 ? '#e53e3e' : 'var(--text-main)', whiteSpace: 'nowrap' }}>
+                  {net15Count}
+                  {net15Count > 0 && <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: '#e53e3e', marginLeft: '6px' }}>overdue</span>}
                 </div>
               </div>
             </div>

@@ -2,6 +2,12 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.64] - 2026-08-15
+
+### Added
+- **NET 15 Overdue Invoices Tracking** — Added dedicated `NET 15` stat card to both desktop and mobile expenses overviews, computing all unpaid expenses with transaction dates older than 15 calendar days from today.
+- **Paid / Unpaid Clean Labeling** — Cleaned up the status counter label to `Paid / Unpaid` across desktop and mobile.
+
 ## [v0.3.63] - 2026-08-15
 
 ### Changed
