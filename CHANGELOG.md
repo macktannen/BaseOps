@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.60] - 2026-08-15
+
+### Added
+- **Collapsible Desktop Left Sidebar** — Added a toggleable, smooth-collapsing navigation sidebar for desktop. Features compact icon mode (`64px`), tooltips for all navigation items, icon-only BaseOps logo mark, top and bottom toggle buttons, and persistent collapse state saved to `localStorage`.
+
 ## [v0.3.59] - 2026-08-15
 
 ### Fixed

@@ -47,25 +47,74 @@ h1, h2, h3, h4, h5, h6 {
 
 .sidebar {
   width: 250px;
+  min-width: 250px;
   background-color: var(--primary-color);
   color: var(--white);
   display: flex;
   flex-direction: column;
+  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  position: relative;
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.sidebar.collapsed {
+  width: 64px;
+  min-width: 64px;
 }
 
 .sidebar-header {
-  padding: 20px;
+  padding: 16px 18px;
   font-size: 1.25rem;
   font-weight: 700;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   gap: 10px;
+  height: 60px;
+  box-sizing: border-box;
+}
+
+.sidebar.collapsed .sidebar-header {
+  padding: 16px 8px;
+  justify-content: center;
+}
+
+.sidebar.collapsed .sidebar-version {
+  display: none !important;
+}
+
+.sidebar-toggle-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.sidebar-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+.sidebar-bottom-toggle:hover {
+  background: rgba(255, 255, 255, 0.18) !important;
+  color: #fff !important;
 }
 
 .nav-menu {
   list-style: none;
-  padding: 20px 0;
+  padding: 16px 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .nav-item {
@@ -76,6 +125,18 @@ h1, h2, h3, h4, h5, h6 {
   gap: 12px;
   transition: background-color 0.2s;
   color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+.sidebar.collapsed .nav-item {
+  padding: 12px 0;
+  justify-content: center;
+  gap: 0;
+}
+
+.sidebar.collapsed .nav-item-text {
+  display: none;
 }
 
 .nav-item:hover {
@@ -87,6 +148,10 @@ h1, h2, h3, h4, h5, h6 {
   background-color: rgba(255, 255, 255, 0.2);
   color: var(--white);
   border-left: 4px solid var(--accent-color);
+}
+
+.sidebar.collapsed .nav-item.active {
+  border-left: 3px solid var(--accent-color);
 }
 
 .main-content {

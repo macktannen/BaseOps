@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
-import { Calendar as CalendarIcon, Users, Settings, MapPin, Helicopter, Building, LogOut } from 'lucide-react';
+import { Calendar as CalendarIcon, Users, Settings, MapPin, Helicopter, Building, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import Logo from './components/Logo';
 import packageJson from '../package.json';
 import './index.css';
@@ -25,6 +25,24 @@ import useIsMobile from './hooks/useIsMobile';
 import MobileLayout from './components/MobileLayout';
 
 function DashboardLayout({ activeTab, setActiveTab }) {
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('baseops_sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('baseops_sidebar_collapsed', String(next));
+      } catch {}
+      return next;
+    });
+  };
+
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -44,66 +62,124 @@ function DashboardLayout({ activeTab, setActiveTab }) {
   return (
     <div className="app-container">
       {/* Sidebar */}
-      <div className="sidebar">
-        <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px' }}>
-          <Logo size={28} light={true} />
-          <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', fontWeight: 500, padding: '2px 6px', background: 'rgba(255,255,255,0.12)', borderRadius: '4px', letterSpacing: '0.5px' }}>{APP_VERSION}</span>
+      <div className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+        <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', justifyContent: isSidebarCollapsed ? 'center' : 'space-between', padding: isSidebarCollapsed ? '16px 8px' : '16px 16px' }}>
+          {isSidebarCollapsed ? (
+            <button 
+              onClick={toggleSidebar}
+              className="sidebar-toggle-btn"
+              title="Expand sidebar"
+              aria-label="Expand sidebar"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}
+            >
+              <Logo size={28} light={true} iconOnly={true} />
+            </button>
+          ) : (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                <Logo size={26} light={true} />
+                <span className="sidebar-version" style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.6)', fontWeight: 500, padding: '2px 5px', background: 'rgba(255,255,255,0.12)', borderRadius: '4px', letterSpacing: '0.5px' }}>{APP_VERSION}</span>
+              </div>
+              <button 
+                onClick={toggleSidebar}
+                className="sidebar-toggle-btn"
+                title="Collapse sidebar"
+                aria-label="Collapse sidebar"
+              >
+                <ChevronLeft size={16} />
+              </button>
+            </>
+          )}
         </div>
-        <ul className="nav-menu">
+        <ul className="nav-menu" style={{ flex: 1 }}>
           <li 
             className={`nav-item ${activeTab === 'calendar' ? 'active' : ''}`}
             onClick={() => setActiveTab('calendar')}
+            title={isSidebarCollapsed ? 'Calendar' : undefined}
           >
             <CalendarIcon size={20} />
-            Calendar
+            <span className="nav-item-text">Calendar</span>
           </li>
           <li 
             className={`nav-item ${activeTab === 'crew' ? 'active' : ''}`}
             onClick={() => setActiveTab('crew')}
+            title={isSidebarCollapsed ? 'Crew & Passengers' : undefined}
           >
             <Users size={20} />
-            Crew & Passengers
+            <span className="nav-item-text">Crew & Passengers</span>
           </li>
           <li 
             className={`nav-item ${activeTab === 'airports' ? 'active' : ''}`}
             onClick={() => setActiveTab('airports')}
+            title={isSidebarCollapsed ? 'Airports & LZs' : undefined}
           >
             <MapPin size={20} />
-            Airports & LZs
+            <span className="nav-item-text">Airports & LZs</span>
           </li>
           <li 
             className={`nav-item ${activeTab === 'aircraft' ? 'active' : ''}`}
             onClick={() => setActiveTab('aircraft')}
+            title={isSidebarCollapsed ? 'Fleet' : undefined}
           >
             <Helicopter size={20} />
-            Fleet
+            <span className="nav-item-text">Fleet</span>
           </li>
           {permCan(currentUser, 'manageAccounts') && (
             <li 
               className={`nav-item ${activeTab === 'accounts' ? 'active' : ''}`}
               onClick={() => setActiveTab('accounts')}
+              title={isSidebarCollapsed ? 'Accounts & Contacts' : undefined}
             >
               <Building size={20} />
-              Accounts & Contacts
+              <span className="nav-item-text">Accounts & Contacts</span>
             </li>
           )}
           {permCan(currentUser, 'viewExpensesOverview') && (
             <li 
               className={`nav-item ${activeTab === 'expenses' ? 'active' : ''}`}
               onClick={() => setActiveTab('expenses')}
+              title={isSidebarCollapsed ? 'Expenses' : undefined}
             >
               <DollarSign size={20} />
-              Expenses
+              <span className="nav-item-text">Expenses</span>
             </li>
           )}
           <li 
             className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
             onClick={() => setActiveTab('settings')}
+            title={isSidebarCollapsed ? 'Settings' : undefined}
           >
             <Settings size={20} />
-            Settings
+            <span className="nav-item-text">Settings</span>
           </li>
         </ul>
+
+        {/* Sidebar Footer with Collapse / Expand button */}
+        <div className="sidebar-footer" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', padding: isSidebarCollapsed ? '12px 8px' : '12px 16px', display: 'flex', justifyContent: isSidebarCollapsed ? 'center' : 'flex-start', alignItems: 'center' }}>
+          <button 
+            onClick={toggleSidebar}
+            className="sidebar-bottom-toggle"
+            title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            style={{ 
+              background: 'rgba(255, 255, 255, 0.08)', 
+              border: 'none', 
+              color: 'rgba(255, 255, 255, 0.75)', 
+              padding: isSidebarCollapsed ? '8px' : '8px 12px', 
+              borderRadius: '6px', 
+              cursor: 'pointer', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              width: isSidebarCollapsed ? 'auto' : '100%', 
+              justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
+              fontSize: '0.8rem',
+              fontWeight: 500,
+              transition: 'background 0.2s, color 0.2s'
+            }}
+          >
+            {isSidebarCollapsed ? <ChevronRight size={18} /> : <><ChevronLeft size={16} /> <span>Collapse</span></>}
+          </button>
+        </div>
       </div>
 
       {/* Main Content */}
