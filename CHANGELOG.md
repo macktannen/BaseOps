@@ -2,6 +2,12 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.67] - 2026-08-15
+
+### Added
+- **Flight Log Fuel Quantity Input** — Added a numeric `Fuel (Gal)` input per flight leg in the Flight Log table to record exact fuel gallons/quantities purchased with automatic total fuel calculation in the summary row.
+- **Auto-Calculated Passenger Counts** — Removed manual `Total Pax` input from the Flight Info section and enabled automatic calculation of passenger counts directly from the flight plan passenger manifest, totaling passengers seamlessly in the bottom Aircraft Log Summary table.
+
 ## [v0.3.66] - 2026-08-15
 
 ### Added
