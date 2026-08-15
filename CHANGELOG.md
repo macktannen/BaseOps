@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.53] - 2026-08-15
+
+### Changed
+- **Desktop Modal Header Optimization** — Abbreviated `MISSION #` to `MSN #` in the desktop EventModal flight header and increased the Title field flex width to provide more horizontal space for mission titles.
+
 ## [v0.3.52] - 2026-08-15
 
 ### Fixed

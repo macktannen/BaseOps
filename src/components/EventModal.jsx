@@ -1386,9 +1386,9 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
              </div>
             )}
             <div className="header-divider" style={{ width: '1px', height: '30px', backgroundColor: 'var(--border-color)' }}></div>
-            <div className="trip-number-field" style={{ fontSize: '1.2rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>MISSION # <strong style={{ color: 'var(--text-color)' }}>{flightNumber || 'NEW'}</strong></div>
+            <div className="trip-number-field" style={{ fontSize: '1.2rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>MSN # <strong style={{ color: 'var(--text-color)' }}>{flightNumber || 'NEW'}</strong></div>
             <div className="header-divider" style={{ width: '1px', height: '30px', backgroundColor: 'var(--border-color)' }}></div>
-            <div className="title-field" style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: '150px' }}>
+            <div className="title-field" style={{ display: 'flex', flexDirection: 'column', flex: 1.5, minWidth: '160px' }}>
                <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>TITLE</span>
                <input type="text" value={title} onChange={e => setTitle(e.target.value)} style={{ border: 'none', fontWeight: 'bold', fontSize: '1rem', outline: 'none', color: 'var(--text-color)', width: '100%' }} placeholder="Enter Mission Title..." />
             </div>
