@@ -320,12 +320,14 @@ const MobileExpenses = () => {
   const totalAmount = filteredExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
   const totalPaid = filteredExpenses.filter(e => e.isPaid).reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
   const totalUnpaid = filteredExpenses.filter(e => !e.isPaid).reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+  const paidCount = filteredExpenses.filter(e => e.isPaid).length;
+  const unpaidCount = filteredExpenses.filter(e => !e.isPaid).length;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: 'var(--bg-color)' }}>
       {/* Search and Summaries pinned to top */}
-      <div style={{ padding: '15px', backgroundColor: 'white', borderBottom: '1px solid var(--border-color)', position: 'sticky', top: 0, zIndex: 10 }}>
-        <div style={{ position: 'relative', marginBottom: '15px' }}>
+      <div style={{ padding: '12px 15px', backgroundColor: 'white', borderBottom: '1px solid var(--border-color)', position: 'sticky', top: 0, zIndex: 10 }}>
+        <div style={{ position: 'relative', marginBottom: '12px' }}>
           <Search size={18} style={{ position: 'absolute', left: '12px', top: '10px', color: 'var(--text-muted)' }} />
           <input
             type="text"
@@ -335,18 +337,24 @@ const MobileExpenses = () => {
             style={{ width: '100%', padding: '10px 10px 10px 38px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '16px' }}
           />
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <div style={{ flex: 1, backgroundColor: '#ebf8ff', padding: '10px', borderRadius: '8px', textAlign: 'center', minWidth: 0 }}>
-            <div style={{ fontSize: '0.65rem', color: '#2b6cb0', fontWeight: 600, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Total</div>
-            <div style={{ fontSize: '1rem', fontWeight: 700, color: '#2c5282', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${totalAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+          <div style={{ backgroundColor: '#ebf8ff', padding: '8px 4px', borderRadius: '8px', textAlign: 'center', minWidth: 0 }}>
+            <div style={{ fontSize: '0.62rem', color: '#2b6cb0', fontWeight: 600, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Total</div>
+            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#2c5282', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${totalAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
           </div>
-          <div style={{ flex: 1, backgroundColor: '#f0fff4', padding: '10px', borderRadius: '8px', textAlign: 'center', minWidth: 0 }}>
-            <div style={{ fontSize: '0.65rem', color: '#2f855a', fontWeight: 600, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Paid</div>
-            <div style={{ fontSize: '1rem', fontWeight: 700, color: '#276749', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${totalPaid.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+          <div style={{ backgroundColor: '#f0fff4', padding: '8px 4px', borderRadius: '8px', textAlign: 'center', minWidth: 0 }}>
+            <div style={{ fontSize: '0.62rem', color: '#2f855a', fontWeight: 600, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Paid</div>
+            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#276749', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${totalPaid.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
           </div>
-          <div style={{ flex: 1, backgroundColor: '#fff5f5', padding: '10px', borderRadius: '8px', textAlign: 'center', minWidth: 0 }}>
-            <div style={{ fontSize: '0.65rem', color: '#c53030', fontWeight: 600, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Unpaid</div>
-            <div style={{ fontSize: '1rem', fontWeight: 700, color: '#9b2c2c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${totalUnpaid.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+          <div style={{ backgroundColor: '#fff5f5', padding: '8px 4px', borderRadius: '8px', textAlign: 'center', minWidth: 0 }}>
+            <div style={{ fontSize: '0.62rem', color: '#c53030', fontWeight: 600, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Unpaid</div>
+            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#9b2c2c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${totalUnpaid.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+          </div>
+          <div style={{ backgroundColor: unpaidCount === 0 && filteredExpenses.length > 0 ? '#f0fff4' : '#fffaf0', padding: '8px 4px', borderRadius: '8px', textAlign: 'center', minWidth: 0 }}>
+            <div style={{ fontSize: '0.62rem', color: unpaidCount === 0 && filteredExpenses.length > 0 ? '#2f855a' : '#c05621', fontWeight: 600, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Paid / Unpaid</div>
+            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#2d3748', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span style={{ color: '#276749' }}>{paidCount}</span> / <span style={{ color: unpaidCount > 0 ? '#9b2c2c' : '#718096' }}>{unpaidCount}</span>
+            </div>
           </div>
         </div>
       </div>

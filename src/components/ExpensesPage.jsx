@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { DollarSign, Search, Calendar, FileText, Building, Plus, Trash2, Edit2, Check, X, BarChart3, Paperclip, Download } from 'lucide-react';
+import { DollarSign, Search, Calendar, FileText, Building, Plus, Trash2, Edit2, Check, X, BarChart3, Paperclip, Download, CheckSquare } from 'lucide-react';
 import { mockVendors, mockAccounts } from '../data';
 import EventModal from './EventModal';
 import AIInvoiceUploader from './AIInvoiceUploader';
@@ -444,7 +444,8 @@ const ExpensesPage = () => {
   const totalAmount = filteredExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
   const totalPaid = filteredExpenses.reduce((sum, e) => sum + (e.isPaid ? parseFloat(e.amount || 0) : 0), 0);
   const totalUnpaid = filteredExpenses.reduce((sum, e) => sum + (!e.isPaid ? parseFloat(e.amount || 0) : 0), 0);
-  const totalReceipts = filteredExpenses.reduce((sum, e) => sum + (e.receiptCount || (e.receiptFiles && e.receiptFiles.length) || 0), 0);
+  const paidCount = filteredExpenses.filter(e => e.isPaid).length;
+  const unpaidCount = filteredExpenses.filter(e => !e.isPaid).length;
   const categories = [
     'All', 'Catering', 'Cleaning / Detailing', 'Crew Meal', 'Customs / Border Fees', 
     'De-icing', 'Fuel', 'GPU / Start Cart', 'Ground Transportation', 'Handling', 
@@ -857,12 +858,16 @@ const ExpensesPage = () => {
             </div>
             
             <div className="card" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <div style={{ padding: '15px', backgroundColor: '#edf2f7', borderRadius: '50%', color: 'var(--primary-color)' }}>
-                <Paperclip size={24} />
+              <div style={{ padding: '15px', backgroundColor: unpaidCount === 0 && filteredExpenses.length > 0 ? '#f0fff4' : '#fffaf0', borderRadius: '50%', color: unpaidCount === 0 && filteredExpenses.length > 0 ? '#38a169' : '#dd6b20' }}>
+                <CheckSquare size={24} />
               </div>
               <div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Receipts</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{totalReceipts}</div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Paid / Unpaid Lines</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
+                  <span style={{ color: '#38a169' }}>{paidCount}</span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '1.2rem', fontWeight: 'normal', margin: '0 4px' }}>/</span>
+                  <span style={{ color: unpaidCount > 0 ? '#e53e3e' : 'var(--text-muted)' }}>{unpaidCount}</span>
+                </div>
               </div>
             </div>
           </div>

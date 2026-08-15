@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.63] - 2026-08-15
+
+### Changed
+- **Paid vs Unpaid Expense Line Counter** — Replaced receipt counter card on both desktop (`ExpensesPage.jsx`) and mobile (`MobileExpenses.jsx`) with a real-time Paid vs Unpaid line status counter (`paidCount / unpaidCount`), making it instantly clear how many expense lines still need to be paid.
+
 ## [v0.3.62] - 2026-08-15
 
 ### Fixed

@@ -3,7 +3,8 @@
 ## Project Overview
 **BaseOps:** A web-based application to manage a fleet of helicopters, crew scheduling, mission planning, document uploads, and flight expenses. The app uses React, localStorage with offline retry queues, IndexedDB localforage resilience, and live synchronization with Firebase Firestore & Firebase Storage.
 
-## Current Status (v0.3.62)
+## Current Status (v0.3.63)
+- **Paid vs Unpaid Expense Line Counter:** Replaced receipt counter on both desktop (`ExpensesPage.jsx`) and mobile (`MobileExpenses.jsx`) with a real-time Paid vs Unpaid line status counter (`paidCount / unpaidCount`), making it instantly clear how many expense lines remain to be paid.
 - **Smooth Sidebar Sliding Caret Animation:** Anchored the collapse/expand caret button to the right edge of the sidebar footer so that it continuously and smoothly slides across the screen in sync with the menu's width transition without jumping.
 - **Sidebar Collapse Controls Placement:** Removed top collapse arrow and positioned a dedicated collapse/expand caret button in the bottom footer. The caret is aligned to the right side of the menu bar when expanded, and centered when collapsed.
 - **Collapsible Desktop Left Sidebar:** Added toggleable smooth-collapsing navigation sidebar for desktop. Features compact icon mode (`64px`), icon-only BaseOps logo mark, and persistent collapse state in `localStorage`.
