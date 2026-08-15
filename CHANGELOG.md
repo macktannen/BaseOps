@@ -2,6 +2,17 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.52] - 2026-08-15
+
+### Fixed
+- **Desktop Flight Duplication** — Fixed missing `parseISO` and `differenceInCalendarDays` imports that prevented dropping duplicated flights onto target dates. Added multi-leg date offset shifting with timezone-safe calculations and allowed clicking anywhere on day cells or badges.
+- **Zero-Loss Data Persistence & Cloud Sync** — Resolved storage interceptor conflict between `dataSyncService.js` and `dataStore.js`. Implemented `mergeFlights` smart deep-merge algorithm ensuring attached uploads, documents, and expenses are never overwritten on browser refresh. Added `firestore-sync` realtime listeners to `CalendarView` and `ExpensesPage`.
+- **Direct Expense Row-Level Saving** — Clicking the Save icon on an expense row immediately writes and persists to the flight record and Firestore without requiring full flight save. Auto-imported AI expenses default directly to saved checkmark status.
+
+### Changed
+- **Nomenclature Update** — Changed all user-facing references from `Trip #` to `Mission #` (and `MSN #` in compact table/mobile headers).
+- **Fluid Expenses Table Layout** — Removed fixed 1400px min-width constraint on the flight modal expenses table, tuning proportional column widths and padding to scale fluidly without horizontal scrollbars.
+
 ## [v0.3.48] - 2026-08-13
 
 ### Changed

@@ -1,20 +1,20 @@
 # Handoff Document
 
 ## Project Overview
-**BaseOps:** A web-based application to manage a fleet of helicopters, crew scheduling, and flight expenses. The app uses React and stores data in `localStorage`.
+**BaseOps:** A web-based application to manage a fleet of helicopters, crew scheduling, mission planning, document uploads, and flight expenses. The app uses React, localStorage with offline retry queues, IndexedDB localforage resilience, and live synchronization with Firebase Firestore & Firebase Storage.
 
-## Current Status
-- **App Logo Updated (v0.3.49):** Replaced the previous SVG logo with a static PNG (`public/logo.png`) based on the user's explicit image upload and updated `Logo.jsx` to render it across the app.
-- **Mobile Fleet Page Overhaul:** Completely rebuilt `MobileFleet.jsx` to correctly mirror the desktop `AircraftList.jsx` edit forms. This involved adding a neat dropdown selector for the active aircraft and vertically stacking the operational, maintenance, and logbook cards.
-- **Mock Data Removal:** Fully removed reliance on mock data across the application. The app now strictly relies on local storage or loads a blank slate by default.
-- **Mobile Layout & Navigation:** Added proper sorting and navigation callbacks for the `EventModal` so users can easily toggle left/right between flights without the modal closing.
-- **Event Deletion Safety:** Implemented standard browser `window.confirm` dialogues and renamed buttons to "Delete Flight" across mobile views.
-- **Permissions Integration:** Brought in permission checks (`canEditMeters`, `canEditOps`, `canEditMaintenance`, etc.) to the new mobile fleet view so fields lock/unlock based on user role correctly.
+## Current Status (v0.3.52)
+- **Desktop Flight Duplication:** Fixed click-to-place flight duplication on calendar cells and badges.
+- **Zero Data Loss Persistence & Cloud Sync:** Consolidated localStorage interceptor in `dataStore.js` and unified multi-tab / cloud sync (`mergeFlights`) to guarantee attached files, documents, and expense line items never disappear on page refresh.
+- **Direct Row-Level Expense Saving:** Expense table rows feature direct save functionality and auto-imported AI expenses default directly to saved checkmark status.
+- **Nomenclature Standardized:** Updated all user-facing `Trip #` labels to `Mission #` and `MSN #`.
+- **Fluid Layout:** Scaled expenses tables fluidly across modal dialogs without forced horizontal scrollbars.
+- **Unrestricted File & Receipt Attachments:** Allows all document file formats (.pdf, .png, .jpg, .csv, .xlsx, .docx, GIS, CAD, etc.) with dual Firebase Storage & IndexedDB fallback.
 
-## Pending Tasks
-- **Schedules Grid:** The user previously requested an overhaul/redo of the layout for the schedules grid (Pending from previous sessions).
-- **Desktop Fleet View Review:** A long-term goal mentioned by the user was: *"The fleet view should stand and have aircraft across the top..."* which is currently NOT STARTED.
+## Pending / Future Tasks
+- **Schedules Grid:** Ongoing layout enhancements for the schedules grid.
+- **Desktop Fleet View Review:** Future top-aligned aircraft view review.
 
-## Recent Context
-- **Global EventModal:** The `EventModal` component serves as a globally shared component used by `CalendarView`, `MobileLayout`, and `CrewSchedule`. Passing the correct array index/sorting logic is critical for the left/right arrows to function as expected.
-- **Data Persistence:** All edits sync perfectly to `localStorage` and appear instantly on the desktop views as well. State updates trigger `window.dispatchEvent(new Event('storage'))` to keep components globally synced.
+## Architecture Context
+- **Global EventModal (`EventModal.jsx`):** Shared across `CalendarView`, `MobileLayout`, and `CrewSchedule`.
+- **Data Persistence (`dataStore.js`):** Intercepts `localStorage.setItem` for all tracked entity keys, persists changes immediately to Firestore `orgs/default`, and broadcasts changes locally via storage and `firestore-sync` events.

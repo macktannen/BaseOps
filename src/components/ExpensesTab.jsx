@@ -576,7 +576,6 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
           </thead>
           <tbody>
             {(sortedExpenses || []).map(exp => {
-              const valid = isRowValid(exp);
               const filled = isRowFilled(exp);
               const hasReceipts = exp.receiptCount > 0 || exp.hasReceipt || (exp.receiptFiles && exp.receiptFiles.length > 0);
               return (
