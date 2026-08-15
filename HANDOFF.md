@@ -3,8 +3,9 @@
 ## Project Overview
 **BaseOps:** A web-based application to manage a fleet of helicopters, crew scheduling, mission planning, document uploads, and flight expenses. The app uses React, localStorage with offline retry queues, IndexedDB localforage resilience, and live synchronization with Firebase Firestore & Firebase Storage.
 
-## Current Status (v0.3.54)
-- **Helicopter Icons for Pilot Schedules:** Changed airplane icon in Crew & Passenger Management to the Helicopter icon for all pilot schedule statuses.
+## Current Status (v0.3.55)
+- **Instant Cross-Device Synchronization:** Streamlined realtime Firestore snapshot engine in `dataStore.js` to propagate expense creations, edits, deletions, and uploads immediately across all mobile and desktop devices.
+- **Live Modal Listeners:** Active modals now listen to `firestore-sync` events and re-render open flight/expense cards without requiring modal restart.
 - **Desktop Modal Title Space:** Abbreviated `MISSION #` to `MSN #` in desktop EventModal header to maximize space for the Mission Title.
 - **Desktop Flight Duplication:** Fixed click-to-place flight duplication on calendar cells and badges.
 - **Zero Data Loss Persistence & Cloud Sync:** Consolidated localStorage interceptor in `dataStore.js` and unified multi-tab / cloud sync (`mergeFlights`) to guarantee attached files, documents, and expense line items never disappear on page refresh.

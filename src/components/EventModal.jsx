@@ -664,6 +664,30 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     } catch { setVendorsList(mockVendors); }
   }, []);
 
+  // Listen for real-time cloud and cross-tab sync to update open flight modal immediately
+  useEffect(() => {
+    const handleRemoteSync = () => {
+      if (!flight || !flight.id) return;
+      try {
+        const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
+        const updatedFlight = storedFlights.find(f => String(f.id) === String(flight.id) || (flight.flightNumber && String(f.flightNumber) === String(flight.flightNumber)));
+        if (updatedFlight) {
+          if (updatedFlight.expenses) setExpenses(updatedFlight.expenses);
+          if (updatedFlight.uploads) setUploads(updatedFlight.uploads);
+          if (updatedFlight.flightLog) setFlightLog(updatedFlight.flightLog);
+        }
+      } catch (e) {
+        console.error('Remote sync update failed in modal:', e);
+      }
+    };
+    window.addEventListener('storage', handleRemoteSync);
+    window.addEventListener('firestore-sync', handleRemoteSync);
+    return () => {
+      window.removeEventListener('storage', handleRemoteSync);
+      window.removeEventListener('firestore-sync', handleRemoteSync);
+    };
+  }, [flight]);
+
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
   const [draggableLegIndex, setDraggableLegIndex] = useState(null);

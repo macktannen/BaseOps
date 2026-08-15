@@ -10,19 +10,20 @@ let retryTimer = null;
 // Key used to persist the offline write queue in localStorage.
 const PENDING_SYNC_KEY = '_baseOpsPendingSync';
 
-// Tracks which localStorage keys currently have a Firestore write in flight.
-const pendingWrites = {};
+// Tracks local writes in flight to prevent echo-cancel
+const pendingLocalWrites = new Map();
 
 const originalSetItem = localStorage.setItem.bind(localStorage);
 const originalGetItem = localStorage.getItem.bind(localStorage);
 
 function isPendingLocalWrite(key) {
-  if (pendingWrites[key]) return true;
+  const inFlight = pendingLocalWrites.get(key);
+  if (inFlight && Date.now() - inFlight < 4000) return true;
   return getPendingQueue().some(e => e.key === key);
 }
 
 function clearPendingWrite(key) {
-  delete pendingWrites[key];
+  pendingLocalWrites.delete(key);
 }
 
 function getPendingQueue() {
@@ -88,6 +89,9 @@ export function setUserId(userId) {
   currentUserId = userId;
   if (userId) {
     flushPendingQueue();
+    if (!initialized) {
+      initStore();
+    }
   }
 }
 
@@ -96,8 +100,7 @@ export function getUserId() {
 }
 
 /**
- * Intelligent flight merge to guarantee that uploads, expenses, and leg edits
- * from local and remote are NEVER lost or overwritten.
+ * Intelligent flight merge used when recovering from offline un-synced edits.
  */
 function mergeFlights(localFlights, remoteFlights) {
   if (!Array.isArray(localFlights) || localFlights.length === 0) return remoteFlights || [];
@@ -114,7 +117,7 @@ function mergeFlights(localFlights, remoteFlights) {
     } else {
       const rFlight = merged[rIdx];
       
-      // Merge uploads (union by id, storagePath, or name)
+      // Merge uploads (union)
       const rUploads = Array.isArray(rFlight.uploads) ? rFlight.uploads : [];
       const lUploads = Array.isArray(lFlight.uploads) ? lFlight.uploads : [];
       const uploadsMap = new Map();
@@ -122,7 +125,7 @@ function mergeFlights(localFlights, remoteFlights) {
       lUploads.forEach(u => uploadsMap.set(u.id || u.storagePath || u.name, u));
       const mergedUploads = Array.from(uploadsMap.values());
 
-      // Merge expenses (union by id, preserve receiptFiles)
+      // Merge expenses (union)
       const rExpenses = Array.isArray(rFlight.expenses) ? rFlight.expenses : [];
       const lExpenses = Array.isArray(lFlight.expenses) ? lFlight.expenses : [];
       const expMap = new Map();
@@ -132,7 +135,7 @@ function mergeFlights(localFlights, remoteFlights) {
         if (!existing) {
           expMap.set(String(e.id), e);
         } else {
-          // Merge receiptFiles if local has any
+          // If local has receipts or newer modifications, keep richest
           const existingReceipts = existing.receiptFiles || [];
           const localReceipts = e.receiptFiles || [];
           const mergedReceipts = localReceipts.length >= existingReceipts.length ? localReceipts : existingReceipts;
@@ -147,8 +150,8 @@ function mergeFlights(localFlights, remoteFlights) {
       const mergedExpenses = Array.from(expMap.values());
 
       merged[rIdx] = {
-        ...rFlight,
         ...lFlight,
+        ...rFlight,
         uploads: mergedUploads,
         expenses: mergedExpenses
       };
@@ -165,7 +168,7 @@ async function persistKeyToFirestore(key, value) {
   const fsKey = FIRESTORE_KEY_MAP[key] || key;
   try {
     const orgRef = getOrgDocRef();
-    await setDoc(orgRef, { [fsKey]: value }, { merge: true });
+    await setDoc(orgRef, { [fsKey]: value, _lastUpdated: Date.now() }, { merge: true });
     removeQueuedKey(key);
     return true;
   } catch (err) {
@@ -191,11 +194,22 @@ async function flushPendingQueue() {
 
 function startRetryTimer() {
   if (retryTimer) return;
-  retryTimer = setInterval(() => flushPendingQueue(), 8000);
+  retryTimer = setInterval(() => flushPendingQueue(), 6000);
 }
 
 export async function initStore() {
-  if (initialized || !currentUserId) return;
+  if (initialized) return;
+  if (!currentUserId) {
+    // Try to get UID from baseOpsCurrentUser if available
+    try {
+      const stored = JSON.parse(originalGetItem('baseOpsCurrentUser') || '{}');
+      if (stored && (stored.uid || stored.id)) {
+        currentUserId = stored.uid || stored.id;
+      }
+    } catch {}
+  }
+  if (!currentUserId) return;
+
   initialized = true;
   startRetryTimer();
 
@@ -213,21 +227,21 @@ export async function initStore() {
           }
 
           let finalData = data[fsKey];
-          if (lsKey === 'userFlights' && Array.isArray(localData)) {
+          // If offline pending writes exist, merge; otherwise remote is authoritative
+          if (isPendingLocalWrite(lsKey) && lsKey === 'userFlights' && Array.isArray(localData)) {
             finalData = mergeFlights(localData, data[fsKey]);
           }
 
           const finalStr = typeof finalData === 'string' ? finalData : JSON.stringify(finalData);
           const localStr = typeof localData === 'string' ? localData : JSON.stringify(localData);
 
-          if (finalStr !== localStr && !isPendingLocalWrite(lsKey)) {
+          if (finalStr !== localStr) {
             originalSetItem(lsKey, finalStr);
             window.dispatchEvent(new Event('storage'));
             window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: lsKey } }));
           }
 
-          // If local had more data merged in, persist merged back to Firestore
-          if (lsKey === 'userFlights' && JSON.stringify(finalData) !== JSON.stringify(data[fsKey])) {
+          if (isPendingLocalWrite(lsKey) && lsKey === 'userFlights' && JSON.stringify(finalData) !== JSON.stringify(data[fsKey])) {
             persistKeyToFirestore('userFlights', finalData);
           }
         } else {
@@ -258,7 +272,7 @@ export async function initStore() {
       });
       if (hasData) {
         try {
-          await setDoc(orgRef, allData, { merge: true });
+          await setDoc(orgRef, { ...allData, _lastUpdated: Date.now() }, { merge: true });
         } catch (err) {
           console.error('Bulk Firestore seed failed, queueing keys:', err);
           Object.entries(allData).forEach(([fsKey, val]) => {
@@ -271,6 +285,7 @@ export async function initStore() {
 
     startRetryTimer();
 
+    // Setup live, real-time snapshot subscription across all devices
     unsubOrg = onSnapshot(orgRef, (snap) => {
       if (!snap.exists()) return;
       const data = snap.data();
@@ -283,20 +298,23 @@ export async function initStore() {
           }
 
           let finalData = data[fsKey];
-          if (lsKey === 'userFlights' && Array.isArray(currentParsed)) {
+          // If this device is currently offline with un-synced writes, merge; otherwise apply remote update immediately
+          if (isPendingLocalWrite(lsKey) && lsKey === 'userFlights' && Array.isArray(currentParsed)) {
             finalData = mergeFlights(currentParsed, data[fsKey]);
           }
 
           const finalStr = typeof finalData === 'string' ? finalData : JSON.stringify(finalData);
           const currentStr = typeof currentParsed === 'string' ? currentParsed : JSON.stringify(currentParsed);
 
-          if (finalStr !== currentStr && !isPendingLocalWrite(lsKey)) {
+          if (finalStr !== currentStr) {
             originalSetItem(lsKey, finalStr);
             window.dispatchEvent(new Event('storage'));
             window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: lsKey } }));
           }
         }
       });
+    }, (err) => {
+      console.error('Firestore realtime onSnapshot error:', err);
     });
   } catch (err) {
     console.error('initStore failed:', err);
@@ -323,9 +341,9 @@ localStorage.setItem = (key, value) => {
   if (LS_KEYS_TO_SYNC.has(key)) {
     let parsed;
     try { parsed = JSON.parse(value); } catch { parsed = value; }
-    pendingWrites[key] = true;
-    const p = persistKeyToFirestore(key, parsed);
-    p.finally(() => clearPendingWrite(key));
-    setTimeout(() => clearPendingWrite(key), 5000);
+    pendingLocalWrites.set(key, Date.now());
+    persistKeyToFirestore(key, parsed).finally(() => {
+      setTimeout(() => clearPendingWrite(key), 800);
+    });
   }
 };

@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.55] - 2026-08-15
+
+### Fixed
+- **Instant Real-Time Multi-Device Synchronization** — Streamlined `dataStore.js` `onSnapshot` handler to immediately apply remote Firestore updates to local state across all connected devices in sub-second time. Resolved stale merge overwriting so new expenses, edits, and deletions replicate instantaneously. Added live `firestore-sync` listeners to open modals so active screens update in real time.
+
 ## [v0.3.54] - 2026-08-15
 
 ### Changed
