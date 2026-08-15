@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.54] - 2026-08-15
+
+### Changed
+- **Pilot Schedule Status Icon** — Replaced airplane icon/emoji with the official `Helicopter` icon across the pilot list and pilot profile editor under "Today's Schedule Status" in Crew & Passenger Management.
+
 ## [v0.3.53] - 2026-08-15
 
 ### Changed

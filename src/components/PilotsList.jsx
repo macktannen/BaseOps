@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, User, Plus, Trash2, Users as UsersIcon } from 'lucide-react';
+import { Search, User, Plus, Trash2, Users as UsersIcon, Helicopter } from 'lucide-react';
 import SaveButton from './SaveButton';
 import { mockPilots } from '../data';
 
@@ -308,8 +308,9 @@ const PilotsList = () => {
                     })()}
                   </div>
                   {statusObj.hasFlight && (
-                    <div style={{ fontSize: '0.72rem', color: 'var(--primary-color)', marginTop: '4px', fontWeight: 500 }}>
-                      ✈️ {statusObj.flightText}
+                    <div style={{ fontSize: '0.72rem', color: 'var(--primary-color)', marginTop: '4px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Helicopter size={12} style={{ flexShrink: 0 }} />
+                      <span>{statusObj.flightText}</span>
                     </div>
                   )}
                 </div>
@@ -379,8 +380,9 @@ const PilotsList = () => {
                         )}
                       </div>
                       {statusObj.hasFlight ? (
-                        <div style={{ fontSize: '0.78rem', color: 'var(--primary-color)', marginTop: '2px', fontWeight: 500 }}>
-                          ✈️ {statusObj.flightText}
+                        <div style={{ fontSize: '0.78rem', color: 'var(--primary-color)', marginTop: '2px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <Helicopter size={13} style={{ flexShrink: 0 }} />
+                          <span>{statusObj.flightText}</span>
                         </div>
                       ) : (
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
