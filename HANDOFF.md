@@ -3,7 +3,8 @@
 ## Project Overview
 **BaseOps:** A web-based application to manage a fleet of helicopters, crew scheduling, mission planning, document uploads, and flight expenses. The app uses React, localStorage with offline retry queues, IndexedDB localforage resilience, and live synchronization with Firebase Firestore & Firebase Storage.
 
-## Current Status (v0.3.56)
+## Current Status (v0.3.57)
+- **Fluid Desktop Modal Header Auto-Scaling:** Re-engineered EventModal desktop header with adaptive font sizing, dynamic element compression, and fluid container widths to guarantee all header controls remain 100% visible and clickable on any window size down to mobile breakpoint.
 - **Zero-Bloat Receipt & Upload Storage:** Eliminated base64 embedding in flight/expense records, ensuring Firestore documents never exceed the 1MB limit and realtime sync writes to `orgs/default` succeed 100% reliably.
 - **Instant Cross-Device Synchronization:** Streamlined realtime Firestore snapshot engine in `dataStore.js` to propagate expense creations, edits, deletions, and uploads immediately across all mobile and desktop devices.
 - **Live Modal Listeners:** Active modals now listen to `firestore-sync` events and re-render open flight/expense cards without requiring modal restart.

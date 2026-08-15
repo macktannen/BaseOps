@@ -330,314 +330,110 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ============================================
    EVENT MODAL HEADER — DESKTOP RESPONSIVE
-   Wraps and shrinks on narrower desktop screens
-   before mobile layout kicks in.
+   Smoothly shrinks text, inputs, and padding
+   to perfectly fit any window width without wrapping.
    ============================================ */
 
-/* ≤1200px: hide dividers, allow wrapping, shrink items */
-@media (max-width: 1200px) {
-  .flight-card-header-inner {
-    flex-wrap: wrap !important;
-    gap: 10px !important;
-  }
+.flight-card-header {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
 
+.flight-card-header-inner {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  min-width: 0;
+}
+
+.flight-card-header-inner select {
+  max-width: 130px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ≤1280px: compress gaps, small padding */
+@media (max-width: 1280px) {
+  .flight-card-header {
+    padding: 5px 8px !important;
+  }
+  .flight-card-header-inner {
+    gap: 6px !important;
+  }
+  .flight-card-header-inner .header-divider {
+    height: 18px !important;
+    margin: 0 1px !important;
+  }
+  .flight-card-header-inner select {
+    max-width: 110px;
+    font-size: 0.78rem !important;
+  }
+  .flight-card-header-inner .view-toggle-container button {
+    padding: 3px 6px !important;
+    font-size: 0.72rem !important;
+  }
+  .flight-card-header-inner .trip-number-field {
+    font-size: 0.85rem !important;
+  }
+  .flight-card-header-inner .title-field input {
+    font-size: 0.82rem !important;
+  }
+}
+
+/* ≤1080px: ultra-compact font sizes, tighter inputs */
+@media (max-width: 1080px) {
+  .flight-card-header {
+    padding: 4px 6px !important;
+  }
+  .flight-card-header-inner {
+    gap: 4px !important;
+  }
   .flight-card-header-inner .header-divider {
     display: none !important;
   }
-
-  .flight-card-header-inner .view-toggle-container {
-    order: -1;
-  }
-
-  .flight-card-header-inner .trip-number-field {
-    white-space: nowrap;
-    font-size: 1rem;
-  }
-
-  .flight-card-header-inner .title-field {
-    min-width: 0;
-    flex: 1 1 120px;
-  }
-
-  .flight-card-header-inner .status-tags-row {
-    width: 100%;
-    justify-content: flex-start;
-  }
-}
-
-/* ≤1000px: further compress, smaller fonts */
-@media (max-width: 1000px) {
-  .flight-card-header-inner {
-    gap: 8px !important;
-  }
-
-  .flight-card-header-inner .trip-number-field {
-    font-size: 0.9rem;
-  }
-
-  .flight-card-header-inner .title-field input {
-    font-size: 0.9rem;
-  }
-
   .flight-card-header-inner select {
-    font-size: 0.85rem;
+    max-width: 90px;
+    font-size: 0.74rem !important;
   }
-
-  .flight-card-header-inner .view-toggle-container button {
-    padding: 4px 8px;
-    font-size: 0.75rem;
-  }
-
-  .flight-card-header {
-    padding: 8px 12px !important;
-  }
-}
-
-/* ≤860px: stack everything vertically */
-@media (max-width: 860px) {
-  .flight-card-header {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 10px !important;
-  }
-
-  .flight-card-header-inner {
-    width: 100% !important;
-    flex-direction: column !important;
-    gap: 8px !important;
-  }
-
-  .flight-card-header-inner > div {
-    width: 100% !important;
-  }
-
-  .flight-card-header-inner .view-toggle-container {
-    width: 100% !important;
-    justify-content: center;
-  }
-
-  .flight-card-header-inner .trip-number-field {
-    flex: 0 0 auto !important;
-  }
-
   .flight-card-header-inner .title-field {
-    flex: 1 1 auto !important;
+    min-width: 60px !important;
   }
-
-  .flight-card-header-inner .status-tags-row {
-    justify-content: space-between;
+  .flight-card-header-inner .title-field input {
+    font-size: 0.78rem !important;
   }
-
+  .flight-card-header-inner .trip-number-field {
+    font-size: 0.78rem !important;
+  }
+  .flight-card-header-inner .view-toggle-container button {
+    padding: 2px 5px !important;
+    font-size: 0.68rem !important;
+  }
   .flight-card-header .close-btn-container {
-    position: absolute;
-    top: 10px;
-    right: 10px;
+    gap: 4px !important;
   }
 }
 
-/* ============================================
-   DESKTOP RESPONSIVE — GENERAL LAYOUT
-   Compresses sidebar, content, calendar, and
-   modal at narrower desktop widths.
-   ============================================ */
-
-/* ≤1500px: sidebar shrinks, content padding reduces, calendar header wraps */
-@media (max-width: 1500px) {
-  .sidebar {
-    width: 200px;
-  }
-
-  .sidebar-header {
-    padding: 15px;
-    font-size: 1.1rem;
-  }
-
-  .nav-item {
-    padding: 10px 15px;
-    font-size: 0.85rem;
-  }
-
-  .content-area {
-    padding: 16px;
-  }
-
-  .calendar-cell {
-    min-height: 100px;
-    padding: 6px;
-  }
-
-  .day-number {
-    font-size: 0.8rem;
-    margin-bottom: 4px;
-  }
-
-  .calendar-header {
-    padding: 6px 16px;
-    margin-left: -16px;
-    margin-right: -16px;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .calendar-header > div:last-child {
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  .calendar-day-header {
-    padding: 8px 4px;
-    font-size: 0.8rem;
-  }
-}
-
-/* ≤1400px: further compression */
-@media (max-width: 1400px) {
-  .sidebar {
-    width: 180px;
-  }
-
-  .sidebar-header {
-    padding: 12px;
-    font-size: 1rem;
-    gap: 6px;
-  }
-
-  .sidebar-header svg {
-    display: none;
-  }
-
-  .nav-item {
-    padding: 8px 12px;
-    font-size: 0.8rem;
-    gap: 8px;
-  }
-
-  .content-area {
-    padding: 12px;
-  }
-
-  .calendar-cell {
-    min-height: 80px;
-    padding: 4px;
-  }
-
-  .day-number {
-    font-size: 0.75rem;
-    margin-bottom: 2px;
-  }
-
-  .event-badge {
-    font-size: 0.65rem !important;
-    padding: 3px 5px !important;
-    white-space: nowrap;
-  }
-
-  .calendar-cell .day-number + div {
-    overflow: hidden;
-  }
-
-  .calendar-header {
-    padding: 4px 12px;
-    margin-left: -12px;
-    margin-right: -12px;
-    gap: 6px;
-  }
-
-  .calendar-header h2 {
-    font-size: 1rem;
-    min-width: 120px !important;
-  }
-
-  .calendar-header > div:last-child {
-    gap: 4px;
-  }
-
-  .calendar-header > div:last-child .btn {
-    padding: 5px 10px;
-    font-size: 0.8rem;
-  }
-
-  .event-badge {
-    padding: 4px 6px !important;
+/* ≤920px: extreme compression before mobile layout */
+@media (max-width: 920px) {
+  .flight-card-header-inner select {
+    max-width: 75px;
     font-size: 0.7rem !important;
   }
-
-  .topbar {
-    padding: 0 12px;
+  .flight-card-header-inner .title-field {
+    min-width: 50px !important;
   }
-}
-
-/* ≤1300px: maximum compression before mobile */
-@media (max-width: 1300px) {
-  .sidebar {
-    width: 160px;
+  .flight-card-header-inner .title-field input {
+    font-size: 0.74rem !important;
   }
-
-  .sidebar-header {
-    padding: 10px;
-    font-size: 0.9rem;
+  .flight-card-header-inner .trip-number-field {
+    font-size: 0.72rem !important;
   }
-
-  .nav-item {
-    padding: 7px 10px;
-    font-size: 0.75rem;
-  }
-
-  .content-area {
-    padding: 8px;
-  }
-
-  .calendar-cell {
-    min-height: 70px;
-    padding: 3px;
-  }
-
-  .day-number {
-    font-size: 0.7rem;
-    margin-bottom: 1px;
-  }
-
-  .event-badge {
-    font-size: 0.6rem !important;
+  .flight-card-header-inner .view-toggle-container button {
     padding: 2px 4px !important;
-  }
-
-  .calendar-day-header {
-    font-size: 0.7rem;
-    padding: 5px 2px;
-  }
-
-  .calendar-header {
-    padding: 4px 8px;
-    margin-left: -8px;
-    margin-right: -8px;
-  }
-
-  .calendar-header h2 {
-    font-size: 0.9rem;
-    min-width: 100px !important;
-  }
-
-  .calendar-header > div:last-child .btn {
-    padding: 4px 8px;
-    font-size: 0.75rem;
-  }
-
-  .topbar {
-    padding: 0 10px;
-    height: 50px;
-  }
-
-  .topbar h2 {
-    font-size: 0.9rem;
+    font-size: 0.65rem !important;
   }
 }
-
-/* ============================================
-   LOCATIONS PAGE — MAP RESPONSIVE
-   Map drops below hazards/notes when the map
-   column gets too narrow (~2 inches / 192px).
-   ============================================ */
 
 @media (max-width: 1200px) {
   .location-editor-row {

@@ -1354,31 +1354,31 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
         >
         
         {/* HEADER */}
-        <div className="flight-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'white', padding: '10px 15px', borderBottom: '2px solid var(--border-color)', flexShrink: 0, position: 'relative' }}>
-          <div className="flight-card-header-inner" style={{ display: 'flex', alignItems: 'center', gap: '15px', flex: 1 }}>
-            <div style={{ display: 'flex', gap: '2px' }}>
-               <button type="button" onClick={() => onNavigate && onNavigate('prev')} style={{ background: 'none', border: 'none', cursor: hasPrev ? 'pointer' : 'default', padding: '4px', display: 'flex', alignItems: 'center' }} disabled={!hasPrev}>
-                 <ChevronLeft size={24} color={hasPrev ? "var(--primary-color)" : "#cbd5e0"}/>
+        <div className="flight-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'white', padding: '6px 12px', borderBottom: '2px solid var(--border-color)', flexShrink: 0, position: 'relative', width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
+          <div className="flight-card-header-inner" style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 auto', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', gap: '1px', flexShrink: 0 }}>
+               <button type="button" onClick={() => onNavigate && onNavigate('prev')} style={{ background: 'none', border: 'none', cursor: hasPrev ? 'pointer' : 'default', padding: '2px', display: 'flex', alignItems: 'center' }} disabled={!hasPrev}>
+                 <ChevronLeft size={20} color={hasPrev ? "var(--primary-color)" : "#cbd5e0"}/>
                </button>
-               <button type="button" onClick={() => onNavigate && onNavigate('next')} style={{ background: 'none', border: 'none', cursor: hasNext ? 'pointer' : 'default', padding: '4px', display: 'flex', alignItems: 'center' }} disabled={!hasNext}>
-                 <ChevronRight size={24} color={hasNext ? "var(--primary-color)" : "#cbd5e0"}/>
+               <button type="button" onClick={() => onNavigate && onNavigate('next')} style={{ background: 'none', border: 'none', cursor: hasNext ? 'pointer' : 'default', padding: '2px', display: 'flex', alignItems: 'center' }} disabled={!hasNext}>
+                 <ChevronRight size={20} color={hasNext ? "var(--primary-color)" : "#cbd5e0"}/>
                </button>
             </div>
             {!isMobile && (
             <>
-            {!isMobile && <div className="header-divider" style={{ width: '1px', height: '30px', backgroundColor: 'var(--border-color)' }}></div>}
+            <div className="header-divider" style={{ width: '1px', height: '22px', backgroundColor: 'var(--border-color)', flexShrink: 0, margin: '0 2px' }}></div>
             
             {/* VIEW TOGGLE */}
-            {!isMobile && (
-            <div className="view-toggle-container" style={{ display: 'flex', backgroundColor: '#e2e8f0', borderRadius: '6px', padding: '2px' }}>
+            <div className="view-toggle-container" style={{ display: 'flex', backgroundColor: '#e2e8f0', borderRadius: '6px', padding: '2px', flexShrink: 0 }}>
                <button 
                  type="button"
                  onClick={() => setActiveView('Plan')}
                  style={{ 
-                   border: 'none', padding: '6px 12px', fontSize: '0.8rem', fontWeight: 'bold', borderRadius: '4px', cursor: 'pointer',
+                   border: 'none', padding: '4px 8px', fontSize: '0.75rem', fontWeight: 'bold', borderRadius: '4px', cursor: 'pointer',
                    backgroundColor: activeView === 'Plan' ? 'white' : 'transparent',
                    color: activeView === 'Plan' ? 'var(--primary-color)' : 'var(--text-muted)',
-                   boxShadow: activeView === 'Plan' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                   boxShadow: activeView === 'Plan' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                   whiteSpace: 'nowrap'
                  }}
                >
                  Flight Plan
@@ -1387,10 +1387,11 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                  type="button"
                  onClick={() => setActiveView('Log')}
                  style={{ 
-                   border: 'none', padding: '6px 12px', fontSize: '0.8rem', fontWeight: 'bold', borderRadius: '4px', cursor: 'pointer',
+                   border: 'none', padding: '4px 8px', fontSize: '0.75rem', fontWeight: 'bold', borderRadius: '4px', cursor: 'pointer',
                    backgroundColor: activeView === 'Log' ? 'white' : 'transparent',
                    color: activeView === 'Log' ? 'var(--primary-color)' : 'var(--text-muted)',
-                   boxShadow: activeView === 'Log' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                   boxShadow: activeView === 'Log' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                   whiteSpace: 'nowrap'
                  }}
                >
                  Flight Log
@@ -1399,44 +1400,44 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                  type="button"
                  onClick={() => setActiveView('Expenses')}
                  style={{ 
-                   border: 'none', padding: '6px 12px', fontSize: '0.8rem', fontWeight: 'bold', borderRadius: '4px', cursor: 'pointer',
+                   border: 'none', padding: '4px 8px', fontSize: '0.75rem', fontWeight: 'bold', borderRadius: '4px', cursor: 'pointer',
                    backgroundColor: activeView === 'Expenses' ? 'white' : 'transparent',
                    color: activeView === 'Expenses' ? 'var(--primary-color)' : 'var(--text-muted)',
-                   boxShadow: activeView === 'Expenses' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                   boxShadow: activeView === 'Expenses' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                   whiteSpace: 'nowrap'
                  }}
                >
                   Expenses
                 </button>
              </div>
-            )}
-            <div className="header-divider" style={{ width: '1px', height: '30px', backgroundColor: 'var(--border-color)' }}></div>
-            <div className="trip-number-field" style={{ fontSize: '1.2rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>MSN # <strong style={{ color: 'var(--text-color)' }}>{flightNumber || 'NEW'}</strong></div>
-            <div className="header-divider" style={{ width: '1px', height: '30px', backgroundColor: 'var(--border-color)' }}></div>
-            <div className="title-field" style={{ display: 'flex', flexDirection: 'column', flex: 1.5, minWidth: '160px' }}>
-               <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>TITLE</span>
-               <input type="text" value={title} onChange={e => setTitle(e.target.value)} style={{ border: 'none', fontWeight: 'bold', fontSize: '1rem', outline: 'none', color: 'var(--text-color)', width: '100%' }} placeholder="Enter Mission Title..." />
+            <div className="header-divider" style={{ width: '1px', height: '22px', backgroundColor: 'var(--border-color)', flexShrink: 0, margin: '0 2px' }}></div>
+            <div className="trip-number-field" style={{ fontSize: '0.9rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>MSN # <strong style={{ color: 'var(--text-color)' }}>{flightNumber || 'NEW'}</strong></div>
+            <div className="header-divider" style={{ width: '1px', height: '22px', backgroundColor: 'var(--border-color)', flexShrink: 0, margin: '0 2px' }}></div>
+            <div className="title-field" style={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', minWidth: '80px', overflow: 'hidden' }}>
+               <span style={{ fontSize: '0.58rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>TITLE</span>
+               <input type="text" value={title} onChange={e => setTitle(e.target.value)} style={{ border: 'none', fontWeight: 'bold', fontSize: '0.85rem', outline: 'none', color: 'var(--text-color)', width: '100%', minWidth: 0 }} placeholder="Mission Title..." />
             </div>
-            <div className="header-divider" style={{ width: '1px', height: '30px', backgroundColor: 'var(--border-color)' }}></div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-               <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>ACCOUNT</span>
+            <div className="header-divider" style={{ width: '1px', height: '22px', backgroundColor: 'var(--border-color)', flexShrink: 0, margin: '0 2px' }}></div>
+            <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 1, minWidth: 0, maxWidth: '120px' }}>
+               <span style={{ fontSize: '0.58rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>ACCOUNT</span>
                {isMobile ? (
                  <MobileDropdownMenu
                    value={accountId}
                    onChange={val => setAccountId(val)}
                    options={[{ value: '', label: 'Select Account...' }, ...accountsList.map(a => ({ value: a.id, label: a.name }))]}
                    placeholder="Select Account..."
-                   style={{ border: 'none', backgroundColor: 'transparent', fontWeight: '500', fontSize: '0.9rem' }}
+                   style={{ border: 'none', backgroundColor: 'transparent', fontWeight: '500', fontSize: '0.8rem' }}
                  />
                ) : (
-                 <select value={accountId} onChange={e => setAccountId(e.target.value)} style={{ border: 'none', fontWeight: '500', outline: 'none', fontSize: '0.9rem', backgroundColor: 'transparent', cursor: 'pointer' }}>
+                 <select value={accountId} onChange={e => setAccountId(e.target.value)} style={{ border: 'none', fontWeight: '500', outline: 'none', fontSize: '0.8rem', backgroundColor: 'transparent', cursor: 'pointer', width: '100%', textOverflow: 'ellipsis' }}>
                    <option value="">Select Account...</option>
                    {accountsList.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                  </select>
                )}
             </div>
-            <div className="header-divider" style={{ width: '1px', height: '30px', backgroundColor: 'var(--border-color)' }}></div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-               <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>AIRCRAFT</span>
+            <div className="header-divider" style={{ width: '1px', height: '22px', backgroundColor: 'var(--border-color)', flexShrink: 0, margin: '0 2px' }}></div>
+            <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 1, minWidth: 0, maxWidth: '120px' }}>
+               <span style={{ fontSize: '0.58rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>AIRCRAFT</span>
                {isMobile ? (
                  <MobileDropdownMenu
                    value={aircraftId}
@@ -1463,7 +1464,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                    }}
                    options={[{ value: '', label: 'Select Aircraft...' }, ...aircraftList.map(a => ({ value: a.id, label: `${a.id} (${a.model})` }))]}
                    placeholder="Select Aircraft..."
-                   style={{ border: 'none', backgroundColor: 'transparent', fontWeight: '500', fontSize: '0.9rem' }}
+                   style={{ border: 'none', backgroundColor: 'transparent', fontWeight: '500', fontSize: '0.8rem' }}
                  />
                ) : (
                  <select value={aircraftId} onChange={e => {
@@ -1486,14 +1487,14 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                       }
                    }
                    if (changed) setLegs(recalculateLegTimes(newLegs));
-                 }} style={{ border: 'none', fontWeight: '500', outline: 'none', fontSize: '0.9rem', backgroundColor: 'transparent' }}>
+                 }} style={{ border: 'none', fontWeight: '500', outline: 'none', fontSize: '0.8rem', backgroundColor: 'transparent', cursor: 'pointer', width: '100%', textOverflow: 'ellipsis' }}>
                    <option value="">Select Aircraft...</option>
                    {aircraftList.map(a => <option key={a.id} value={a.id}>{a.id} ({a.model})</option>)}
                  </select>
                )}
             </div>
             
-            <div className="status-tags-row" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div className="status-tags-row" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                <div className="status-field" style={{ display: 'flex', alignItems: 'center' }}>
                  {isMobile ? (
                    <MobileDropdownMenu
@@ -1508,7 +1509,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                      ]}
                      placeholder="Status"
                      style={{
-                       border: 'none', fontWeight: 'bold', fontSize: '1rem', backgroundColor: 'transparent',
+                       border: 'none', fontWeight: 'bold', fontSize: '0.85rem', backgroundColor: 'transparent',
                        color: status === 'on hold' ? '#d69e2e' : status === 'confirmed' ? '#38a169' : status === 'completed' ? '#3182ce' : status === 'maintenance' ? '#805ad5' : status === 'canceled' ? '#e53e3e' : '#718096',
                      }}
                    />
@@ -1518,7 +1519,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                      onChange={e => setStatus(e.target.value)} 
                      style={{ 
                        border: 'none', fontWeight: 'bold', outline: 'none', 
-                       fontSize: '1rem', backgroundColor: 'transparent', cursor: 'pointer',
+                       fontSize: '0.82rem', backgroundColor: 'transparent', cursor: 'pointer',
                        color: status === 'on hold' ? '#d69e2e' : 
                               status === 'confirmed' ? '#38a169' : 
                               status === 'completed' ? '#3182ce' : 
@@ -1536,9 +1537,9 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                </div>
                <div className="tag-field" style={{ 
                   backgroundColor: tag === 'Emergency' ? '#ed8936' : tag === 'Maintenance' ? '#e53e3e' : 'var(--primary-color)', 
-                  color: 'white', fontSize: '0.75rem', padding: '4px 8px', borderRadius: '15px', display: 'flex', alignItems: 'center', gap: '5px' 
+                  color: 'white', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 
                }}>
-              <BookOpen size={12}/> 
+              <BookOpen size={11}/> 
               {isMobile ? (
                 <MobileDropdownMenu
                   value={tag}
@@ -1549,10 +1550,10 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                     { value: 'Maintenance', label: 'Maintenance' },
                   ]}
                   placeholder="TAGS"
-                  style={{ background: 'transparent', color: 'white', border: 'none', fontWeight: 'bold', minWidth: '50px' }}
+                  style={{ background: 'transparent', color: 'white', border: 'none', fontWeight: 'bold', minWidth: '40px', fontSize: '0.7rem' }}
                 />
               ) : (
-                <select value={tag} onChange={e => setTag(e.target.value)} style={{ background: 'transparent', color: 'white', border: 'none', outline: 'none', fontWeight: 'bold', cursor: 'pointer' }}>
+                <select value={tag} onChange={e => setTag(e.target.value)} style={{ background: 'transparent', color: 'white', border: 'none', outline: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.7rem' }}>
                   <option value="" style={{color: 'black'}}>TAGS</option>
                   <option value="Emergency" style={{color: 'black'}}>Emergency</option>
                   <option value="Maintenance" style={{color: 'black'}}>Maintenance</option>
@@ -1563,15 +1564,15 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
             </>
             )}
           </div>
-          <div className="close-btn-container" style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+          <div className="close-btn-container" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0, marginLeft: '8px' }}>
             {isMobile && (
               <button
                 type="button"
                 onClick={() => setHeaderCollapsed(!headerCollapsed)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '2px' }}
               >
                 <ChevronDown
-                  size={20}
+                  size={18}
                   style={{
                     color: 'var(--primary-color)',
                     transform: headerCollapsed ? 'rotate(0deg)' : 'rotate(180deg)',
@@ -1580,7 +1581,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                 />
               </button>
             )}
-            <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={24} color="var(--text-muted)"/></button>
+            <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}><X size={20} color="var(--text-muted)"/></button>
           </div>
         </div>
 

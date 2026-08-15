@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.57] - 2026-08-15
+
+### Fixed
+- **Fluid Desktop Event Modal Header Auto-Scaling** — Re-engineered desktop flight card modal header with fluid typography, proportional padding, and responsive breakpoints so all fields (view toggle, MSN #, title, account, aircraft, status, tag, duplicate, and close) smoothly scale down to fit any desktop/laptop window size without wrapping, overflowing, or becoming unclickable before the mobile version kicks in.
+
 ## [v0.3.56] - 2026-08-15
 
 ### Fixed
