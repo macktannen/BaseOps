@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.61] - 2026-08-15
+
+### Fixed
+- **Sidebar Collapse Controls Placement** — Removed top collapse arrow from header and placed a single collapse/expand caret button in the bottom footer. Aligned caret to the right side of the menu bar when expanded, and centered when collapsed.
+
 ## [v0.3.60] - 2026-08-15
 
 ### Added

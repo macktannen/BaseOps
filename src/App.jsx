@@ -63,31 +63,13 @@ function DashboardLayout({ activeTab, setActiveTab }) {
     <div className="app-container">
       {/* Sidebar */}
       <div className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
-        <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', justifyContent: isSidebarCollapsed ? 'center' : 'space-between', padding: isSidebarCollapsed ? '16px 8px' : '16px 16px' }}>
+        <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', justifyContent: isSidebarCollapsed ? 'center' : 'flex-start', gap: '10px', padding: isSidebarCollapsed ? '16px 8px' : '16px 20px' }}>
           {isSidebarCollapsed ? (
-            <button 
-              onClick={toggleSidebar}
-              className="sidebar-toggle-btn"
-              title="Expand sidebar"
-              aria-label="Expand sidebar"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}
-            >
-              <Logo size={28} light={true} iconOnly={true} />
-            </button>
+            <Logo size={28} light={true} iconOnly={true} />
           ) : (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                <Logo size={26} light={true} />
-                <span className="sidebar-version" style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.6)', fontWeight: 500, padding: '2px 5px', background: 'rgba(255,255,255,0.12)', borderRadius: '4px', letterSpacing: '0.5px' }}>{APP_VERSION}</span>
-              </div>
-              <button 
-                onClick={toggleSidebar}
-                className="sidebar-toggle-btn"
-                title="Collapse sidebar"
-                aria-label="Collapse sidebar"
-              >
-                <ChevronLeft size={16} />
-              </button>
+              <Logo size={28} light={true} />
+              <span className="sidebar-version" style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.6)', fontWeight: 500, padding: '2px 5px', background: 'rgba(255,255,255,0.12)', borderRadius: '4px', letterSpacing: '0.5px' }}>{APP_VERSION}</span>
             </>
           )}
         </div>
@@ -154,30 +136,27 @@ function DashboardLayout({ activeTab, setActiveTab }) {
           </li>
         </ul>
 
-        {/* Sidebar Footer with Collapse / Expand button */}
-        <div className="sidebar-footer" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', padding: isSidebarCollapsed ? '12px 8px' : '12px 16px', display: 'flex', justifyContent: isSidebarCollapsed ? 'center' : 'flex-start', alignItems: 'center' }}>
+        {/* Sidebar Footer with Collapse / Expand caret */}
+        <div className="sidebar-footer" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', padding: isSidebarCollapsed ? '10px 0' : '10px 14px', display: 'flex', justifyContent: isSidebarCollapsed ? 'center' : 'flex-end', alignItems: 'center' }}>
           <button 
             onClick={toggleSidebar}
             className="sidebar-bottom-toggle"
             title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             style={{ 
               background: 'rgba(255, 255, 255, 0.08)', 
               border: 'none', 
-              color: 'rgba(255, 255, 255, 0.75)', 
-              padding: isSidebarCollapsed ? '8px' : '8px 12px', 
+              color: 'rgba(255, 255, 255, 0.8)', 
+              padding: '6px 8px', 
               borderRadius: '6px', 
               cursor: 'pointer', 
               display: 'flex', 
               alignItems: 'center', 
-              gap: '8px', 
-              width: isSidebarCollapsed ? 'auto' : '100%', 
-              justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
-              fontSize: '0.8rem',
-              fontWeight: 500,
+              justifyContent: 'center', 
               transition: 'background 0.2s, color 0.2s'
             }}
           >
-            {isSidebarCollapsed ? <ChevronRight size={18} /> : <><ChevronLeft size={16} /> <span>Collapse</span></>}
+            {isSidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
           </button>
         </div>
       </div>
