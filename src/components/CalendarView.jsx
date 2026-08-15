@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, addDays, startOfMonth, endOfMonth, isSameMonth, isSameDay } from 'date-fns';
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, addDays, startOfMonth, endOfMonth, isSameMonth, isSameDay, parseISO, differenceInCalendarDays } from 'date-fns';
 import { ChevronLeft, ChevronRight, Plus, GripVertical, Moon, Filter, RotateCcw, MessageSquare } from 'lucide-react';
 import { mockFlights, mockPilots, mockAccounts, mockCustomZones } from '../data';
 import airportsData from '../data/airports.json';
@@ -244,35 +244,78 @@ const CalendarView = () => {
   const openModalForDate = (date) => {
     if (pendingDuplicateFlight) {
       const getNextFlightNumber = () => {
-        if (flights.length === 0) return 1;
-        const maxNum = Math.max(...flights.map(f => parseInt(f.flightNumber) || 0));
+        let currentStored = [];
+        try { currentStored = JSON.parse(localStorage.getItem('userFlights') || '[]'); } catch {}
+        const allList = currentStored.length > 0 ? currentStored : flights;
+        if (allList.length === 0) return 1;
+        const maxNum = Math.max(0, ...allList.map(f => parseInt(f.flightNumber, 10) || 0));
         return maxNum + 1;
       };
 
-      const sourceDepDate = pendingDuplicateFlight.legs?.[0]?.date || pendingDuplicateFlight.date?.split?.('T')[0] || new Date().toISOString().split('T')[0];
       const targetDateStr = format(date, 'yyyy-MM-dd');
+      const sourceDepDate = pendingDuplicateFlight.legs?.[0]?.date || 
+                            pendingDuplicateFlight.date?.split?.('T')[0] || 
+                            format(new Date(), 'yyyy-MM-dd');
+
+      let offsetDays = 0;
+      try {
+        offsetDays = differenceInCalendarDays(parseISO(targetDateStr), parseISO(sourceDepDate));
+      } catch {
+        const sourceD = new Date(sourceDepDate + 'T12:00:00Z');
+        const targetD = new Date(targetDateStr + 'T12:00:00Z');
+        offsetDays = Math.round((targetD.getTime() - sourceD.getTime()) / (1000 * 60 * 60 * 24));
+      }
 
       const shiftedLegs = (pendingDuplicateFlight.legs || []).map(l => {
-        const legDateStr = l.date || sourceDepDate;
-        let dayOffset = 0;
+        let newDepDate = l.date || sourceDepDate;
+        let newArrDate = l.arrDate || newDepDate;
+
         try {
-          dayOffset = differenceInCalendarDays(parseISO(legDateStr), parseISO(sourceDepDate));
-        } catch {}
-        const newLegDate = format(addDays(parseISO(targetDateStr), dayOffset), 'yyyy-MM-dd');
-        return { ...l, date: newLegDate, arrDate: newLegDate };
+          if (newDepDate && offsetDays !== 0) {
+            newDepDate = format(addDays(parseISO(newDepDate), offsetDays), 'yyyy-MM-dd');
+          }
+          if (newArrDate && offsetDays !== 0) {
+            newArrDate = format(addDays(parseISO(newArrDate), offsetDays), 'yyyy-MM-dd');
+          }
+        } catch {
+          if (newDepDate && offsetDays !== 0) {
+            const d = new Date(newDepDate + 'T12:00:00Z');
+            d.setUTCDate(d.getUTCDate() + offsetDays);
+            newDepDate = d.toISOString().split('T')[0];
+          }
+          if (newArrDate && offsetDays !== 0) {
+            const a = new Date(newArrDate + 'T12:00:00Z');
+            a.setUTCDate(a.getUTCDate() + offsetDays);
+            newArrDate = a.toISOString().split('T')[0];
+          }
+        }
+
+        return {
+          ...l,
+          date: newDepDate,
+          arrDate: newArrDate
+        };
       });
+
+      const newId = Date.now();
+      const newFlightNumber = getNextFlightNumber();
 
       const flightData = { 
         ...pendingDuplicateFlight, 
         date: new Date(targetDateStr + 'T12:00:00Z').toISOString(), 
         legs: shiftedLegs,
-        id: Date.now(), 
-        flightNumber: getNextFlightNumber() 
+        id: newId, 
+        flightNumber: newFlightNumber
       };
       
-      const updatedFlights = [...flights, flightData];
+      let currentStored = [];
+      try { currentStored = JSON.parse(localStorage.getItem('userFlights') || '[]'); } catch {}
+      const base = currentStored.length > 0 ? currentStored : flights;
+      const updatedFlights = [...base, flightData];
+      
       setFlights(updatedFlights);
       localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
+      window.dispatchEvent(new Event('storage'));
       setPendingDuplicateFlight(null);
       return;
     }
@@ -721,7 +764,14 @@ const CalendarView = () => {
                     <div
                       key={note.id}
                       title={note.content || note.title}
-                      onClick={(e) => { e.stopPropagation(); openNoteModal(day, note); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (pendingDuplicateFlight) {
+                          openModalForDate(day);
+                        } else {
+                          openNoteModal(day, note);
+                        }
+                      }}
                       style={{
                         backgroundColor: '#edf2f7',
                         color: '#4a5568',
@@ -771,7 +821,11 @@ const CalendarView = () => {
                       onDragEnd={() => setDraggableFlightId(null)}
                       onClick={(e) => {
                         e.stopPropagation();
-                        openModalForFlight(flight);
+                        if (pendingDuplicateFlight) {
+                          openModalForDate(day);
+                        } else {
+                          openModalForFlight(flight);
+                        }
                       }}
                       style={{
                         whiteSpace: 'normal',
