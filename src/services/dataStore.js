@@ -85,6 +85,49 @@ function getOrgDocRef() {
   return doc(db, 'orgs', 'default');
 }
 
+/**
+ * Strips out large base64 strings or non-serializable properties
+ * so Firestore payloads never exceed the 1MB document limit.
+ */
+function sanitizeForFirestore(val) {
+  if (!val) return val;
+  if (Array.isArray(val)) {
+    return val.map(flight => {
+      if (!flight || typeof flight !== 'object') return flight;
+      const cleanFlight = { ...flight };
+      if (Array.isArray(cleanFlight.uploads)) {
+        cleanFlight.uploads = cleanFlight.uploads.map(u => {
+          if (!u || typeof u !== 'object') return u;
+          const cleanU = { ...u };
+          if (cleanU.url && typeof cleanU.url === 'string' && cleanU.url.startsWith('data:')) {
+            delete cleanU.url;
+          }
+          return cleanU;
+        });
+      }
+      if (Array.isArray(cleanFlight.expenses)) {
+        cleanFlight.expenses = cleanFlight.expenses.map(e => {
+          if (!e || typeof e !== 'object') return e;
+          const cleanE = { ...e };
+          if (Array.isArray(cleanE.receiptFiles)) {
+            cleanE.receiptFiles = cleanE.receiptFiles.map(r => {
+              if (!r || typeof r !== 'object') return r;
+              const cleanR = { ...r };
+              if (cleanR.url && typeof cleanR.url === 'string' && cleanR.url.startsWith('data:')) {
+                delete cleanR.url;
+              }
+              return cleanR;
+            });
+          }
+          return cleanE;
+        });
+      }
+      return cleanFlight;
+    });
+  }
+  return val;
+}
+
 export function setUserId(userId) {
   currentUserId = userId;
   if (userId) {
@@ -100,7 +143,7 @@ export function getUserId() {
 }
 
 /**
- * Intelligent flight merge used when recovering from offline un-synced edits.
+ * Merge local and remote flight records safely
  */
 function mergeFlights(localFlights, remoteFlights) {
   if (!Array.isArray(localFlights) || localFlights.length === 0) return remoteFlights || [];
@@ -162,13 +205,25 @@ function mergeFlights(localFlights, remoteFlights) {
 
 async function persistKeyToFirestore(key, value) {
   if (!currentUserId) {
+    try {
+      const user = JSON.parse(originalGetItem('baseOpsCurrentUser') || '{}');
+      if (user?.uid || user?.id) {
+        currentUserId = user.uid || user.id;
+      }
+    } catch {}
+  }
+
+  if (!currentUserId) {
     queueForRetry(key, value);
     return false;
   }
+
   const fsKey = FIRESTORE_KEY_MAP[key] || key;
+  const sanitizedValue = sanitizeForFirestore(value);
+
   try {
     const orgRef = getOrgDocRef();
-    await setDoc(orgRef, { [fsKey]: value, _lastUpdated: Date.now() }, { merge: true });
+    await setDoc(orgRef, { [fsKey]: sanitizedValue, _lastUpdated: Date.now() }, { merge: true });
     removeQueuedKey(key);
     return true;
   } catch (err) {
@@ -181,7 +236,16 @@ async function persistKeyToFirestore(key, value) {
 
 // Retry any queued (unsynced) writes.
 async function flushPendingQueue() {
+  if (!currentUserId) {
+    try {
+      const user = JSON.parse(originalGetItem('baseOpsCurrentUser') || '{}');
+      if (user?.uid || user?.id) {
+        currentUserId = user.uid || user.id;
+      }
+    } catch {}
+  }
   if (!currentUserId) return;
+
   const queue = getPendingQueue();
   if (queue.length === 0) return;
   for (const entry of queue) {
@@ -200,7 +264,6 @@ function startRetryTimer() {
 export async function initStore() {
   if (initialized) return;
   if (!currentUserId) {
-    // Try to get UID from baseOpsCurrentUser if available
     try {
       const stored = JSON.parse(originalGetItem('baseOpsCurrentUser') || '{}');
       if (stored && (stored.uid || stored.id)) {
@@ -227,8 +290,8 @@ export async function initStore() {
           }
 
           let finalData = data[fsKey];
-          // If offline pending writes exist, merge; otherwise remote is authoritative
-          if (isPendingLocalWrite(lsKey) && lsKey === 'userFlights' && Array.isArray(localData)) {
+          // If local has more flights or expenses, merge to avoid losing un-synced local drafts
+          if (lsKey === 'userFlights' && Array.isArray(localData)) {
             finalData = mergeFlights(localData, data[fsKey]);
           }
 
@@ -241,7 +304,7 @@ export async function initStore() {
             window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: lsKey } }));
           }
 
-          if (isPendingLocalWrite(lsKey) && lsKey === 'userFlights' && JSON.stringify(finalData) !== JSON.stringify(data[fsKey])) {
+          if (lsKey === 'userFlights' && JSON.stringify(finalData) !== JSON.stringify(data[fsKey])) {
             persistKeyToFirestore('userFlights', finalData);
           }
         } else {
@@ -272,7 +335,11 @@ export async function initStore() {
       });
       if (hasData) {
         try {
-          await setDoc(orgRef, { ...allData, _lastUpdated: Date.now() }, { merge: true });
+          const sanitizedAll = {};
+          Object.entries(allData).forEach(([k, v]) => {
+            sanitizedAll[k] = sanitizeForFirestore(v);
+          });
+          await setDoc(orgRef, { ...sanitizedAll, _lastUpdated: Date.now() }, { merge: true });
         } catch (err) {
           console.error('Bulk Firestore seed failed, queueing keys:', err);
           Object.entries(allData).forEach(([fsKey, val]) => {

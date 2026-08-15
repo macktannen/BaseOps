@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.56] - 2026-08-15
+
+### Fixed
+- **Zero-Bloat Receipt & Upload Storage Architecture** — Fixed root cause where base64 data URLs were embedded in flight/expense records, exceeding Firestore's 1MB hard document limit and causing cloud persistence to fail silently. Files and receipts now store lightweight metadata with Firebase Storage URLs and IndexedDB Blob handles on demand. Added automatic payload sanitization in `dataStore.js` and hardcoded configuration fallbacks in `firebase.js`.
+
 ## [v0.3.55] - 2026-08-15
 
 ### Fixed

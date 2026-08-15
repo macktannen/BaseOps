@@ -70,22 +70,12 @@ export const FileStorageService = {
       console.warn('Failed to cache file in local IndexedDB:', dbErr);
     }
 
-    // 3. Generate fallback URL if cloud URL was not created
-    let localUrl = cloudUrl;
-    if (!localUrl) {
-      try {
-        localUrl = await fileToDataUrl(file);
-      } catch {
-        localUrl = URL.createObjectURL(file);
-      }
-    }
-
     return {
       id: safeName,
       name: file.name,
       type: file.type || 'application/octet-stream',
       size: file.size,
-      url: localUrl,
+      url: cloudUrl || '',
       localKey: safeName,
       isCloud,
       storagePath,
@@ -251,22 +241,12 @@ export const FileStorageService = {
       console.warn('Failed to cache receipt in local IndexedDB:', dbErr);
     }
 
-    // 3. Generate usable URL
-    let localUrl = cloudUrl;
-    if (!localUrl) {
-      try {
-        localUrl = await fileToDataUrl(file);
-      } catch {
-        localUrl = URL.createObjectURL(file);
-      }
-    }
-
     return {
       id: safeName,
       name: fileName,
       type: fileType,
       size: fileSize,
-      url: localUrl,
+      url: cloudUrl || '',
       localKey: safeName,
       isCloud,
       storagePath: path,
