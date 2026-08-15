@@ -543,11 +543,11 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
   const totalAmount = expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
   const totalGallons = expenses.reduce((sum, e) => sum + (parseFloat(e.gallons) || 0), 0);
 
-  const tdStyle = { padding: '3px 2px', verticalAlign: 'middle' };
-  const inputStyle = { width: '100%', padding: '5px 4px', border: '1px solid #cbd5e0', borderRadius: '4px', fontSize: '0.72rem', boxSizing: 'border-box' };
+  const tdStyle = { padding: '2px 2px', verticalAlign: 'middle' };
+  const inputStyle = { width: '100%', padding: '4px 3px', border: '1px solid #cbd5e0', borderRadius: '4px', fontSize: '0.7rem', boxSizing: 'border-box' };
 
   return (
-    <div style={{ padding: '15px', display: 'block', minHeight: '100%', overflowY: 'auto', backgroundColor: '#fff' }}>
+    <div style={{ padding: '12px', display: 'block', minHeight: '100%', overflowY: 'auto', backgroundColor: '#fff' }}>
       {uploadError && (
         <div style={{ marginBottom: '12px', padding: '10px 14px', backgroundColor: '#fff5f5', border: '1px solid #fed7d7', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px', color: '#c53030', fontSize: '0.85rem' }}>
           <AlertCircle size={16} />
@@ -556,22 +556,22 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
         </div>
       )}
 
-      <div style={{ overflowX: 'auto', width: '100%' }}>
-        <table className="expense-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div style={{ overflowX: isMobile ? 'auto' : 'hidden', width: '100%' }}>
+        <table className="expense-table" style={{ width: '100%', tableLayout: 'auto', borderCollapse: 'collapse' }}>
           <thead>
             <tr>
-              <th style={{ width: '38px', padding: '6px 2px' }}></th>
-              <th style={{ width: '92px', padding: '6px 2px', textAlign: 'left', fontSize: '0.7rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('date')}>Date</th>
-              <th style={{ width: '13%', minWidth: '90px', padding: '6px 2px', textAlign: 'left', fontSize: '0.7rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('vendor')}>Vendor</th>
-              <th style={{ width: '14%', minWidth: '95px', padding: '6px 2px', textAlign: 'left', fontSize: '0.7rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('category')}>Category</th>
-              <th style={{ width: '10%', minWidth: '80px', padding: '6px 2px', textAlign: 'left', fontSize: '0.7rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('payer')}>Payment</th>
-              <th style={{ width: '9%', minWidth: '75px', padding: '6px 2px', textAlign: 'left', fontSize: '0.7rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('location')}>Location</th>
-              <th style={{ width: '8%', minWidth: '70px', padding: '6px 2px', textAlign: 'left', fontSize: '0.7rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('fuelType')}>Fuel</th>
-              <th style={{ width: '48px', padding: '6px 2px', textAlign: 'left', fontSize: '0.7rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('gallons')}>Gal</th>
-              <th style={{ width: '8%', minWidth: '70px', padding: '6px 2px', textAlign: 'left', fontSize: '0.7rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('purchaser')}>Purchaser</th>
-              <th style={{ width: '72px', padding: '6px 2px', textAlign: 'right', fontSize: '0.7rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('amount')}>Amount</th>
-              <th style={{ width: '12%', minWidth: '85px', padding: '6px 2px', textAlign: 'left', fontSize: '0.7rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('description')}>Notes</th>
-              <th style={{ width: '28px', padding: '6px 2px' }}></th>
+              <th style={{ width: '32px', padding: '4px 2px' }}></th>
+              <th style={{ width: '80px', padding: '4px 2px', textAlign: 'left', fontSize: '0.68rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('date')}>Date</th>
+              <th style={{ width: '13%', minWidth: '65px', padding: '4px 2px', textAlign: 'left', fontSize: '0.68rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('vendor')}>Vendor</th>
+              <th style={{ width: '14%', minWidth: '70px', padding: '4px 2px', textAlign: 'left', fontSize: '0.68rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('category')}>Category</th>
+              <th style={{ width: '10%', minWidth: '60px', padding: '4px 2px', textAlign: 'left', fontSize: '0.68rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('payer')}>Payment</th>
+              <th style={{ width: '8%', minWidth: '55px', padding: '4px 2px', textAlign: 'left', fontSize: '0.68rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('location')}>Location</th>
+              <th style={{ width: '7%', minWidth: '50px', padding: '4px 2px', textAlign: 'left', fontSize: '0.68rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('fuelType')}>Fuel</th>
+              <th style={{ width: '40px', padding: '4px 2px', textAlign: 'left', fontSize: '0.68rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('gallons')}>Gal</th>
+              <th style={{ width: '8%', minWidth: '55px', padding: '4px 2px', textAlign: 'left', fontSize: '0.68rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('purchaser')}>Purchaser</th>
+              <th style={{ width: '60px', padding: '4px 2px', textAlign: 'right', fontSize: '0.68rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('amount')}>Amount</th>
+              <th style={{ width: '14%', minWidth: '65px', padding: '4px 2px', textAlign: 'left', fontSize: '0.68rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('description')}>Notes</th>
+              <th style={{ width: '26px', padding: '4px 2px' }}></th>
             </tr>
           </thead>
           <tbody>

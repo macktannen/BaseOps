@@ -890,23 +890,23 @@ const ExpensesPage = () => {
               </div>
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto' }}>
-              <table className="data-table expenses-table" style={{ width: '100%' }}>
+            <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+              <table className="data-table expenses-table" style={{ width: '100%', tableLayout: 'auto', borderCollapse: 'collapse' }}>
                 <thead style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 1 }}>
                   <tr>
-                    <th style={{ padding: '12px', cursor: 'pointer' }} onClick={() => handleHeaderClick('date')}>Date</th>
-                    <th style={{ padding: '12px', cursor: 'pointer' }} onClick={() => handleHeaderClick('flightNumber')}>MSN #</th>
-                    <th style={{ padding: '12px', cursor: 'pointer' }} onClick={() => handleHeaderClick('flightAircraft')}>Aircraft</th>
-                    <th style={{ padding: '12px', cursor: 'pointer' }} onClick={() => handleHeaderClick('flightAccount')}>Account</th>
-                    <th style={{ padding: '12px', cursor: 'pointer' }} onClick={() => handleHeaderClick('vendor')}>Vendor</th>
-                    <th style={{ padding: '12px', cursor: 'pointer' }} onClick={() => handleHeaderClick('category')}>Category</th>
-                    <th style={{ padding: '12px', cursor: 'pointer' }} onClick={() => handleHeaderClick('payer')}>Payment</th>
-                    <th style={{ padding: '12px', cursor: 'pointer' }} onClick={() => handleHeaderClick('fuelType')}>Fuel Provider</th>
-                    <th style={{ padding: '12px', cursor: 'pointer' }} onClick={() => handleHeaderClick('purchaser')}>Purchaser</th>
-                    <th style={{ padding: '12px', cursor: 'pointer' }} onClick={() => handleHeaderClick('description')}>Notes</th>
-                    <th style={{ padding: '12px', textAlign: 'center', cursor: 'pointer' }} onClick={() => handleHeaderClick('receiptCount')}>Receipt</th>
-                    <th style={{ padding: '12px', textAlign: 'center', cursor: 'pointer' }} onClick={() => handleHeaderClick('isPaid')}>Paid</th>
-                    <th style={{ padding: '12px', textAlign: 'right', cursor: 'pointer' }} onClick={() => handleHeaderClick('amount')}>Amount</th>
+                    <th style={{ padding: '8px 6px', fontSize: '0.72rem', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('date')}>Date</th>
+                    <th style={{ padding: '8px 6px', fontSize: '0.72rem', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('flightNumber')}>MSN #</th>
+                    <th style={{ padding: '8px 6px', fontSize: '0.72rem', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('flightAircraft')}>Aircraft</th>
+                    <th style={{ padding: '8px 6px', fontSize: '0.72rem', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('flightAccount')}>Account</th>
+                    <th style={{ padding: '8px 6px', fontSize: '0.72rem', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('vendor')}>Vendor</th>
+                    <th style={{ padding: '8px 6px', fontSize: '0.72rem', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('category')}>Category</th>
+                    <th style={{ padding: '8px 6px', fontSize: '0.72rem', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('payer')}>Payment</th>
+                    <th style={{ padding: '8px 6px', fontSize: '0.72rem', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('fuelType')}>Fuel Provider</th>
+                    <th style={{ padding: '8px 6px', fontSize: '0.72rem', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('purchaser')}>Purchaser</th>
+                    <th style={{ padding: '8px 6px', fontSize: '0.72rem', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('description')}>Notes</th>
+                    <th style={{ padding: '8px 4px', fontSize: '0.72rem', textAlign: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('receiptCount')}>Receipt</th>
+                    <th style={{ padding: '8px 4px', fontSize: '0.72rem', textAlign: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('isPaid')}>Paid</th>
+                    <th style={{ padding: '8px 6px', fontSize: '0.72rem', textAlign: 'right', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('amount')}>Amount</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -918,75 +918,80 @@ const ExpensesPage = () => {
                     </tr>
                   ) : (
                     sortedExpenses.map((exp, i) => (
-                      <tr key={`${exp.id}-${i}`} onClick={() => handleOpenFlightCard(exp)} style={{ cursor: 'pointer' }}>
-                        <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <Calendar size={14} color="var(--text-muted)" />
+                      <tr key={`${exp.id}-${i}`} onClick={() => handleOpenFlightCard(exp)} style={{ cursor: 'pointer', borderBottom: '1px solid var(--border-color)' }}>
+                        <td style={{ padding: '6px', whiteSpace: 'nowrap', fontSize: '0.75rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Calendar size={12} color="var(--text-muted)" />
                             {exp.date}
                           </div>
                         </td>
-                        <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>
+                        <td style={{ padding: '6px', whiteSpace: 'nowrap', fontSize: '0.75rem' }}>
                           <span style={{ fontWeight: 'bold', color: 'var(--primary-color)' }}>{exp.flightNumber}</span>
                           {exp.flightTitle ? (
-                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: '6px' }}>{exp.flightTitle}</span>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '4px', maxWidth: '80px', display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', verticalAlign: 'bottom' }} title={exp.flightTitle}>{exp.flightTitle}</span>
                           ) : null}
                         </td>
-                        <td style={{ padding: '12px' }}>{exp.flightAircraft || '-'}</td>
-                        <td style={{ padding: '12px' }}>
+                        <td style={{ padding: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{exp.flightAircraft || '-'}</td>
+                        <td style={{ padding: '6px', fontSize: '0.75rem', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={exp.flightAccount}>
                           {(() => {
                             if (!exp.flightAccount) return '-';
                             const act = accounts.find(a => a.id === exp.flightAccount || a.name === exp.flightAccount);
                             return act ? act.name : exp.flightAccount;
                           })()}
                         </td>
-                        <td style={{ padding: '12px', fontWeight: 500 }}>
+                        <td style={{ padding: '6px', fontWeight: 500, fontSize: '0.75rem', maxWidth: '110px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={exp.vendor}>
                           {(() => {
                             const foundVendor = vendors.find(v => v.vendorId === exp.vendor || v.name === exp.vendor);
                             return foundVendor?.name || exp.vendor || '-';
                           })()}
                         </td>
-                        <td style={{ padding: '12px' }}>
+                        <td style={{ padding: '6px', whiteSpace: 'nowrap' }}>
                           <span style={{ 
-                            padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600, 
+                            padding: '2px 6px', borderRadius: '10px', fontSize: '0.68rem', fontWeight: 600, 
                             backgroundColor: getCategoryColor(exp.category).bg, 
-                            color: getCategoryColor(exp.category).text 
-                          }}>
+                            color: getCategoryColor(exp.category).text,
+                            display: 'inline-block',
+                            maxWidth: '120px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }} title={exp.category}>
                             {exp.category}
                           </span>
                         </td>
-                        <td style={{ padding: '12px' }}>{exp.payer || '-'}</td>
-                        <td style={{ padding: '12px' }}>{exp.fuelType || '-'}</td>
-                        <td style={{ padding: '12px' }}>{exp.purchaser || '-'}</td>
-                        <td style={{ padding: '12px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={exp.description}>
+                        <td style={{ padding: '6px', fontSize: '0.75rem', maxWidth: '85px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={exp.payer}>{exp.payer || '-'}</td>
+                        <td style={{ padding: '6px', fontSize: '0.75rem', maxWidth: '85px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={exp.fuelType}>{exp.fuelType || '-'}</td>
+                        <td style={{ padding: '6px', fontSize: '0.75rem', maxWidth: '85px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={exp.purchaser}>{exp.purchaser || '-'}</td>
+                        <td style={{ padding: '6px', maxWidth: '130px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.75rem' }} title={exp.description}>
                           {exp.description || '-'}
                         </td>
-                        <td style={{ padding: '12px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                        <td style={{ padding: '6px 4px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
                           {(exp.receiptCount > 0 || exp.hasReceipt || (exp.receiptFiles && exp.receiptFiles.length > 0)) ? (
                             <button
                               onClick={() => setViewingExpense(exp)}
-                              style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', color: '#3182ce', padding: '4px', display: 'inline-flex', alignItems: 'center' }}
+                              style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', color: '#3182ce', padding: '2px', display: 'inline-flex', alignItems: 'center' }}
                               title={`${exp.receiptCount || (exp.receiptFiles && exp.receiptFiles.length) || 1} receipt(s) — click to view`}
                             >
-                              <Paperclip size={16} />
+                              <Paperclip size={14} />
                               {(exp.receiptCount > 1 || (exp.receiptFiles && exp.receiptFiles.length > 1)) && (
-                                <span style={{ position: 'absolute', top: '-6px', right: '-8px', backgroundColor: '#e53e3e', color: 'white', borderRadius: '50%', width: '14px', height: '14px', fontSize: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                                <span style={{ position: 'absolute', top: '-5px', right: '-7px', backgroundColor: '#e53e3e', color: 'white', borderRadius: '50%', width: '13px', height: '13px', fontSize: '0.55rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
                                   {exp.receiptCount || exp.receiptFiles.length}
                                 </span>
                               )}
                             </button>
                           ) : (
-                            <span style={{ color: '#cbd5e0' }}>-</span>
+                            <span style={{ color: '#cbd5e0', fontSize: '0.75rem' }}>-</span>
                           )}
                         </td>
-                        <td style={{ padding: '12px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                        <td style={{ padding: '6px 4px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
                           <input 
                             type="checkbox" 
                             checked={exp.isPaid || false} 
                             onChange={(e) => handleTogglePaid(exp.id, exp.flightId, e.target.checked)}
-                            style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
+                            style={{ cursor: 'pointer', transform: 'scale(1.1)' }}
                           />
                         </td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>
+                        <td style={{ padding: '6px', textAlign: 'right', fontWeight: 'bold', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
                           ${parseFloat(exp.amount || 0).toFixed(2)}
                         </td>
                       </tr>

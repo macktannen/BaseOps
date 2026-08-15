@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.58] - 2026-08-15
+
+### Fixed
+- **Fluid Zero-Scroll Desktop Expenses Overview & Modal Rows** — Redesigned Expenses Overview table and Expenses Tab rows with auto-scaling typography, compact padding, truncated text fields with tooltips, and fluid column layouts so that all expense columns fit on desktop and modal screens without horizontal scrolling.
+
 ## [v0.3.57] - 2026-08-15
 
 ### Fixed
