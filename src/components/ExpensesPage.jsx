@@ -77,6 +77,9 @@ const ExpensesPage = () => {
   const [manualForm, setManualForm] = useState(emptyManualForm);
   const [editingDeptExpenseId, setEditingDeptExpenseId] = useState(null);
 
+  // Filter by status ('all', 'paid', 'unpaid', 'net15')
+  const [statusFilter, setStatusFilter] = useState('all');
+
   // Sorting
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const handleHeaderClick = (key) => {
@@ -380,16 +383,51 @@ const ExpensesPage = () => {
     setEditingVendorId(null);
   };
 
-  const filteredExpenses = expenses.filter(e => {
+  const today = useMemo(() => {
+    const t = new Date();
+    t.setHours(0, 0, 0, 0);
+    return t;
+  }, []);
+
+  // Base expenses matching search and category
+  const baseExpenses = expenses.filter(e => {
     const searchLower = search.toLowerCase();
-    // Combine searchable fields into one string
     const searchable = `${e.description || ''} ${e.flightNumber || ''} ${e.flightTitle || ''} ${e.vendor || ''} ${e.category || ''} ${e.location || ''} ${e.payer || ''} ${e.amount || ''} ${e.date || ''} ${e.flightDate || ''}`.toLowerCase();
-    const matchesSearch =
-      searchable.includes(searchLower) ||
-      (searchLower.includes('paid') && e.isPaid) ||
-      (searchLower.includes('unpaid') && !e.isPaid);
+    const matchesSearch = searchable.includes(searchLower);
     const matchesCategory = filterCategory === 'All' || e.category === filterCategory;
     return matchesSearch && matchesCategory;
+  });
+
+  // Overall metrics from base set
+  const totalAmount = baseExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+  const totalPaid = baseExpenses.reduce((sum, e) => sum + (e.isPaid ? parseFloat(e.amount || 0) : 0), 0);
+  const totalUnpaid = baseExpenses.reduce((sum, e) => sum + (!e.isPaid ? parseFloat(e.amount || 0) : 0), 0);
+  const paidCount = baseExpenses.filter(e => e.isPaid).length;
+  const unpaidCount = baseExpenses.filter(e => !e.isPaid).length;
+
+  const net15Expenses = baseExpenses.filter(e => {
+    if (e.isPaid) return false;
+    if (!e.date) return false;
+    const expDate = new Date(e.date + 'T00:00:00');
+    if (isNaN(expDate.getTime())) return false;
+    const diffDays = Math.floor((today.getTime() - expDate.getTime()) / (1000 * 60 * 60 * 24));
+    return diffDays > 15;
+  });
+  const net15Count = net15Expenses.length;
+  const net15Amount = net15Expenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+
+  // Table rows filtered by selected status card
+  const filteredExpenses = baseExpenses.filter(e => {
+    if (statusFilter === 'paid') return e.isPaid;
+    if (statusFilter === 'unpaid') return !e.isPaid;
+    if (statusFilter === 'net15') {
+      if (e.isPaid || !e.date) return false;
+      const expDate = new Date(e.date + 'T00:00:00');
+      if (isNaN(expDate.getTime())) return false;
+      const diffDays = Math.floor((today.getTime() - expDate.getTime()) / (1000 * 60 * 60 * 24));
+      return diffDays > 15;
+    }
+    return true; // 'all'
   });
 
   // Sorted expenses based on column
@@ -440,25 +478,6 @@ const ExpensesPage = () => {
       console.error(err);
     }
   };
-
-  const totalAmount = filteredExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
-  const totalPaid = filteredExpenses.reduce((sum, e) => sum + (e.isPaid ? parseFloat(e.amount || 0) : 0), 0);
-  const totalUnpaid = filteredExpenses.reduce((sum, e) => sum + (!e.isPaid ? parseFloat(e.amount || 0) : 0), 0);
-  const paidCount = filteredExpenses.filter(e => e.isPaid).length;
-  const unpaidCount = filteredExpenses.filter(e => !e.isPaid).length;
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const net15Expenses = filteredExpenses.filter(e => {
-    if (e.isPaid) return false;
-    if (!e.date) return false;
-    const expDate = new Date(e.date + 'T00:00:00');
-    if (isNaN(expDate.getTime())) return false;
-    const diffDays = Math.floor((today.getTime() - expDate.getTime()) / (1000 * 60 * 60 * 24));
-    return diffDays > 15;
-  });
-  const net15Count = net15Expenses.length;
-  const net15Amount = net15Expenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
 
   const categories = [
     'All', 'Catering', 'Cleaning / Detailing', 'Crew Meal', 'Customs / Border Fees', 
@@ -841,7 +860,23 @@ const ExpensesPage = () => {
       {activeTab === 'overview' && (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '14px' }}>
-            <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px' }}>
+            <div 
+              className="card" 
+              onClick={() => setStatusFilter('all')}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px', 
+                padding: '14px', 
+                cursor: 'pointer', 
+                userSelect: 'none',
+                transition: 'all 0.15s ease',
+                border: statusFilter === 'all' ? '2px solid #319795' : '1px solid var(--border-color)',
+                boxShadow: statusFilter === 'all' ? '0 4px 12px rgba(49, 151, 149, 0.18)' : 'none',
+                transform: statusFilter === 'all' ? 'translateY(-2px)' : 'none'
+              }}
+              title="Click to show all expenses"
+            >
               <div style={{ padding: '12px', backgroundColor: '#e6fffa', borderRadius: '50%', color: '#319795', flexShrink: 0 }}>
                 <DollarSign size={20} />
               </div>
@@ -851,7 +886,23 @@ const ExpensesPage = () => {
               </div>
             </div>
             
-            <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px' }}>
+            <div 
+              className="card" 
+              onClick={() => setStatusFilter(prev => prev === 'paid' ? 'all' : 'paid')}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px', 
+                padding: '14px', 
+                cursor: 'pointer', 
+                userSelect: 'none',
+                transition: 'all 0.15s ease',
+                border: statusFilter === 'paid' ? '2px solid #38a169' : '1px solid var(--border-color)',
+                boxShadow: statusFilter === 'paid' ? '0 4px 12px rgba(56, 161, 105, 0.18)' : 'none',
+                transform: statusFilter === 'paid' ? 'translateY(-2px)' : 'none'
+              }}
+              title="Click to filter and show only paid expenses"
+            >
               <div style={{ padding: '12px', backgroundColor: '#f0fff4', borderRadius: '50%', color: '#38a169', flexShrink: 0 }}>
                 <Check size={20} />
               </div>
@@ -861,7 +912,23 @@ const ExpensesPage = () => {
               </div>
             </div>
 
-            <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px' }}>
+            <div 
+              className="card" 
+              onClick={() => setStatusFilter(prev => prev === 'unpaid' ? 'all' : 'unpaid')}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px', 
+                padding: '14px', 
+                cursor: 'pointer', 
+                userSelect: 'none',
+                transition: 'all 0.15s ease',
+                border: statusFilter === 'unpaid' ? '2px solid #e53e3e' : '1px solid var(--border-color)',
+                boxShadow: statusFilter === 'unpaid' ? '0 4px 12px rgba(229, 62, 62, 0.18)' : 'none',
+                transform: statusFilter === 'unpaid' ? 'translateY(-2px)' : 'none'
+              }}
+              title="Click to filter and show only unpaid expenses"
+            >
               <div style={{ padding: '12px', backgroundColor: '#fff5f5', borderRadius: '50%', color: '#e53e3e', flexShrink: 0 }}>
                 <X size={20} />
               </div>
@@ -871,8 +938,22 @@ const ExpensesPage = () => {
               </div>
             </div>
             
-            <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px' }}>
-              <div style={{ padding: '12px', backgroundColor: unpaidCount === 0 && filteredExpenses.length > 0 ? '#f0fff4' : '#fffaf0', borderRadius: '50%', color: unpaidCount === 0 && filteredExpenses.length > 0 ? '#38a169' : '#dd6b20', flexShrink: 0 }}>
+            <div 
+              className="card" 
+              onClick={() => setStatusFilter('all')}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px', 
+                padding: '14px', 
+                cursor: 'pointer', 
+                userSelect: 'none',
+                transition: 'all 0.15s ease',
+                border: '1px solid var(--border-color)'
+              }}
+              title="Click to show all lines"
+            >
+              <div style={{ padding: '12px', backgroundColor: unpaidCount === 0 && baseExpenses.length > 0 ? '#f0fff4' : '#fffaf0', borderRadius: '50%', color: unpaidCount === 0 && baseExpenses.length > 0 ? '#38a169' : '#dd6b20', flexShrink: 0 }}>
                 <CheckSquare size={20} />
               </div>
               <div style={{ minWidth: 0 }}>
@@ -885,7 +966,23 @@ const ExpensesPage = () => {
               </div>
             </div>
 
-            <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px' }}>
+            <div 
+              className="card" 
+              onClick={() => setStatusFilter(prev => prev === 'net15' ? 'all' : 'net15')}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px', 
+                padding: '14px', 
+                cursor: 'pointer', 
+                userSelect: 'none',
+                transition: 'all 0.15s ease',
+                border: statusFilter === 'net15' ? '2px solid #e53e3e' : '1px solid var(--border-color)',
+                boxShadow: statusFilter === 'net15' ? '0 4px 12px rgba(229, 62, 62, 0.18)' : 'none',
+                transform: statusFilter === 'net15' ? 'translateY(-2px)' : 'none'
+              }}
+              title="Click to filter and show only overdue expenses (> 15 days unpaid)"
+            >
               <div style={{ padding: '12px', backgroundColor: net15Count > 0 ? '#fff5f5' : '#f0fff4', borderRadius: '50%', color: net15Count > 0 ? '#e53e3e' : '#38a169', flexShrink: 0 }}>
                 <Clock size={20} />
               </div>
@@ -898,6 +995,22 @@ const ExpensesPage = () => {
               </div>
             </div>
           </div>
+
+          {statusFilter !== 'all' && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px', backgroundColor: statusFilter === 'paid' ? '#f0fff4' : '#fff5f5', borderRadius: '6px', border: `1px solid ${statusFilter === 'paid' ? '#c6f6d5' : '#fed7d7'}`, fontSize: '0.82rem' }}>
+              <span style={{ color: statusFilter === 'paid' ? '#276749' : '#9b2c2c', fontWeight: 600 }}>
+                {statusFilter === 'paid' && `Showing only Paid expenses (${filteredExpenses.length} lines)`}
+                {statusFilter === 'unpaid' && `Showing only Unpaid expenses (${filteredExpenses.length} lines)`}
+                {statusFilter === 'net15' && `Showing only NET 15 Overdue expenses (> 15 days unpaid) (${filteredExpenses.length} lines)`}
+              </span>
+              <button 
+                onClick={() => setStatusFilter('all')}
+                style={{ background: 'none', border: 'none', color: '#3182ce', fontWeight: 600, cursor: 'pointer', fontSize: '0.82rem', textDecoration: 'underline' }}
+              >
+                Clear Filter (Show All)
+              </button>
+            </div>
+          )}
 
           <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', gap: '20px' }}>

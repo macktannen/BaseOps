@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.65] - 2026-08-15
+
+### Added
+- **Clickable Stat Card Filtering (NET 15, Paid, Unpaid, Total)** — Clicking the `NET 15` box filters the list to show only overdue invoices (> 15 days unpaid). Clicking `Paid` or `Unpaid` filters directly to paid or unpaid items, and clicking `Total Expenses` (or `Paid / Unpaid`) resets the filter to show all rows. Includes active border indicators and a quick-clear filter banner on both desktop and mobile.
+
 ## [v0.3.64] - 2026-08-15
 
 ### Added

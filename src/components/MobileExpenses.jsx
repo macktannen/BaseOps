@@ -50,6 +50,7 @@ const labelStyle = {
 const MobileExpenses = () => {
   const [expenses, setExpenses] = useState([]);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'paid' | 'unpaid' | 'net15'
   const [flights, setFlights] = useState([]);
 
   const [showManualModal, setShowManualModal] = useState(false);
@@ -310,22 +311,22 @@ const MobileExpenses = () => {
       ].filter(Boolean).map(a => typeof a === 'string' ? a : String(a))))]
     : [];
 
-  const filteredExpenses = expenses.filter(e => {
+  const baseExpenses = expenses.filter(e => {
     const s = search.toLowerCase();
     return (e.vendor?.toLowerCase().includes(s) ||
             e.category?.toLowerCase().includes(s) ||
             e.description?.toLowerCase().includes(s));
   });
 
-  const totalAmount = filteredExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
-  const totalPaid = filteredExpenses.filter(e => e.isPaid).reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
-  const totalUnpaid = filteredExpenses.filter(e => !e.isPaid).reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
-  const paidCount = filteredExpenses.filter(e => e.isPaid).length;
-  const unpaidCount = filteredExpenses.filter(e => !e.isPaid).length;
+  const totalAmount = baseExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+  const totalPaid = baseExpenses.filter(e => e.isPaid).reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+  const totalUnpaid = baseExpenses.filter(e => !e.isPaid).reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+  const paidCount = baseExpenses.filter(e => e.isPaid).length;
+  const unpaidCount = baseExpenses.filter(e => !e.isPaid).length;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const net15Expenses = filteredExpenses.filter(e => {
+  const net15Expenses = baseExpenses.filter(e => {
     if (e.isPaid) return false;
     if (!e.date) return false;
     const expDate = new Date(e.date + 'T00:00:00');
@@ -334,6 +335,19 @@ const MobileExpenses = () => {
     return diffDays > 15;
   });
   const net15Count = net15Expenses.length;
+
+  const filteredExpenses = baseExpenses.filter(e => {
+    if (statusFilter === 'paid') return e.isPaid;
+    if (statusFilter === 'unpaid') return !e.isPaid;
+    if (statusFilter === 'net15') {
+      if (e.isPaid || !e.date) return false;
+      const expDate = new Date(e.date + 'T00:00:00');
+      if (isNaN(expDate.getTime())) return false;
+      const diffDays = Math.floor((today.getTime() - expDate.getTime()) / (1000 * 60 * 60 * 24));
+      return diffDays > 15;
+    }
+    return true;
+  });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: 'var(--bg-color)' }}>
@@ -350,31 +364,107 @@ const MobileExpenses = () => {
           />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px' }}>
-          <div style={{ backgroundColor: '#ebf8ff', padding: '6px 2px', borderRadius: '6px', textAlign: 'center', minWidth: 0 }}>
+          <div 
+            onClick={() => setStatusFilter('all')}
+            style={{ 
+              backgroundColor: '#ebf8ff', 
+              padding: '6px 2px', 
+              borderRadius: '6px', 
+              textAlign: 'center', 
+              minWidth: 0,
+              cursor: 'pointer',
+              border: statusFilter === 'all' ? '2px solid #2b6cb0' : '1px solid transparent',
+              transition: 'all 0.15s ease'
+            }}
+          >
             <div style={{ fontSize: '0.58rem', color: '#2b6cb0', fontWeight: 600, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Total</div>
             <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#2c5282', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${totalAmount.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2})}</div>
           </div>
-          <div style={{ backgroundColor: '#f0fff4', padding: '6px 2px', borderRadius: '6px', textAlign: 'center', minWidth: 0 }}>
+          <div 
+            onClick={() => setStatusFilter(prev => prev === 'paid' ? 'all' : 'paid')}
+            style={{ 
+              backgroundColor: '#f0fff4', 
+              padding: '6px 2px', 
+              borderRadius: '6px', 
+              textAlign: 'center', 
+              minWidth: 0,
+              cursor: 'pointer',
+              border: statusFilter === 'paid' ? '2px solid #276749' : '1px solid transparent',
+              transition: 'all 0.15s ease'
+            }}
+          >
             <div style={{ fontSize: '0.58rem', color: '#2f855a', fontWeight: 600, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Paid</div>
             <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#276749', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${totalPaid.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2})}</div>
           </div>
-          <div style={{ backgroundColor: '#fff5f5', padding: '6px 2px', borderRadius: '6px', textAlign: 'center', minWidth: 0 }}>
+          <div 
+            onClick={() => setStatusFilter(prev => prev === 'unpaid' ? 'all' : 'unpaid')}
+            style={{ 
+              backgroundColor: '#fff5f5', 
+              padding: '6px 2px', 
+              borderRadius: '6px', 
+              textAlign: 'center', 
+              minWidth: 0,
+              cursor: 'pointer',
+              border: statusFilter === 'unpaid' ? '2px solid #9b2c2c' : '1px solid transparent',
+              transition: 'all 0.15s ease'
+            }}
+          >
             <div style={{ fontSize: '0.58rem', color: '#c53030', fontWeight: 600, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Unpaid</div>
             <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#9b2c2c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${totalUnpaid.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2})}</div>
           </div>
-          <div style={{ backgroundColor: unpaidCount === 0 && filteredExpenses.length > 0 ? '#f0fff4' : '#fffaf0', padding: '6px 2px', borderRadius: '6px', textAlign: 'center', minWidth: 0 }}>
-            <div style={{ fontSize: '0.58rem', color: unpaidCount === 0 && filteredExpenses.length > 0 ? '#2f855a' : '#c05621', fontWeight: 600, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Paid / Unpaid</div>
+          <div 
+            onClick={() => setStatusFilter('all')}
+            style={{ 
+              backgroundColor: unpaidCount === 0 && baseExpenses.length > 0 ? '#f0fff4' : '#fffaf0', 
+              padding: '6px 2px', 
+              borderRadius: '6px', 
+              textAlign: 'center', 
+              minWidth: 0,
+              cursor: 'pointer',
+              border: '1px solid transparent',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <div style={{ fontSize: '0.58rem', color: unpaidCount === 0 && baseExpenses.length > 0 ? '#2f855a' : '#c05621', fontWeight: 600, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Paid / Unpaid</div>
             <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#2d3748', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               <span style={{ color: '#276749' }}>{paidCount}</span>/<span style={{ color: unpaidCount > 0 ? '#9b2c2c' : '#718096' }}>{unpaidCount}</span>
             </div>
           </div>
-          <div style={{ backgroundColor: net15Count > 0 ? '#fff5f5' : '#f0fff4', padding: '6px 2px', borderRadius: '6px', textAlign: 'center', minWidth: 0 }}>
-            <div style={{ fontSize: '0.58rem', color: net15Count > 0 ? '#c53030' : '#2f855a', fontWeight: 600, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title="Invoices > 15 days from date">NET 15</div>
+          <div 
+            onClick={() => setStatusFilter(prev => prev === 'net15' ? 'all' : 'net15')}
+            style={{ 
+              backgroundColor: net15Count > 0 ? '#fff5f5' : '#f0fff4', 
+              padding: '6px 2px', 
+              borderRadius: '6px', 
+              textAlign: 'center', 
+              minWidth: 0,
+              cursor: 'pointer',
+              border: statusFilter === 'net15' ? '2px solid #9b2c2c' : '1px solid transparent',
+              transition: 'all 0.15s ease'
+            }}
+            title="Invoices > 15 days from date"
+          >
+            <div style={{ fontSize: '0.58rem', color: net15Count > 0 ? '#c53030' : '#2f855a', fontWeight: 600, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>NET 15</div>
             <div style={{ fontSize: '0.82rem', fontWeight: 700, color: net15Count > 0 ? '#9b2c2c' : '#276749', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {net15Count}
             </div>
           </div>
         </div>
+        {statusFilter !== 'all' && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px', padding: '4px 8px', backgroundColor: statusFilter === 'paid' ? '#f0fff4' : '#fff5f5', borderRadius: '6px', border: `1px solid ${statusFilter === 'paid' ? '#c6f6d5' : '#fed7d7'}`, fontSize: '0.72rem' }}>
+            <span style={{ color: statusFilter === 'paid' ? '#276749' : '#9b2c2c', fontWeight: 600 }}>
+              {statusFilter === 'paid' && `Showing Paid (${filteredExpenses.length})`}
+              {statusFilter === 'unpaid' && `Showing Unpaid (${filteredExpenses.length})`}
+              {statusFilter === 'net15' && `Showing NET 15 Overdue (${filteredExpenses.length})`}
+            </span>
+            <button 
+              onClick={() => setStatusFilter('all')}
+              style={{ background: 'none', border: 'none', color: '#3182ce', fontWeight: 600, cursor: 'pointer', fontSize: '0.72rem', textDecoration: 'underline' }}
+            >
+              Clear
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Expense List */}
