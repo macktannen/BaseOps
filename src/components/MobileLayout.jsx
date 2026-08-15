@@ -61,8 +61,18 @@ const TAB_TITLES = {
   settings: 'Settings'
 };
 
-export default function MobileLayout() {
-  const [activeTab, setActiveTab] = useState('calendar');
+export default function MobileLayout({ activeTab: propActiveTab, setActiveTab: propSetActiveTab }) {
+  const [localActiveTab, setLocalActiveTab] = useState(() => sessionStorage.getItem('baseops_active_tab') || 'calendar');
+  const activeTab = propActiveTab || localActiveTab;
+  const setActiveTab = (tab) => {
+    if (propSetActiveTab) {
+      propSetActiveTab(tab);
+    } else {
+      sessionStorage.setItem('baseops_active_tab', tab);
+      setLocalActiveTab(tab);
+    }
+  };
+
   const [moreOpen, setMoreOpen] = useState(false);
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -73,8 +83,17 @@ export default function MobileLayout() {
   const [schedules, setSchedules] = useState({});
   const [crewList, setCrewList] = useState([]);
   const [accountsList, setAccountsList] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingFlight, setEditingFlight] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(() => {
+    return !!sessionStorage.getItem('baseops_open_flight_id');
+  });
+  const [editingFlight, setEditingFlight] = useState(() => {
+    const openId = sessionStorage.getItem('baseops_open_flight_id');
+    if (!openId) return null;
+    try {
+      const stored = JSON.parse(localStorage.getItem('userFlights') || '[]');
+      return stored.find(f => String(f.id) === String(openId)) || null;
+    } catch { return null; }
+  });
   const [duplicateFlightData, setDuplicateFlightData] = useState(null);
   const [duplicateDate, setDuplicateDate] = useState('');
   const [viewSettings, setViewSettings] = useState(loadViewSettings);
@@ -99,6 +118,20 @@ export default function MobileLayout() {
       document.documentElement.style.overflow = '';
     };
   }, []);
+
+  const handleOpenFlight = (flight) => {
+    if (flight?.id) {
+      sessionStorage.setItem('baseops_open_flight_id', String(flight.id));
+    }
+    setEditingFlight(flight);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseFlightModal = () => {
+    sessionStorage.removeItem('baseops_open_flight_id');
+    setIsModalOpen(false);
+    setEditingFlight(null);
+  };
 
   const loadData = () => {
     try {
@@ -492,7 +525,11 @@ export default function MobileLayout() {
           <h3 style={{ margin: 0, fontSize: '0.95rem', flex: 2, textAlign: 'center', fontWeight: 700 }}>{format(selectedDay, 'EEEE, MMM d, yyyy')}</h3>
           <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: '4px' }}>
             <button
-              onClick={() => { setEditingFlight({ date: format(selectedDay, 'yyyy-MM-dd'), legs: [{ date: format(selectedDay, 'yyyy-MM-dd') }] }); setIsModalOpen(true); }}
+              onClick={() => {
+                sessionStorage.removeItem('baseops_open_flight_id');
+                setEditingFlight({ date: format(selectedDay, 'yyyy-MM-dd'), legs: [{ date: format(selectedDay, 'yyyy-MM-dd') }] });
+                setIsModalOpen(true);
+              }}
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary-color)', padding: '6px', display: 'flex', alignItems: 'center', borderRadius: '6px' }}
               title="Add Flight"
             >
@@ -545,7 +582,7 @@ export default function MobileLayout() {
                       <div
                         key={f.id}
                         className="card"
-                        onClick={() => { setEditingFlight(f); setIsModalOpen(true); }}
+                        onClick={() => handleOpenFlight(f)}
                         style={{ padding: '10px 12px', cursor: 'pointer', borderLeft: `4px solid ${tagColor}`, display: 'flex', flexDirection: 'column', gap: '4px' }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -578,7 +615,7 @@ export default function MobileLayout() {
                     <div
                       key={f.id}
                       className="card"
-                      onClick={() => { setEditingFlight(f); setIsModalOpen(true); }}
+                      onClick={() => handleOpenFlight(f)}
                       style={{ padding: '14px', cursor: 'pointer', borderLeft: `4px solid ${tagColor}`, position: 'relative' }}
                     >
                       {/* Top Right Overnight Symbol */}
@@ -917,11 +954,14 @@ export default function MobileLayout() {
           <EventModal
             flight={editingFlight}
             isOpen={isModalOpen}
-            onClose={() => { setIsModalOpen(false); setEditingFlight(null); }}
+            onClose={handleCloseFlightModal}
             hasPrev={hasPrev}
             hasNext={hasNext}
             onNavigate={handleNavigate}
-            onDuplicate={handleDuplicate}
+            onDuplicate={(flightData) => {
+              handleCloseFlightModal();
+              handleDuplicate(flightData);
+            }}
             flightsCount={flights.length === 0 ? 0 : Math.max(...flights.map(f => parseInt(f.flightNumber) || 0))}
             onSave={(updatedFlight) => {
               try {
@@ -932,8 +972,7 @@ export default function MobileLayout() {
                 localStorage.setItem('userFlights', JSON.stringify(stored));
                 window.dispatchEvent(new Event('storage'));
               } catch {}
-              setIsModalOpen(false);
-              setEditingFlight(null);
+              handleCloseFlightModal();
             }}
             onDelete={(flightId) => {
               try {
@@ -942,8 +981,7 @@ export default function MobileLayout() {
                 localStorage.setItem('userFlights', JSON.stringify(updated));
                 window.dispatchEvent(new Event('storage'));
               } catch {}
-              setIsModalOpen(false);
-              setEditingFlight(null);
+              handleCloseFlightModal();
             }}
           />
         );

@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.59] - 2026-08-15
+
+### Fixed
+- **Screen Resize State Persistence** — Lifted active navigation view and open flight modal state into session storage and top-level app state, ensuring that window resizing, device rotation, or viewport mode switches never reset the active view to Calendar or close an active flight card modal.
+
 ## [v0.3.58] - 2026-08-15
 
 ### Fixed

@@ -69,9 +69,18 @@ const CalendarView = () => {
     } catch {}
     return mockFlights;
   });
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(() => {
+    return !!sessionStorage.getItem('baseops_open_flight_id');
+  });
   const [selectedDate, setSelectedDate] = useState(null);
-  const [editingFlight, setEditingFlight] = useState(null);
+  const [editingFlight, setEditingFlight] = useState(() => {
+    const openId = sessionStorage.getItem('baseops_open_flight_id');
+    if (!openId) return null;
+    try {
+      const stored = JSON.parse(localStorage.getItem('userFlights') || '[]');
+      return stored.find(f => String(f.id) === String(openId)) || null;
+    } catch { return null; }
+  });
   const [pilotsList, setPilotsList] = useState([]);
   const [passengersList, setPassengersList] = useState([]);
   const [accountsList, setAccountsList] = useState([]);
@@ -321,11 +330,15 @@ const CalendarView = () => {
     }
     setSelectedDate(date);
     setEditingFlight(null);
+    sessionStorage.removeItem('baseops_open_flight_id');
     setIsModalOpen(true);
   };
 
   const openModalForFlight = (flight) => {
     if (pendingDuplicateFlight) return; // Don't open if placing a duplicate
+    if (flight?.id) {
+      sessionStorage.setItem('baseops_open_flight_id', String(flight.id));
+    }
     setEditingFlight(flight);
     setIsModalOpen(true);
   };
@@ -1066,10 +1079,14 @@ const CalendarView = () => {
         return (
           <EventModal 
             isOpen={isModalOpen} 
-            onClose={() => setIsModalOpen(false)} 
+            onClose={() => {
+              sessionStorage.removeItem('baseops_open_flight_id');
+              setIsModalOpen(false);
+            }} 
             onSave={handleSaveFlight}
             onDelete={handleDeleteFlight}
             onDuplicate={(flightData) => {
+              sessionStorage.removeItem('baseops_open_flight_id');
               setPendingDuplicateFlight(flightData);
               setIsModalOpen(false);
             }}

@@ -24,8 +24,7 @@ import { DollarSign } from 'lucide-react';
 import useIsMobile from './hooks/useIsMobile';
 import MobileLayout from './components/MobileLayout';
 
-function DashboardLayout() {
-  const [activeTab, setActiveTab] = useState('calendar');
+function DashboardLayout({ activeTab, setActiveTab }) {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -160,6 +159,14 @@ function DashboardLayout() {
 
 function App() {
   const isMobile = useIsMobile();
+  const [activeTab, setActiveTabState] = useState(() => {
+    return sessionStorage.getItem('baseops_active_tab') || 'calendar';
+  });
+
+  const setActiveTab = (tab) => {
+    sessionStorage.setItem('baseops_active_tab', tab);
+    setActiveTabState(tab);
+  };
 
   return (
     <Routes>
@@ -167,7 +174,11 @@ function App() {
       <Route path="/signup" element={<Signup />} />
       <Route path="/*" element={
         <ProtectedRoute>
-          {isMobile ? <MobileLayout /> : <DashboardLayout />}
+          {isMobile ? (
+            <MobileLayout activeTab={activeTab} setActiveTab={setActiveTab} />
+          ) : (
+            <DashboardLayout activeTab={activeTab} setActiveTab={setActiveTab} />
+          )}
         </ProtectedRoute>
       } />
     </Routes>

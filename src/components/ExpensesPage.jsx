@@ -42,8 +42,17 @@ const ExpensesPage = () => {
   const [filterCategory, setFilterCategory] = useState('All');
   
   // Modal State for Flight Card
-  const [selectedFlight, setSelectedFlight] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedFlight, setSelectedFlight] = useState(() => {
+    const openId = sessionStorage.getItem('baseops_open_flight_id');
+    if (!openId) return null;
+    try {
+      const stored = JSON.parse(localStorage.getItem('userFlights') || '[]');
+      return stored.find(f => String(f.id) === String(openId)) || null;
+    } catch { return null; }
+  });
+  const [isModalOpen, setIsModalOpen] = useState(() => {
+    return !!sessionStorage.getItem('baseops_open_flight_id');
+  });
 
   // Receipt Viewer State
   const [viewingExpense, setViewingExpense] = useState(null);
@@ -270,6 +279,7 @@ const ExpensesPage = () => {
       const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
       const flight = storedFlights.find(f => String(f.id) === String(exp.flightId));
       if (flight) {
+        sessionStorage.setItem('baseops_open_flight_id', String(flight.id));
         setSelectedFlight(flight);
         setIsModalOpen(true);
       }
@@ -1158,12 +1168,14 @@ const ExpensesPage = () => {
         <EventModal
           isOpen={isModalOpen}
           onClose={() => {
+            sessionStorage.removeItem('baseops_open_flight_id');
             setIsModalOpen(false);
             setSelectedFlight(null);
           }}
           onSave={handleSaveFlight}
           onDelete={(flightId) => {
             try {
+              sessionStorage.removeItem('baseops_open_flight_id');
               const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
               const updatedFlights = storedFlights.filter(f => f.id !== flightId);
               localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
