@@ -136,25 +136,13 @@ function DashboardLayout({ activeTab, setActiveTab }) {
           </li>
         </ul>
 
-        {/* Sidebar Footer with Collapse / Expand caret */}
-        <div className="sidebar-footer" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', padding: isSidebarCollapsed ? '10px 0' : '10px 14px', display: 'flex', justifyContent: isSidebarCollapsed ? 'center' : 'flex-end', alignItems: 'center' }}>
+        {/* Sidebar Footer with Smooth Sliding Caret */}
+        <div className="sidebar-footer">
           <button 
             onClick={toggleSidebar}
             className="sidebar-bottom-toggle"
             title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            style={{ 
-              background: 'rgba(255, 255, 255, 0.08)', 
-              border: 'none', 
-              color: 'rgba(255, 255, 255, 0.8)', 
-              padding: '6px 8px', 
-              borderRadius: '6px', 
-              cursor: 'pointer', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              transition: 'background 0.2s, color 0.2s'
-            }}
           >
             {isSidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
           </button>

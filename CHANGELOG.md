@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.62] - 2026-08-15
+
+### Fixed
+- **Smooth Sidebar Sliding Caret Animation** — Anchored the collapse/expand caret button to the right edge of the sidebar footer so that it continuously and smoothly slides across the screen in sync with the menu's width transition without jumping.
+
 ## [v0.3.61] - 2026-08-15
 
 ### Fixed

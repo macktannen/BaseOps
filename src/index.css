@@ -85,28 +85,37 @@ h1, h2, h3, h4, h5, h6 {
   display: none !important;
 }
 
-.sidebar-toggle-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  color: rgba(255, 255, 255, 0.8);
-  border-radius: 6px;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
+.sidebar-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  height: 54px;
+  min-height: 54px;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
   flex-shrink: 0;
 }
 
-.sidebar-toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.22);
-  color: #fff;
+.sidebar-bottom-toggle {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+  box-sizing: border-box;
 }
 
 .sidebar-bottom-toggle:hover {
-  background: rgba(255, 255, 255, 0.18) !important;
+  background: rgba(255, 255, 255, 0.22) !important;
   color: #fff !important;
 }
 
