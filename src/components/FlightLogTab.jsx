@@ -194,33 +194,33 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
         // Idempotent assignment using exact baseline Before + Change figures
         if (multiplier > 0) {
           // Signing / Locking: set to exact After values
-          ac.totalHours = (parseFloat(flightBefore) + changeFlight).toFixed(1);
-          ac.landings = parseInt(landingsBefore) + changeLandings;
-          ac.hobbs = (parseFloat(hobbsBefore) + changeHobbs).toFixed(1);
+          ac.totalHours = (Math.round((parseFloat(flightBefore || 0) + changeFlight) * 10) / 10).toFixed(1);
+          ac.landings = parseInt(landingsBefore || 0) + changeLandings;
+          ac.hobbs = (Math.round((parseFloat(hobbsBefore || 0) + changeHobbs) * 10) / 10).toFixed(1);
 
-          ac.engine1Hours = (parseFloat(engine1Before) + changeEngine1Hours).toFixed(1);
+          ac.engine1Hours = (Math.round((parseFloat(engine1Before || 0) + changeEngine1Hours) * 10) / 10).toFixed(1);
           ac.engineHours = ac.engine1Hours;
-          ac.engine1Cycles = parseInt(cycles1Before) + changeEngine1Cycles;
+          ac.engine1Cycles = parseInt(cycles1Before || 0) + changeEngine1Cycles;
           ac.engineCycles = ac.engine1Cycles;
 
           if (dual) {
-            ac.engine2Hours = (parseFloat(engine2Before) + changeEngine2Hours).toFixed(1);
-            ac.engine2Cycles = parseInt(cycles2Before) + changeEngine2Cycles;
+            ac.engine2Hours = (Math.round((parseFloat(engine2Before || 0) + changeEngine2Hours) * 10) / 10).toFixed(1);
+            ac.engine2Cycles = parseInt(cycles2Before || 0) + changeEngine2Cycles;
           }
         } else {
           // Reverting / Unlocking: revert to exact Before values
-          ac.totalHours = parseFloat(flightBefore).toFixed(1);
-          ac.landings = parseInt(landingsBefore);
-          ac.hobbs = parseFloat(hobbsBefore).toFixed(1);
+          ac.totalHours = (Math.round(parseFloat(flightBefore || 0) * 10) / 10).toFixed(1);
+          ac.landings = parseInt(landingsBefore || 0);
+          ac.hobbs = (Math.round(parseFloat(hobbsBefore || 0) * 10) / 10).toFixed(1);
 
-          ac.engine1Hours = parseFloat(engine1Before).toFixed(1);
+          ac.engine1Hours = (Math.round(parseFloat(engine1Before || 0) * 10) / 10).toFixed(1);
           ac.engineHours = ac.engine1Hours;
-          ac.engine1Cycles = parseInt(cycles1Before);
+          ac.engine1Cycles = parseInt(cycles1Before || 0);
           ac.engineCycles = ac.engine1Cycles;
 
           if (dual) {
-            ac.engine2Hours = parseFloat(engine2Before).toFixed(1);
-            ac.engine2Cycles = parseInt(cycles2Before);
+            ac.engine2Hours = (Math.round(parseFloat(engine2Before || 0) * 10) / 10).toFixed(1);
+            ac.engine2Cycles = parseInt(cycles2Before || 0);
           }
         }
 

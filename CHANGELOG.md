@@ -2,7 +2,10 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
-## [v0.3.94] - 2026-08-16
+## [v0.3.95] - 2026-08-16
+
+### Fixed
+- **Failsafe Flight Log Totalling & Precision Rounding** — Hardened all mathematical addition and subtraction across aircraft meter hours, hobbs, engine hours, and cycles with `Math.round(x * 10) / 10` precision guards. Eliminated potential floating-point accumulation errors and enforced strict idempotent state synchronization for maintenance tracking.
 
 ### Fixed
 - **Aircraft Meter Double-Addition On Signing** — Fixed an issue in `FlightLogTab.jsx` where clicking "Sign Logbook" triggered both `updateLog(nextLog)` and `onSign(nextLog)` simultaneously, creating duplicate save/sync calls and resulting in meter over-increments.
