@@ -722,9 +722,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       const targetFlightNumber = flight?.flightNumber ? String(flight.flightNumber) : null;
 
       const isSigned = !!(nextFlightLog?.signature);
-      if (isSigned) {
-        setStatus('Completed');
-      }
+      setStatus(isSigned ? 'completed' : 'confirmed');
 
       let found = false;
       const updatedFlights = storedFlights.map(f => {
@@ -735,7 +733,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
           return {
             ...f,
             flightLog: nextFlightLog,
-            status: isSigned ? 'Completed' : (f.status || status)
+            status: isSigned ? 'completed' : (f.status === 'completed' ? 'confirmed' : (f.status || 'confirmed'))
           };
         }
         return f;
@@ -746,11 +744,13 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
           ...flight,
           id: flight.id || Date.now(),
           flightLog: nextFlightLog,
-          status: isSigned ? 'Completed' : (flight.status || status)
+          status: isSigned ? 'completed' : 'confirmed'
         });
       }
 
       localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
+      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'userFlights' } }));
     } catch (e) {
       console.error('Failed to persist flightLog to flight:', e);
     }

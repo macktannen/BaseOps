@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.82] - 2026-08-15
+
+### Fixed
+- **Instant Single-Click Signature Clearing** — Resolved an issue where clicking "Clear Signature" required two clicks due to a prop-echo state race condition. Replaced the volatile boolean synchronization flag with serialized log tracking (`lastInternalLogJsonRef`) so that clearing a signature immediately un-signs the flight and resets status on the first click.
+
 ## [v0.3.81] - 2026-08-15
 
 ### Added

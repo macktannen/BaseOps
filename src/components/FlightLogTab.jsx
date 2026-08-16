@@ -33,13 +33,13 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
   const isEditable = !log.isLocked;
 
   const [aircraft, setAircraft] = useState(null);
-  const isInternalChangeRef = React.useRef(false);
+  const lastInternalLogJsonRef = React.useRef(null);
 
   // Sync to parent and storage when user modifies log
   const updateLog = (updater) => {
-    isInternalChangeRef.current = true;
     setLog(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
+      lastInternalLogJsonRef.current = JSON.stringify(next);
       if (setFlightLog) setFlightLog(next);
       if (persistFlightLog) persistFlightLog(next);
       return next;
@@ -48,22 +48,21 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
 
   // Real-time synchronization when parent flightLog updates from Firestore/other devices
   useEffect(() => {
-    if (isInternalChangeRef.current) {
-      isInternalChangeRef.current = false;
+    if (!flightLog || typeof flightLog !== 'object' || Object.keys(flightLog).length === 0) return;
+    const incomingJson = JSON.stringify(flightLog);
+    // Ignore if this prop update is identical to what we just internally generated
+    if (incomingJson === lastInternalLogJsonRef.current) {
       return;
     }
-    if (flightLog && typeof flightLog === 'object' && Object.keys(flightLog).length > 0) {
-      setLog(prev => {
-        const prevStr = JSON.stringify(prev);
-        const nextMerged = {
-          ...prev,
-          ...flightLog,
-          legsActuals: (flightLog.legsActuals && flightLog.legsActuals.length > 0) ? flightLog.legsActuals : prev.legsActuals,
-          auditLog: flightLog.auditLog || prev.auditLog || []
-        };
-        return JSON.stringify(nextMerged) !== prevStr ? nextMerged : prev;
-      });
-    }
+    setLog(prev => {
+      const nextMerged = {
+        ...prev,
+        ...flightLog,
+        legsActuals: (flightLog.legsActuals && flightLog.legsActuals.length > 0) ? flightLog.legsActuals : prev.legsActuals,
+        auditLog: flightLog.auditLog || prev.auditLog || []
+      };
+      return nextMerged;
+    });
   }, [flightLog]);
 
   // Load and listen to aircraft baseline data in real time (WITHOUT modifying log state)

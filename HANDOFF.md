@@ -3,7 +3,8 @@
 ## Project Overview
 **BaseOps:** A web-based application to manage a fleet of helicopters, crew scheduling, mission planning, document uploads, and flight expenses. The app uses React, localStorage with offline retry queues, IndexedDB localforage resilience, and live synchronization with Firebase Firestore & Firebase Storage.
 
-## Current Status (v0.3.81)
+## Current Status (v0.3.82)
+- **Instant Single-Click Signature Clearing:** Eliminated double-click bug on "Clear Signature" by replacing transient boolean flags in `FlightLogTab.jsx` with serialized JSON snapshot checking (`lastInternalLogJsonRef`). Unsigning a flight now executes immediately and updates modal status, aircraft meter baseline, and Firestore on the first click.
 - **Signed Flight Aircraft Change Protection & Automatic Meter Reversion:** Non-admin users cannot change aircraft on signed flights. When an admin reassigns the aircraft on a signed flight, a confirmation warning un-signs the logbook, unlocks the flight, uncommits and reverts all meter totals and landings from the old aircraft record, updates status to open, and notifies the admin to review and re-sign the flight log.
 - **Audit Logs Ordering & Granular Admin Deletion:** Reordered all audit logs (Flight Log in EventModal, Aircraft Logbook in desktop & mobile fleet views) to display the most recent entry at the top. Removed the bulk clear-all button and added individual trash icon actions for administrators to prune specific audit entries.
 - **Retain Flight Log Tab on Save / Sign:** Updated `EventModal.jsx` to track flight IDs using `prevFlightIdRef`. Saving a flight or signing the logbook no longer forces the modal back to the "Flight Plan" view, keeping the user in their active view ("Flight Log" or "Expenses").
