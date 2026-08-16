@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.72] - 2026-08-15
+
+### Fixed
+- **Flight Log Signing & Signature Persistence Bug** — Fixed an issue where signing a flight log dispatched a `storage`/`firestore-sync` event from aircraft meter updates that triggered `EventModal.jsx`'s `handleRemoteSync` without key filtering, reverting the in-memory signature back to the older un-persisted record. Added key-scoped filtering to `handleRemoteSync` and instant atomic persistence via `persistFlightLogToFlight`, ensuring signatures and locks persist immediately without reverting.
+
 ## [v0.3.71] - 2026-08-15
 
 ### Fixed

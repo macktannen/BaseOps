@@ -4,7 +4,7 @@ import { authService } from '../services/authService';
 import useIsMobile from '../hooks/useIsMobile';
 import MobileDropdownMenu from './MobileDropdownMenu';
 
-const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList, pilotsList }) => {
+const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, aircraftId, aircraftList, pilotsList }) => {
   const isMobile = useIsMobile();
   const [auditExpanded, setAuditExpanded] = useState(false);
   const [log, setLog] = useState({
@@ -35,12 +35,13 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList,
   const [aircraft, setAircraft] = useState(null);
   const isInternalChangeRef = React.useRef(false);
 
-  // Sync to parent when user modifies log
+  // Sync to parent and storage when user modifies log
   const updateLog = (updater) => {
     isInternalChangeRef.current = true;
     setLog(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
       if (setFlightLog) setFlightLog(next);
+      if (persistFlightLog) persistFlightLog(next);
       return next;
     });
   };

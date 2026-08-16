@@ -666,8 +666,12 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
 
   // Listen for real-time cloud and cross-tab sync to update open flight modal immediately
   useEffect(() => {
-    const handleRemoteSync = () => {
+    const handleRemoteSync = (e) => {
+      // Filter out storage/firestore events for unrelated keys (e.g. userAircraft)
+      if (e?.detail?.key && e.detail.key !== 'userFlights') return;
+      if (e?.key && e.key !== 'userFlights') return;
       if (!flight || !flight.id) return;
+
       try {
         const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
         const updatedFlight = storedFlights.find(f => String(f.id) === String(flight.id) || (flight.flightNumber && String(f.flightNumber) === String(flight.flightNumber)));
@@ -676,8 +680,8 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
           if (updatedFlight.uploads) setUploads(updatedFlight.uploads);
           if (updatedFlight.flightLog) setFlightLog(updatedFlight.flightLog);
         }
-      } catch (e) {
-        console.error('Remote sync update failed in modal:', e);
+      } catch (err) {
+        console.error('Remote sync update failed in modal:', err);
       }
     };
     window.addEventListener('storage', handleRemoteSync);
@@ -691,6 +695,38 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
   const [draggableLegIndex, setDraggableLegIndex] = useState(null);
+
+  const persistFlightLogToFlight = (nextFlightLog) => {
+    if (!flight) return;
+    try {
+      const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
+      const targetId = flight?.id ? String(flight.id) : null;
+      const targetFlightNumber = flight?.flightNumber ? String(flight.flightNumber) : null;
+
+      let found = false;
+      const updatedFlights = storedFlights.map(f => {
+        const isMatch = (targetId && String(f.id) === targetId) ||
+                        (targetFlightNumber && String(f.flightNumber) === targetFlightNumber);
+        if (isMatch) {
+          found = true;
+          return { ...f, flightLog: nextFlightLog };
+        }
+        return f;
+      });
+
+      if (!found && flight) {
+        updatedFlights.push({
+          ...flight,
+          id: flight.id || Date.now(),
+          flightLog: nextFlightLog
+        });
+      }
+
+      localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
+    } catch (e) {
+      console.error('Failed to persist flightLog to flight:', e);
+    }
+  };
 
   const persistUploadsToFlight = (nextUploads) => {
     if (!flight && (!nextUploads || nextUploads.length === 0)) return;
@@ -2186,6 +2222,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                 legs={legs} 
                 flightLog={flightLog} 
                 setFlightLog={setFlightLog}
+                persistFlightLog={persistFlightLogToFlight}
                 aircraftId={aircraftId}
                 aircraftList={aircraftList}
                 pilotsList={pilotsList}
