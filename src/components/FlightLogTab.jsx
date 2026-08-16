@@ -165,37 +165,37 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, aircraf
         const ac = storedAircraft[acIndex];
         const dual = ac.dualEngine || isTwin;
 
-        // Snapshot existing values BEFORE mutating any properties on ac
-        const prevTotalHours = parseFloat(ac.totalHours !== undefined && ac.totalHours !== '' ? ac.totalHours : 0);
-        const prevLandings = parseInt(ac.landings !== undefined && ac.landings !== '' ? ac.landings : 0);
-        const prevHobbs = parseFloat(ac.hobbs !== undefined && ac.hobbs !== '' ? ac.hobbs : 0);
-        const prevEngine1Hours = parseFloat(
-          ac.engine1Hours !== undefined && ac.engine1Hours !== ''
-            ? ac.engine1Hours
-            : (ac.engineHours !== undefined && ac.engineHours !== '' ? ac.engineHours : prevTotalHours)
-        );
-        const prevEngine1Cycles = parseInt(
-          ac.engine1Cycles !== undefined && ac.engine1Cycles !== ''
-            ? ac.engine1Cycles
-            : (ac.engineCycles !== undefined && ac.engineCycles !== '' ? ac.engineCycles : 0)
-        );
-        const prevEngine2Hours = parseFloat(ac.engine2Hours !== undefined && ac.engine2Hours !== '' ? ac.engine2Hours : 0);
-        const prevEngine2Cycles = parseInt(ac.engine2Cycles !== undefined && ac.engine2Cycles !== '' ? ac.engine2Cycles : 0);
+        // Idempotent assignment using exact baseline Before + Change figures
+        if (multiplier > 0) {
+          // Signing / Locking: set to exact After values
+          ac.totalHours = (parseFloat(flightBefore) + changeFlight).toFixed(1);
+          ac.landings = parseInt(landingsBefore) + changeLandings;
+          ac.hobbs = (parseFloat(hobbsBefore) + changeHobbs).toFixed(1);
 
-        // Apply incremental changes cleanly
-        ac.totalHours = Math.max(0, prevTotalHours + (changeFlight * multiplier)).toFixed(1);
-        ac.landings = Math.max(0, prevLandings + (changeLandings * multiplier));
-        ac.hobbs = Math.max(0, prevHobbs + (changeHobbs * multiplier)).toFixed(1);
+          ac.engine1Hours = (parseFloat(engine1Before) + changeEngine1Hours).toFixed(1);
+          ac.engineHours = ac.engine1Hours;
+          ac.engine1Cycles = parseInt(cycles1Before) + changeEngine1Cycles;
+          ac.engineCycles = ac.engine1Cycles;
 
-        ac.engine1Hours = Math.max(0, prevEngine1Hours + (changeEngine1Hours * multiplier)).toFixed(1);
-        ac.engineHours = ac.engine1Hours;
-        ac.engine1Cycles = Math.max(0, prevEngine1Cycles + (changeEngine1Cycles * multiplier));
-        ac.engineCycles = ac.engine1Cycles;
+          if (dual) {
+            ac.engine2Hours = (parseFloat(engine2Before) + changeEngine2Hours).toFixed(1);
+            ac.engine2Cycles = parseInt(cycles2Before) + changeEngine2Cycles;
+          }
+        } else {
+          // Reverting / Unlocking: revert to exact Before values
+          ac.totalHours = parseFloat(flightBefore).toFixed(1);
+          ac.landings = parseInt(landingsBefore);
+          ac.hobbs = parseFloat(hobbsBefore).toFixed(1);
 
-        // Engine 2 (if twin)
-        if (dual) {
-          ac.engine2Hours = Math.max(0, prevEngine2Hours + (changeEngine2Hours * multiplier)).toFixed(1);
-          ac.engine2Cycles = Math.max(0, prevEngine2Cycles + (changeEngine2Cycles * multiplier));
+          ac.engine1Hours = parseFloat(engine1Before).toFixed(1);
+          ac.engineHours = ac.engine1Hours;
+          ac.engine1Cycles = parseInt(cycles1Before);
+          ac.engineCycles = ac.engine1Cycles;
+
+          if (dual) {
+            ac.engine2Hours = parseFloat(engine2Before).toFixed(1);
+            ac.engine2Cycles = parseInt(cycles2Before);
+          }
         }
 
         // Maintain logbook audit trail on aircraft record for real-time cloud sync

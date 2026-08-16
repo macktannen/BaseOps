@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.73] - 2026-08-15
+
+### Fixed
+- **Idempotent Aircraft Logbook Meter Calculation** — Refactored `updateGlobalAircraft` in `FlightLogTab.jsx` to set aircraft logbook totals directly to the exact target `Before + Change` meter readings upon signing/locking (and exact `Before` values upon unlocking), making the calculation completely idempotent. This prevents any multi-click accumulation, ensuring the Aircraft page meters always match the signed logbook figures exactly.
+
 ## [v0.3.72] - 2026-08-15
 
 ### Fixed
