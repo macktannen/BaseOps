@@ -336,15 +336,28 @@ const CalendarView = () => {
     } catch { setAccountsList(mockAccounts); }
   }, []);
 
-  // Listen for storage events and firestore sync to refresh flights
+  // Listen for storage events and firestore sync to refresh flights and crew schedules
   useEffect(() => {
     const handleStorageSync = () => {
       try {
-        const stored = localStorage.getItem('userFlights');
-        if (stored) {
-          setFlights(JSON.parse(stored));
-        }
+        const storedFlights = localStorage.getItem('userFlights');
+        if (storedFlights) setFlights(JSON.parse(storedFlights));
       } catch { /* ignore parse errors */ }
+
+      try {
+        const storedScheds = localStorage.getItem('crewSchedules');
+        if (storedScheds) setCrewSchedules(JSON.parse(storedScheds));
+      } catch { /* ignore parse errors */ }
+
+      try {
+        const storedPilots = localStorage.getItem('userPilots');
+        if (storedPilots) setPilotsList(JSON.parse(storedPilots));
+      } catch { /* ignore */ }
+
+      try {
+        const storedPax = localStorage.getItem('userPassengers');
+        if (storedPax) setPassengersList(JSON.parse(storedPax));
+      } catch { /* ignore */ }
     };
     window.addEventListener('storage', handleStorageSync);
     window.addEventListener('firestore-sync', handleStorageSync);

@@ -2,7 +2,12 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
-## [v0.4.7] - 2026-08-16
+## [v0.4.8] - 2026-08-16
+
+### Fixed
+- **Bidirectional Schedule Synchronization (Calendar View <-> Schedules Grid)** — 
+  - Updated `handleStorageSync` in `CalendarView.jsx` to dynamically listen to `crewSchedules` and `firestore-sync` events, ensuring calendar status pills and the schedules grid stay in exact lockstep.
+  - Hardened `handleCellClick` in `CrewSchedule.jsx` to execute direct atomic storage mutations with real-time Firestore sync broadcasts.
 
 ### Fixed
 - **Instant Status Clearing in Daily Itinerary Modal** — 

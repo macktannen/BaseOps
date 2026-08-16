@@ -160,7 +160,11 @@ const CrewSchedule = () => {
       setSchedules(JSON.parse(localStorage.getItem('crewSchedules') || '{}'));
     };
     window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
+    window.addEventListener('firestore-sync', handleStorage);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('firestore-sync', handleStorage);
+    };
   }, []);
 
   const saveSchedules = (newSched) => {
@@ -188,29 +192,26 @@ const CrewSchedule = () => {
   };
 
   const handleCellClick = (personId, dateStr, status) => {
-    const key = `${personId}_${dateStr}`;
-    const newSched = { ...schedules };
-    if (status === 'Clear' || !status) {
-      delete newSched[key];
-    } else if (newSched[key] === status) {
-      delete newSched[key];
-    } else {
-      newSched[key] = status;
+    try {
+      const stored = JSON.parse(localStorage.getItem('crewSchedules') || '{}');
+      const key = `${personId}_${dateStr}`;
+      if (status === 'Clear' || !status) {
+        delete stored[key];
+      } else if (stored[key] === status) {
+        delete stored[key];
+      } else {
+        stored[key] = status;
+      }
+      saveSchedules(stored);
+    } catch (err) {
+      console.error('Failed to update crew schedule:', err);
     }
-    saveSchedules(newSched);
   };
 
   const handleSaveCellModal = () => {
     if (!cellModalOpen) return;
     const { personId, dateStr, status } = cellModalOpen;
-    const key = `${personId}_${dateStr}`;
-    const newSched = { ...schedules };
-    if (status === 'Clear' || !status) {
-      delete newSched[key];
-    } else {
-      newSched[key] = status;
-    }
-    saveSchedules(newSched);
+    handleCellClick(personId, dateStr, status);
     setCellModalOpen(null);
   };
 
