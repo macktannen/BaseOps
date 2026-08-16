@@ -2,7 +2,10 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
-## [v0.3.98] - 2026-08-16
+## [v0.3.99] - 2026-08-16
+
+### Changed
+- **Personnel Typography & Balanced Row Dividers** — Enhanced the Crew Schedule grid with larger, high-contrast personnel names (`0.95rem` bold `#1e293b`) and balanced 1.5px medium-slate row divider lines (`#cbd5e1`), providing clear row separation without visual clutter.
 
 ### Changed
 - **Subdued Crew Schedule Grid Delineation** — Softened row divider lines from bold borders to clean, faint 1px borders (`#e2e8f0` / `#edf2f7`) with ultra-subtle off-white alternating tint (`#fafbfc`), creating an elegant, non-distracting separation matching the core BaseOps theme.
