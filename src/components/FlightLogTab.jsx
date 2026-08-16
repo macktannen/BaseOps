@@ -4,7 +4,7 @@ import { authService } from '../services/authService';
 import useIsMobile from '../hooks/useIsMobile';
 import MobileDropdownMenu from './MobileDropdownMenu';
 
-const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign, aircraftId, aircraftList, pilotsList }) => {
+const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign, onUnsign, aircraftId, aircraftList, pilotsList }) => {
   const isMobile = useIsMobile();
   const [auditExpanded, setAuditExpanded] = useState(false);
   const [log, setLog] = useState({
@@ -250,13 +250,15 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
 
   const handleClearSignature = () => {
     updateGlobalAircraft(-1); // Revert totals
-    updateLog(prev => ({
-      ...prev,
+    const nextLog = {
+      ...log,
       signature: null,
       isLocked: false,
       aircraftTotals: null,
-      auditLog: [...(prev.auditLog || []), `Signature cleared by ${currentUser.name} on ${new Date().toLocaleString()}`]
-    }));
+      auditLog: [...(log.auditLog || []), `Signature cleared by ${currentUser.name || 'Admin'} on ${new Date().toLocaleString()}`]
+    };
+    updateLog(nextLog);
+    if (onUnsign) onUnsign(nextLog);
   };
   
   const handleToggleLock = () => {

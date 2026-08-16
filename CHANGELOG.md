@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.83] - 2026-08-15
+
+### Added
+- **Automatic Status Reversion to Confirmed on Unsign** — When a user or administrator unsigns a flight log, the flight status automatically reverts to `Confirmed`, unlocks the mission, reverts committed aircraft totals, and immediately saves and syncs the flight.
+
 ## [v0.3.82] - 2026-08-15
 
 ### Fixed
