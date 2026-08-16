@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.79] - 2026-08-15
+
+### Fixed
+- **Retain Flight Log Tab on Save / Sign** — Updated `EventModal.jsx` to preserve the user's active sub-tab view (e.g. Flight Log or Expenses) when a flight is saved or signed, preventing unintended resets back to the Flight Plan tab.
+
 ## [v0.3.78] - 2026-08-15
 
 ### Fixed

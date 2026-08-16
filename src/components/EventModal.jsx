@@ -586,6 +586,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const [tag, setTag] = useState('');
   
   const [activeView, setActiveView] = useState(defaultActiveView || 'Plan'); // 'Plan' or 'Log' or 'Expenses'
+  const prevFlightIdRef = useRef(flight?.id ? String(flight.id) : (flight ? String(flight.flightNumber || 'new') : 'new'));
   const [flightLog, setFlightLog] = useState({});
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [conflictModal, setConflictModal] = useState({ open: false, pilotConflicts: [], aircraftConflicts: [] });
@@ -871,7 +872,11 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   };
 
   useEffect(() => {
-    setActiveView(defaultActiveView || 'Plan');
+    const currentFlightId = flight?.id ? String(flight.id) : (flight ? String(flight.flightNumber || 'new') : 'new');
+    if (prevFlightIdRef.current !== currentFlightId) {
+      setActiveView(defaultActiveView || 'Plan');
+      prevFlightIdRef.current = currentFlightId;
+    }
     if (flight) {
       setDate(flight.date ? flight.date.split('T')[0] : '');
       setFlightNumber(flight.flightNumber || (flightsCount != null ? flightsCount + 1 : ''));

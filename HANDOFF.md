@@ -3,7 +3,8 @@
 ## Project Overview
 **BaseOps:** A web-based application to manage a fleet of helicopters, crew scheduling, mission planning, document uploads, and flight expenses. The app uses React, localStorage with offline retry queues, IndexedDB localforage resilience, and live synchronization with Firebase Firestore & Firebase Storage.
 
-## Current Status (v0.3.78)
+## Current Status (v0.3.79)
+- **Retain Flight Log Tab on Save / Sign:** Updated `EventModal.jsx` to track flight IDs using `prevFlightIdRef`. Saving a flight or signing the logbook no longer forces the modal back to the "Flight Plan" view, keeping the user in their active view ("Flight Log" or "Expenses").
 - **Status Dropdown Casing Normalization:** Added `normalizeStatus` to `EventModal.jsx` to resolve case mismatch between saved flight statuses and dropdown options, ensuring signed/completed flights accurately display "Completed" in the modal header dropdown and match calendar cards.
 - **Clickable BaseOps Logo Sidebar Toggle:** Clicking the "BaseOps" logo at the top of the left menu bar now collapses and expands the sidebar, featuring smooth hover feedback and accessible tooltip indicators.
 - **Automatic Flight Save on Logbook Signing:** Signing the flight log triggers an immediate automatic `performSave()` invocation in `EventModal.jsx`. This commits all flight edits, updates the status to `'Completed'`, snapshots the logbook totals, and broadcasts the changes to Firestore with full visual save confirmation.
