@@ -2,7 +2,10 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
-## [v0.4.4] - 2026-08-16
+## [v0.4.5] - 2026-08-16
+
+### Fixed
+- **Missing ChevronDown Import** — Fixed `ReferenceError: ChevronDown is not defined` by adding `ChevronDown` to `lucide-react` import statement in `CrewSchedule.jsx`.
 
 ### Changed
 - **Clear Duty Status Selector & Default Placeholder** — 

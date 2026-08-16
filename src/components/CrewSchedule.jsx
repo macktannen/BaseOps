@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Filter, Settings, Settings2, Helicopter, X, GripVertical, Moon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Filter, Settings, Settings2, Helicopter, X, GripVertical, Moon } from 'lucide-react';
 import { startOfWeek, addDays, format, subWeeks, addWeeks } from 'date-fns';
 import airportsData from '../data/airports.json';
 import { mockCustomZones } from '../data';
