@@ -126,42 +126,50 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
 
   const totals = calculateTotals();
 
-  // Baseline meters before this flight
+  // Baseline meters before this flight (Self-healing: uses snapshot, or dynamically infers if signed)
+  const isCurrentlySigned = !!(log.signature);
+
   const flightBefore = log.aircraftTotals?.flightBefore !== undefined
-    ? log.aircraftTotals.flightBefore
-    : (parseFloat(aircraft?.totalHours !== undefined && aircraft?.totalHours !== '' ? aircraft.totalHours : 0));
+    ? parseFloat(log.aircraftTotals.flightBefore)
+    : (isCurrentlySigned
+        ? Math.max(0, parseFloat(aircraft?.totalHours || 0) - changeFlight)
+        : parseFloat(aircraft?.totalHours || 0));
 
   const landingsBefore = log.aircraftTotals?.landingsBefore !== undefined
-    ? log.aircraftTotals.landingsBefore
-    : (parseInt(aircraft?.landings !== undefined && aircraft?.landings !== '' ? aircraft.landings : 0));
-
-  const engine1Before = log.aircraftTotals?.engine1Before !== undefined
-    ? log.aircraftTotals.engine1Before
-    : (parseFloat(
-        aircraft?.engine1Hours !== undefined && aircraft?.engine1Hours !== ''
-          ? aircraft.engine1Hours
-          : (aircraft?.engineHours !== undefined && aircraft?.engineHours !== '' ? aircraft.engineHours : flightBefore)
-      ));
-
-  const cycles1Before = log.aircraftTotals?.cycles1Before !== undefined
-    ? log.aircraftTotals.cycles1Before
-    : (parseInt(
-        aircraft?.engine1Cycles !== undefined && aircraft?.engine1Cycles !== ''
-          ? aircraft.engine1Cycles
-          : (aircraft?.engineCycles !== undefined && aircraft?.engineCycles !== '' ? aircraft.engineCycles : 0)
-      ));
-
-  const engine2Before = log.aircraftTotals?.engine2Before !== undefined
-    ? log.aircraftTotals.engine2Before
-    : (parseFloat(aircraft?.engine2Hours !== undefined && aircraft?.engine2Hours !== '' ? aircraft.engine2Hours : 0));
-
-  const cycles2Before = log.aircraftTotals?.cycles2Before !== undefined
-    ? log.aircraftTotals.cycles2Before
-    : (parseInt(aircraft?.engine2Cycles !== undefined && aircraft?.engine2Cycles !== '' ? aircraft.engine2Cycles : 0));
+    ? parseInt(log.aircraftTotals.landingsBefore)
+    : (isCurrentlySigned
+        ? Math.max(0, parseInt(aircraft?.landings || 0) - changeLandings)
+        : parseInt(aircraft?.landings || 0));
 
   const hobbsBefore = log.aircraftTotals?.hobbsBefore !== undefined
-    ? log.aircraftTotals.hobbsBefore
-    : (parseFloat(aircraft?.hobbs !== undefined && aircraft?.hobbs !== '' ? aircraft.hobbs : 0));
+    ? parseFloat(log.aircraftTotals.hobbsBefore)
+    : (isCurrentlySigned
+        ? Math.max(0, parseFloat(aircraft?.hobbs || 0) - changeHobbs)
+        : parseFloat(aircraft?.hobbs || 0));
+
+  const engine1Before = log.aircraftTotals?.engine1Before !== undefined
+    ? parseFloat(log.aircraftTotals.engine1Before)
+    : (isCurrentlySigned
+        ? Math.max(0, parseFloat(aircraft?.engine1Hours || aircraft?.engineHours || aircraft?.totalHours || 0) - changeEngine1Hours)
+        : parseFloat(aircraft?.engine1Hours || aircraft?.engineHours || aircraft?.totalHours || 0));
+
+  const cycles1Before = log.aircraftTotals?.cycles1Before !== undefined
+    ? parseInt(log.aircraftTotals.cycles1Before)
+    : (isCurrentlySigned
+        ? Math.max(0, parseInt(aircraft?.engine1Cycles || aircraft?.engineCycles || 0) - changeEngine1Cycles)
+        : parseInt(aircraft?.engine1Cycles || aircraft?.engineCycles || 0));
+
+  const engine2Before = log.aircraftTotals?.engine2Before !== undefined
+    ? parseFloat(log.aircraftTotals.engine2Before)
+    : (isCurrentlySigned
+        ? Math.max(0, parseFloat(aircraft?.engine2Hours || 0) - changeEngine2Hours)
+        : parseFloat(aircraft?.engine2Hours || 0));
+
+  const cycles2Before = log.aircraftTotals?.cycles2Before !== undefined
+    ? parseInt(log.aircraftTotals.cycles2Before)
+    : (isCurrentlySigned
+        ? Math.max(0, parseInt(aircraft?.engine2Cycles || 0) - changeEngine2Cycles)
+        : parseInt(aircraft?.engine2Cycles || 0));
 
   // Auto-calculated changes based on legs
   const changeHobbs = parseFloat(totals.hobbs) || 0;

@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.87] - 2026-08-15
+
+### Fixed
+- **Single-Click Unsign & Self-Healing Aircraft Totals Reconciliation** — Eliminated event echo race condition where `handleRemoteSync` was being triggered by aircraft storage events and overwriting flight logs with stale data. Updated baseline calculations to dynamically and accurately infer baseline values from signed flight logs, guaranteeing accurate aircraft totals and instant single-click signature clearing.
+
 ## [v0.3.86] - 2026-08-15
 
 ### Added

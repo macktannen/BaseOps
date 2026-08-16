@@ -683,6 +683,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       // Filter out storage/firestore events for unrelated keys (e.g. userAircraft)
       if (e?.detail?.key && e.detail.key !== 'userFlights') return;
       if (e?.key && e.key !== 'userFlights') return;
+      if (!e?.detail?.key && !e?.key) return;
       if (!flight || !flight.id) return;
 
       try {

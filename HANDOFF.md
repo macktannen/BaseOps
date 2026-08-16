@@ -3,7 +3,8 @@
 ## Project Overview
 **BaseOps:** A web-based application to manage a fleet of helicopters, crew scheduling, mission planning, document uploads, and flight expenses. The app uses React, localStorage with offline retry queues, IndexedDB localforage resilience, and live synchronization with Firebase Firestore & Firebase Storage.
 
-## Current Status (v0.3.86)
+## Current Status (v0.3.87)
+- **Single-Click Unsign & Self-Healing Aircraft Totals:** Eliminated event echo race condition in `handleRemoteSync` inside `EventModal.jsx` where untagged `storage` events triggered stale flight log overwrites. Implemented self-healing dynamic baseline inference in `FlightLogTab.jsx` to prevent meter drift and guarantee exact single-click signature clearing.
 - **Signed Flight Date & Drag Immutability Guard:** Signed flights cannot be dragged or dropped to a different day on the calendar grid. In `EventModal.jsx`, leg departure and arrival dates, leg reordering drag grips, `ADD LEG`, and `Remove Leg` controls are disabled on signed flights so they strictly remain as logged on the date flown.
 - **Instant Single-Click Unsign Architecture:** Replaced duplicate internal component state in `FlightLogTab.jsx` with direct consumption of `flightLog` prop. All actions (clear signature, revert aircraft meters, set status to `Confirmed`, unlock aircraft dropdown, and cloud persistence) execute synchronously in one single click.
 - **Signed Flight Aircraft Change Protection & Automatic Meter Reversion:** Non-admin users cannot change aircraft on signed flights. When an admin reassigns the aircraft on a signed flight, a confirmation warning un-signs the logbook, unlocks the flight, uncommits and reverts all meter totals and landings from the old aircraft record, updates status to open, and notifies the admin to review and re-sign the flight log.
