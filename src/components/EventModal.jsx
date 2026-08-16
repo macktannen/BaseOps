@@ -540,6 +540,17 @@ const MobileScrollPicker = ({ value, items, onChange, color, style }) => {
 };
 
 
+const normalizeStatus = (s) => {
+  if (!s) return 'confirmed';
+  const lower = String(s).toLowerCase().trim();
+  if (lower === 'completed') return 'completed';
+  if (lower === 'confirmed') return 'confirmed';
+  if (lower === 'on hold' || lower === 'onhold') return 'on hold';
+  if (lower === 'maintenance') return 'maintenance';
+  if (lower === 'canceled' || lower === 'cancelled') return 'canceled';
+  return lower;
+};
+
 // --- EVENT MODAL ---
 const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate, hasPrev, hasNext, initialDate, flight, flightsCount, defaultActiveView = 'Plan' }) => {
   const isMobile = useIsMobile();
@@ -571,7 +582,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const [comments, setComments] = useState('');
   const [opsNotes, setOpsNotes] = useState('');
   const [activeTab, setActiveTab] = useState('Crew Notes');
-  const [status, setStatus] = useState('on hold');
+  const [status, setStatus] = useState(() => (flight?.flightLog?.signature ? 'completed' : normalizeStatus(flight?.status || 'on hold')));
   const [tag, setTag] = useState('');
   
   const [activeView, setActiveView] = useState(defaultActiveView || 'Plan'); // 'Plan' or 'Log' or 'Expenses'
@@ -868,9 +879,14 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       setAccountId(flight.accountId || '');
       setComments(flight.comments || '');
       setOpsNotes(flight.opsNotes || '');
-      setStatus(flight.status || 'confirmed');
+      const currentFlightLog = flight.flightLog || {};
+      setFlightLog(currentFlightLog);
+      if (currentFlightLog.signature) {
+        setStatus('completed');
+      } else {
+        setStatus(normalizeStatus(flight.status || 'confirmed'));
+      }
       setTag(flight.tag || '');
-      setFlightLog(flight.flightLog || {});
       setExpenses(flight.expenses || []);
       setUploads(flight.uploads || []);
       
@@ -1553,8 +1569,8 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                <div className="status-field" style={{ display: 'flex', alignItems: 'center' }}>
                  {isMobile ? (
                    <MobileDropdownMenu
-                     value={status}
-                     onChange={val => setStatus(val)}
+                     value={normalizeStatus(status)}
+                     onChange={val => setStatus(normalizeStatus(val))}
                      options={[
                        { value: 'on hold', label: 'On Hold' },
                        { value: 'confirmed', label: 'Confirmed' },
@@ -1565,21 +1581,21 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                      placeholder="Status"
                      style={{
                        border: 'none', fontWeight: 'bold', fontSize: '0.85rem', backgroundColor: 'transparent',
-                       color: status === 'on hold' ? '#d69e2e' : status === 'confirmed' ? '#38a169' : status === 'completed' ? '#3182ce' : status === 'maintenance' ? '#805ad5' : status === 'canceled' ? '#e53e3e' : '#718096',
+                       color: normalizeStatus(status) === 'on hold' ? '#d69e2e' : normalizeStatus(status) === 'confirmed' ? '#38a169' : normalizeStatus(status) === 'completed' ? '#3182ce' : normalizeStatus(status) === 'maintenance' ? '#805ad5' : normalizeStatus(status) === 'canceled' ? '#e53e3e' : '#718096',
                      }}
                    />
                  ) : (
                    <select 
-                     value={status} 
-                     onChange={e => setStatus(e.target.value)} 
+                     value={normalizeStatus(status)} 
+                     onChange={e => setStatus(normalizeStatus(e.target.value))} 
                      style={{ 
                        border: 'none', fontWeight: 'bold', outline: 'none', 
                        fontSize: '0.82rem', backgroundColor: 'transparent', cursor: 'pointer',
-                       color: status === 'on hold' ? '#d69e2e' : 
-                              status === 'confirmed' ? '#38a169' : 
-                              status === 'completed' ? '#3182ce' : 
-                              status === 'maintenance' ? '#805ad5' : 
-                              status === 'canceled' ? '#e53e3e' : '#718096'
+                       color: normalizeStatus(status) === 'on hold' ? '#d69e2e' : 
+                              normalizeStatus(status) === 'confirmed' ? '#38a169' : 
+                              normalizeStatus(status) === 'completed' ? '#3182ce' : 
+                              normalizeStatus(status) === 'maintenance' ? '#805ad5' : 
+                              normalizeStatus(status) === 'canceled' ? '#e53e3e' : '#718096'
                      }}
                    >
                      <option value="on hold">On Hold</option>
@@ -1745,8 +1761,8 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
               <div style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: 'block', fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: '2px' }}>Status</span>
                 <MobileDropdownMenu
-                  value={status}
-                  onChange={val => setStatus(val)}
+                  value={normalizeStatus(status)}
+                  onChange={val => setStatus(normalizeStatus(val))}
                   options={[
                     { value: 'on hold', label: 'On Hold' },
                     { value: 'confirmed', label: 'Confirmed' },
@@ -1757,7 +1773,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                   placeholder="Status"
                   style={{
                     border: 'none', fontWeight: 'bold', fontSize: '0.85rem', backgroundColor: 'transparent',
-                    color: status === 'on hold' ? '#d69e2e' : status === 'confirmed' ? '#38a169' : status === 'completed' ? '#3182ce' : status === 'maintenance' ? '#805ad5' : status === 'canceled' ? '#e53e3e' : '#718096',
+                    color: normalizeStatus(status) === 'on hold' ? '#d69e2e' : normalizeStatus(status) === 'confirmed' ? '#38a169' : normalizeStatus(status) === 'completed' ? '#3182ce' : normalizeStatus(status) === 'maintenance' ? '#805ad5' : normalizeStatus(status) === 'canceled' ? '#e53e3e' : '#718096',
                   }}
                 />
               </div>

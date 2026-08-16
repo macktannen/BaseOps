@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.78] - 2026-08-15
+
+### Fixed
+- **Status Dropdown Casing Normalization** — Fixed an issue where the Event Modal status select defaulted to 'On Hold' when viewing completed or signed flights due to case sensitivity. Added `normalizeStatus` to ensure status values seamlessly match the dropdown options and reflect 'Completed' accurately.
+
 ## [v0.3.77] - 2026-08-15
 
 ### Added
