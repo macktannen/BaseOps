@@ -447,17 +447,17 @@ const CrewSchedule = () => {
                 onDrop={() => handleDropPerson(person.id)}
                 className="crew-row"
                 style={{ 
-                  borderBottom: '1.5px solid #cbd5e1', 
+                  borderBottom: '1px solid #f1f5f9', 
                   backgroundColor: draggedPersonId === person.id 
-                    ? '#edf2f7' 
+                    ? '#e2e8f0' 
                     : (rowIndex % 2 === 0 ? '#ffffff' : '#f8fafc'),
                   transition: 'background-color 0.15s ease'
                 }}
               >
                 <td style={{ 
                   padding: '12px 16px', 
-                  borderRight: '1.5px solid #cbd5e1', 
-                  borderLeft: person.type === 'pilot' ? '4px solid #3182ce' : person.type === 'crew' ? '4px solid #d69e2e' : '4px solid #38a169',
+                  borderRight: '1px solid #e2e8f0', 
+                  borderLeft: person.type === 'pilot' ? '4px solid #3b82f6' : person.type === 'crew' ? '4px solid #f59e0b' : '4px solid #10b981',
                   verticalAlign: 'middle', 
                   cursor: 'grab',
                   backgroundColor: rowIndex % 2 === 0 ? '#ffffff' : '#f8fafc'
@@ -467,15 +467,16 @@ const CrewSchedule = () => {
                     <span style={{ 
                        fontSize: '0.68rem', 
                        fontWeight: 700, 
-                       padding: '2px 6px', 
+                       padding: '2px 8px', 
                        borderRadius: '4px', 
-                       backgroundColor: person.type === 'pilot' ? '#ebf8ff' : person.type === 'crew' ? '#fefcbf' : '#f0fdf4',
-                       color: person.type === 'pilot' ? '#2b6cb0' : person.type === 'crew' ? '#975a16' : '#166534',
-                       border: `1px solid ${person.type === 'pilot' ? '#90cdf4' : person.type === 'crew' ? '#f6e05e' : '#86efac'}`
+                       backgroundColor: person.type === 'pilot' ? '#eff6ff' : person.type === 'crew' ? '#fffbeb' : '#f0fdf4',
+                       color: person.type === 'pilot' ? '#1d4ed8' : person.type === 'crew' ? '#b45309' : '#15803d',
+                       border: `1px solid ${person.type === 'pilot' ? '#bfdbfe' : person.type === 'crew' ? '#fde68a' : '#bbf7d0'}`,
+                       letterSpacing: '0.5px'
                     }}>
                       {person.type === 'pilot' ? 'PILOT' : person.type === 'crew' ? 'CREW' : 'PAX'}
                     </span>
-                    <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1e293b' }}>{person.name}</span>
+                    <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f172a' }}>{person.name}</span>
                   </div>
                 </td>
                 
@@ -489,8 +490,8 @@ const CrewSchedule = () => {
                     <td 
                       key={day.toString()} 
                       style={{ 
-                        borderRight: '1px solid #e2e8f0', 
-                        borderBottom: '1.5px solid #cbd5e1',
+                        borderRight: '1px solid #f1f5f9', 
+                        borderBottom: '1px solid #f1f5f9',
                         verticalAlign: 'top', 
                         padding: '6px 4px', 
                         position: 'relative', 
