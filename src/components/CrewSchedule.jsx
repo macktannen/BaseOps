@@ -19,23 +19,55 @@ const LEGEND = {
 
 const CustomStatusDropdown = ({ value, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const isSelected = value && value !== 'Clear';
+
   return (
     <div style={{ position: 'relative' }}>
       <div 
         onClick={() => setIsOpen(!isOpen)}
-        style={{ padding: '8px', border: '1px solid var(--border-color)', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', backgroundColor: 'white' }}
+        style={{ 
+          padding: '9px 12px', 
+          border: '1px solid var(--border-color)', 
+          borderRadius: '6px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          cursor: 'pointer', 
+          backgroundColor: '#fff',
+          transition: 'border-color 0.15s ease',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+        }}
       >
-        {value && value !== 'Clear' ? (
-          <><div style={{ width: 14, height: 14, backgroundColor: LEGEND[value], borderRadius: '2px' }}></div> {value}</>
-        ) : (
-          <span>-- Clear Status --</span>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {isSelected ? (
+            <>
+              <div style={{ width: 14, height: 14, backgroundColor: LEGEND[value], borderRadius: '3px' }}></div>
+              <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1e293b' }}>{value}</span>
+            </>
+          ) : (
+            <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>-- Select Status --</span>
+          )}
+        </div>
+        <ChevronDown size={16} style={{ color: '#64748b', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
       </div>
+
       {isOpen && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', border: '1px solid var(--border-color)', zIndex: 500, maxHeight: '200px', overflowY: 'auto', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+        <div style={{ 
+          position: 'absolute', 
+          top: 'calc(100% + 4px)', 
+          left: 0, 
+          right: 0, 
+          backgroundColor: 'white', 
+          border: '1px solid var(--border-color)', 
+          borderRadius: '6px',
+          zIndex: 500, 
+          maxHeight: '220px', 
+          overflowY: 'auto', 
+          boxShadow: '0 6px 16px rgba(0,0,0,0.12)' 
+        }}>
           <div 
             onClick={() => { onChange('Clear'); setIsOpen(false); }}
-            style={{ padding: '8px', cursor: 'pointer', borderBottom: '1px solid #eee' }}
+            style={{ padding: '9px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', color: '#94a3b8', fontSize: '0.85rem' }}
           >
             -- Clear Status --
           </div>
@@ -43,9 +75,20 @@ const CustomStatusDropdown = ({ value, onChange }) => {
             <div 
               key={s} 
               onClick={() => { onChange(s); setIsOpen(false); }}
-              style={{ padding: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #eee' }}
+              style={{ 
+                padding: '9px 12px', 
+                cursor: 'pointer', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px', 
+                borderBottom: '1px solid #f1f5f9',
+                backgroundColor: value === s ? '#f8fafc' : 'transparent',
+                fontWeight: value === s ? 600 : 400,
+                fontSize: '0.88rem'
+              }}
             >
-              <div style={{ width: 14, height: 14, backgroundColor: LEGEND[s], borderRadius: '2px' }}></div> {s}
+              <div style={{ width: 14, height: 14, backgroundColor: LEGEND[s], borderRadius: '3px' }}></div>
+              <span>{s}</span>
             </div>
           ))}
         </div>
@@ -506,7 +549,7 @@ const CrewSchedule = () => {
                             let y = rect.bottom;
                             if (x > window.innerWidth - 300) x = window.innerWidth - 300;
                             if (y > window.innerHeight - 250) y = rect.top - 200;
-                            setCellModalOpen({ personId: person.id, dateStr, status: cellStatus || 'On Duty', x, y });
+                            setCellModalOpen({ personId: person.id, dateStr, status: cellStatus || '', x, y });
                          }
                       }}
                     >
@@ -740,13 +783,13 @@ const CrewSchedule = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <h3 style={{ margin: 0, color: 'var(--primary-color)' }}>Daily Itinerary</h3>
                     <span style={{ 
-                       fontSize: '0.65rem', 
-                       fontWeight: 'bold', 
+                       fontSize: '0.68rem', 
+                       fontWeight: 700, 
                        padding: '2px 6px', 
                        borderRadius: '4px', 
-                       backgroundColor: person?.type === 'pilot' ? '#ebf8ff' : person?.type === 'crew' ? '#fefcbf' : '#f0fdf4',
-                       color: person?.type === 'pilot' ? '#2b6cb0' : person?.type === 'crew' ? '#975a16' : '#166534',
-                       border: `1px solid ${person?.type === 'pilot' ? '#90cdf4' : person?.type === 'crew' ? '#f6e05e' : '#86efac'}`
+                       backgroundColor: person?.type === 'pilot' ? '#bee3f8' : person?.type === 'crew' ? '#fefcbf' : '#c6f6d5',
+                       color: person?.type === 'pilot' ? '#2b6cb0' : person?.type === 'crew' ? '#975a16' : '#22543d',
+                       border: `1px solid ${person?.type === 'pilot' ? '#90cdf4' : person?.type === 'crew' ? '#f6e05e' : '#9ae6b4'}`
                     }}>
                       {person?.type === 'pilot' ? 'PILOT' : person?.type === 'crew' ? 'CREW' : 'PAX'}
                     </span>

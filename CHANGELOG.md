@@ -2,7 +2,12 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
-## [v0.4.3] - 2026-08-16
+## [v0.4.4] - 2026-08-16
+
+### Changed
+- **Clear Duty Status Selector & Default Placeholder** — 
+  - Updated the Daily Itinerary modal duty status input to display `-- Select Status --` when no status has been explicitly set instead of assuming `On Duty`.
+  - Added a visible dropdown chevron and enhanced interactive dropdown styling so users immediately recognize it as a clickable status selector.
 
 ### Changed
 - **Subtle Row Dividing Lines** — Softened the crew schedule grid row lines from prominent 1.5px slate borders to very subtle, faint 1px divider lines (`#f1f5f9`) for clean, understated visual separation.
