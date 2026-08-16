@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.70] - 2026-08-15
+
+### Added
+- **Admin vs Non-Admin Audit Trail Visibility & Controls** — Non-admin users are now restricted to seeing only the most recent (last) logbook and flight log audit entry. Admin users have full access to view the entire audit history, with collapsible/expandable toggles (`Expand All` / `Collapse`) and a dedicated `Clear` button to purge audit histories when authorized. All audit records are preserved in real-time Firestore synchronization until cleared by an administrator.
+
 ## [v0.3.69] - 2026-08-15
 
 ### Added

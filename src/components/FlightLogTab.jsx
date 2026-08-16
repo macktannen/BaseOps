@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, Unlock, PenTool, Trash2 } from 'lucide-react';
+import { Lock, Unlock, PenTool, Trash2, ChevronDown, ChevronUp, History } from 'lucide-react';
 import { authService } from '../services/authService';
 import useIsMobile from '../hooks/useIsMobile';
 import MobileDropdownMenu from './MobileDropdownMenu';
 
 const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList, pilotsList }) => {
   const isMobile = useIsMobile();
+  const [auditExpanded, setAuditExpanded] = useState(false);
   const [log, setLog] = useState({
     legsActuals: legs.map(() => ({
       flightHrs: '', blockHrs: '', hobbs: '', engineCycles: '', engine1Cycles: '', engine2Cycles: '', engine1Hrs: '', engine2Hrs: '', landings: '', landingType: '', fuelPurchased: ''
@@ -578,11 +579,73 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList,
       </div>
 
       {log.auditLog && log.auditLog.length > 0 && (
-         <div style={{ padding: '10px', fontSize: '0.7rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-color)', marginTop: '10px' }}>
-            <strong>Audit Log:</strong>
-            <ul style={{ paddingLeft: '20px', margin: '5px 0 0 0' }}>
-               {log.auditLog.map((entry, i) => <li key={i}>{entry}</li>)}
+         <div style={{ padding: '10px 12px', fontSize: '0.75rem', color: '#742a2a', backgroundColor: '#fff5f5', border: '1px solid #feb2b2', borderRadius: '4px', marginTop: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', color: '#c53030' }}>
+                <History size={14} />
+                <span>Flight Log Audit Trail {isAdmin && `(${log.auditLog.length})`}</span>
+              </div>
+              {isAdmin && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {log.auditLog.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setAuditExpanded(prev => !prev)}
+                      style={{
+                        background: 'none',
+                        border: '1px solid #feb2b2',
+                        borderRadius: '4px',
+                        padding: '2px 6px',
+                        fontSize: '0.7rem',
+                        color: '#c53030',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '3px'
+                      }}
+                    >
+                      {auditExpanded ? <><ChevronUp size={12} /> Collapse</> : <><ChevronDown size={12} /> Expand All ({log.auditLog.length})</>}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm("Are you sure you want to clear the Flight Log Audit Log?")) {
+                        setLog(prev => ({
+                          ...prev,
+                          auditLog: [`Audit log reset by Admin (${currentUser?.name || 'Admin'}) on ${new Date().toLocaleString()}`]
+                        }));
+                      }
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#e53e3e',
+                      fontSize: '0.7rem',
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                      padding: '2px 4px'
+                    }}
+                    title="Clear flight audit log (Admin only)"
+                  >
+                    Clear
+                  </button>
+                </div>
+              )}
+            </div>
+            <ul style={{ paddingLeft: '18px', margin: '4px 0 0 0', maxHeight: auditExpanded ? '200px' : 'none', overflowY: auditExpanded ? 'auto' : 'visible' }}>
+               {(isAdmin && auditExpanded ? log.auditLog : [log.auditLog[log.auditLog.length - 1]]).map((entry, i) => (
+                 <li key={i} style={{ marginBottom: '3px', lineHeight: '1.3' }}>{entry}</li>
+               ))}
             </ul>
+            {isAdmin && !auditExpanded && log.auditLog.length > 1 && (
+              <div 
+                onClick={() => setAuditExpanded(true)}
+                style={{ fontSize: '0.7rem', color: '#c53030', marginTop: '4px', cursor: 'pointer', fontStyle: 'italic', textDecoration: 'underline' }}
+              >
+                + {log.auditLog.length - 1} older audit record{log.auditLog.length - 1 > 1 ? 's' : ''} (click to expand)
+              </div>
+            )}
          </div>
       )}
 

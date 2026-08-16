@@ -3,7 +3,8 @@
 ## Project Overview
 **BaseOps:** A web-based application to manage a fleet of helicopters, crew scheduling, mission planning, document uploads, and flight expenses. The app uses React, localStorage with offline retry queues, IndexedDB localforage resilience, and live synchronization with Firebase Firestore & Firebase Storage.
 
-## Current Status (v0.3.69)
+## Current Status (v0.3.70)
+- **Admin vs Non-Admin Audit Trail Visibility & Controls:** Non-admin users are restricted to viewing only the most recent audit log trigger in both aircraft logbooks and event modal flight logs. Admins can view all historical entries with collapsible/expandable controls and an admin-only "Clear" action to reset logs. All audit records persist indefinitely until cleared.
 - **Real-Time Cross-Device Logbook & Audit Trail Synchronization:** Connected `AircraftList.jsx`, `MobileFleet.jsx`, `FlightLogTab.jsx`, and `EventModal.jsx` to live Firestore `firestore-sync` events. Aircraft Logbook Totals, the Logbook Audit Trail, and Event Modal Flight Log Audit Log are synchronized in real time across the app and persisted to Firebase Firestore.
 - **Flight Log Sign / Unlock Audit Logging:** Signing or unlocking a flight log automatically appends a detailed audit trail entry with delta breakdown to the aircraft's logbook audit history and broadcasts the changes instantly to the cloud.
 - **Flight Log Fuel Quantity Input & Auto PAX Calculations:** In the event modal's Flight Log tab (`FlightLogTab.jsx`), added an input field for fuel purchases to enter exact gallons per leg with automatic totals summation, and removed the manual `Total Pax` input, automatically computing passenger counts from the flight plan's passenger manifest and displaying leg counts and totals in the bottom Aircraft Log Summary.
