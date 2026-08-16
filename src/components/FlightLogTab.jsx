@@ -238,7 +238,9 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
         storedAircraft[acIndex] = ac;
         localStorage.setItem('userAircraft', JSON.stringify(storedAircraft));
         setAircraft(ac);
-        window.dispatchEvent(new Event('storage'));
+        // Use keyed custom events only — plain Event('storage') has no key/detail and
+        // triggers EventModal's handleRemoteSync, overwriting flightLog with stale data.
+        window.dispatchEvent(new CustomEvent('storage', { detail: { key: 'userAircraft' } }));
         window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'userAircraft' } }));
       }
     } catch(e) { console.error("Failed to update aircraft totals", e); }

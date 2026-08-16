@@ -681,8 +681,10 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   useEffect(() => {
     const handleRemoteSync = (e) => {
       // Filter out storage/firestore events for unrelated keys (e.g. userAircraft)
+      // Pass through: CustomEvent('storage', {detail:{key:'userFlights'}}), StorageEvent with key='userFlights', CustomEvent('firestore-sync', {detail:{key:'userFlights'}})
       if (e?.detail?.key && e.detail.key !== 'userFlights') return;
       if (e?.key && e.key !== 'userFlights') return;
+      // Block plain Event('storage') with no key/detail — those are aircraft updates from FlightLogTab
       if (!e?.detail?.key && !e?.key) return;
       if (!flight || !flight.id) return;
 
@@ -751,7 +753,8 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       }
 
       localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
-      window.dispatchEvent(new Event('storage'));
+      // Use keyed custom event so handleRemoteSync can correctly identify this as a userFlights update
+      window.dispatchEvent(new CustomEvent('storage', { detail: { key: 'userFlights' } }));
       window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'userFlights' } }));
     } catch (e) {
       console.error('Failed to persist flightLog to flight:', e);

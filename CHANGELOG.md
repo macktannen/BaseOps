@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.89] - 2026-08-15
+
+### Fixed
+- **True Single-Click Clear Signature** — Identified the exact root cause of the two-click bug: `updateGlobalAircraft` in `FlightLogTab.jsx` dispatched `new Event('storage')` (a plain, keyless event). `handleRemoteSync` in `EventModal.jsx` had no way to distinguish this from a `userFlights` update, so it immediately re-read `localStorage.userFlights` and overwrote the just-cleared `flightLog` state with the still-signed version. Fixed by replacing all plain `new Event('storage')` dispatches with keyed `CustomEvent('storage', { detail: { key: '...' } })` events throughout both `FlightLogTab.jsx` and `EventModal.jsx`, so the guard correctly routes aircraft updates away from flight log state.
+
 ## [v0.3.88] - 2026-08-15
 
 ### Fixed
