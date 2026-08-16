@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.81] - 2026-08-15
+
+### Added
+- **Signed Flight Aircraft Change Protection & Automatic Meter Reversion** — Non-admin users are prevented from changing the aircraft on signed flights. If an administrator reassigns the aircraft on a signed flight, a confirmation prompt un-signs the flight log, unlocks the logbook, automatically uncommits and reverts all recorded meter hours and landings from the previous aircraft, and notifies the administrator that the flight is now open and must be signed.
+
 ## [v0.3.80] - 2026-08-15
 
 ### Changed

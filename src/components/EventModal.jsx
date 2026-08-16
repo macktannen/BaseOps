@@ -1310,6 +1310,106 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     catch { return []; }
   })();
 
+  const handleAircraftChange = (newAcId) => {
+    if (newAcId === aircraftId) return;
+
+    if (isFlightSigned) {
+      if (!isAdmin) {
+        alert("The aircraft cannot be changed on a signed flight.");
+        return;
+      }
+
+      const confirmed = window.confirm(
+        `This flight has a signed flight log for aircraft ${aircraftId || 'assigned'}.\n\n` +
+        `Changing the aircraft to ${newAcId || 'none'} will:\n` +
+        `• Un-sign the flight log\n` +
+        `• Unlock the log\n` +
+        `• Revert committed meter numbers from ${aircraftId}\n` +
+        `• Reopen the flight for review and signature\n\n` +
+        `Do you want to proceed?`
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      // 1. Revert committed meter hours from old aircraft
+      try {
+        const storedAircraft = JSON.parse(localStorage.getItem('userAircraft') || '[]');
+        const oldAcIndex = storedAircraft.findIndex(a => a.id === aircraftId);
+        if (oldAcIndex >= 0 && flightLog?.aircraftTotals) {
+          const ac = { ...storedAircraft[oldAcIndex] };
+          const totals = flightLog.aircraftTotals;
+          if (totals.flightBefore !== undefined) ac.totalHours = parseFloat(totals.flightBefore).toFixed(1);
+          if (totals.landingsBefore !== undefined) ac.landings = parseInt(totals.landingsBefore);
+          if (totals.hobbsBefore !== undefined) ac.hobbs = parseFloat(totals.hobbsBefore).toFixed(1);
+          if (totals.engine1Before !== undefined) {
+            ac.engine1Hours = parseFloat(totals.engine1Before).toFixed(1);
+            ac.engineHours = ac.engine1Hours;
+          }
+          if (totals.cycles1Before !== undefined) {
+            ac.engine1Cycles = parseInt(totals.cycles1Before);
+            ac.engineCycles = ac.engine1Cycles;
+          }
+          if (totals.dualEngine && totals.engine2Before !== undefined) {
+            ac.engine2Hours = parseFloat(totals.engine2Before).toFixed(1);
+            ac.engine2Cycles = parseInt(totals.cycles2Before || 0);
+          }
+          if (!ac.auditLog) ac.auditLog = [];
+          ac.auditLog.push(
+            `Flight log unsigned & meters reverted due to aircraft change to ${newAcId || 'unassigned'} by Admin (${currentUser?.name || 'Admin'}) on ${new Date().toLocaleString()}`
+          );
+          storedAircraft[oldAcIndex] = ac;
+          localStorage.setItem('userAircraft', JSON.stringify(storedAircraft));
+          window.dispatchEvent(new Event('storage'));
+          window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'userAircraft' } }));
+        }
+      } catch (e) {
+        console.error("Failed to revert old aircraft hours:", e);
+      }
+
+      // 2. Un-sign flightLog and reset lock & totals
+      const updatedAudit = [
+        ...(flightLog.auditLog || []),
+        `Flight log unsigned and ${aircraftId} hours reverted due to aircraft change to ${newAcId || 'none'} by Admin (${currentUser?.name || 'Admin'}) on ${new Date().toLocaleString()}`
+      ];
+      const nextFlightLog = {
+        ...flightLog,
+        signature: null,
+        isLocked: false,
+        aircraftTotals: null,
+        auditLog: updatedAudit
+      };
+      setFlightLog(nextFlightLog);
+      setStatus('confirmed');
+      persistFlightLogToFlight(nextFlightLog);
+
+      // Prompt admin that flight is open and needs to be signed
+      setTimeout(() => {
+        alert(`Aircraft changed to ${newAcId}.\n\nThe flight is now OPEN and needs to be signed once complete. Committed meter hours on ${aircraftId} have been reverted.`);
+      }, 100);
+    }
+
+    setAircraftId(newAcId);
+    let newLegs = [...legs];
+    let changed = false;
+    for (let i = 0; i < newLegs.length; i++) {
+      const est = calculateEstimatedMinutes(newLegs[i].departure, newLegs[i].destination, newAcId);
+      if (est) {
+        newLegs[i].duration = est.mins;
+        newLegs[i].distance = est.nm;
+        const depTz = getLocationTimeZone(newLegs[i].departure);
+        const arrTz = getLocationTimeZone(newLegs[i].destination);
+        const depAbs = toDate(`${newLegs[i].date || new Date().toISOString().split('T')[0]}T${newLegs[i].takeoffTime}:00`, { timeZone: depTz });
+        const arrAbs = new Date(depAbs.getTime() + est.mins * 60000);
+        newLegs[i].landTime = formatInTimeZone(arrAbs, arrTz, 'HH:mm');
+        newLegs[i].arrDate = formatInTimeZone(arrAbs, arrTz, 'yyyy-MM-dd');
+        changed = true;
+      }
+    }
+    if (changed) setLegs(recalculateLegTimes(newLegs));
+  };
+
   const performSave = (overrideFlightLog = null, overrideStatus = null) => {
     legs.forEach(leg => {
       if (leg.departure && leg.departure.id) incrementUsage(leg.departure.id);
@@ -1515,59 +1615,43 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
             <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 1, minWidth: 0, maxWidth: '120px' }}>
                <span style={{ fontSize: '0.58rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>AIRCRAFT</span>
                {isMobile ? (
-                 <MobileDropdownMenu
-                   value={aircraftId}
-                   onChange={val => {
-                     const newAcId = val;
-                     setAircraftId(newAcId);
-                     let newLegs = [...legs];
-                     let changed = false;
-                     for (let i = 0; i < newLegs.length; i++) {
-                       const est = calculateEstimatedMinutes(newLegs[i].departure, newLegs[i].destination, newAcId);
-                       if (est) {
-                         newLegs[i].duration = est.mins;
-                         newLegs[i].distance = est.nm;
-                         const depTz = getLocationTimeZone(newLegs[i].departure);
-                         const arrTz = getLocationTimeZone(newLegs[i].destination);
-                         const depAbs = toDate(`${newLegs[i].date || new Date().toISOString().split('T')[0]}T${newLegs[i].takeoffTime}:00`, { timeZone: depTz });
-                         const arrAbs = new Date(depAbs.getTime() + est.mins * 60000);
-                         newLegs[i].landTime = formatInTimeZone(arrAbs, arrTz, 'HH:mm');
-                         newLegs[i].arrDate = formatInTimeZone(arrAbs, arrTz, 'yyyy-MM-dd');
-                         changed = true;
-                       }
-                     }
-                     if (changed) setLegs(recalculateLegTimes(newLegs));
-                   }}
-                   options={[{ value: '', label: 'Select Aircraft...' }, ...aircraftList.map(a => ({ value: a.id, label: `${a.id} (${a.model})` }))]}
-                   placeholder="Select Aircraft..."
-                   style={{ border: 'none', backgroundColor: 'transparent', fontWeight: '500', fontSize: '0.8rem' }}
-                 />
-               ) : (
-                 <select value={aircraftId} onChange={e => {
-                   const newAcId = e.target.value;
-                   setAircraftId(newAcId);
-                   let newLegs = [...legs];
-                   let changed = false;
-                   for (let i = 0; i < newLegs.length; i++) {
-                      const est = calculateEstimatedMinutes(newLegs[i].departure, newLegs[i].destination, newAcId);
-                      if (est) {
-                        newLegs[i].duration = est.mins;
-                        newLegs[i].distance = est.nm;
-                        const depTz = getLocationTimeZone(newLegs[i].departure);
-                        const arrTz = getLocationTimeZone(newLegs[i].destination);
-                        const depAbs = toDate(`${newLegs[i].date || new Date().toISOString().split('T')[0]}T${newLegs[i].takeoffTime}:00`, { timeZone: depTz });
-                        const arrAbs = new Date(depAbs.getTime() + est.mins * 60000);
-                        newLegs[i].landTime = formatInTimeZone(arrAbs, arrTz, 'HH:mm');
-                        newLegs[i].arrDate = formatInTimeZone(arrAbs, arrTz, 'yyyy-MM-dd');
-                        changed = true;
-                      }
-                   }
-                   if (changed) setLegs(recalculateLegTimes(newLegs));
-                 }} style={{ border: 'none', fontWeight: '500', outline: 'none', fontSize: '0.8rem', backgroundColor: 'transparent', cursor: 'pointer', width: '100%', textOverflow: 'ellipsis' }}>
-                   <option value="">Select Aircraft...</option>
-                   {aircraftList.map(a => <option key={a.id} value={a.id}>{a.id} ({a.model})</option>)}
-                 </select>
-               )}
+                  <MobileDropdownMenu
+                    value={aircraftId}
+                    onChange={handleAircraftChange}
+                    disabled={isFlightSigned && !isAdmin}
+                    options={[{ value: '', label: 'Select Aircraft...' }, ...aircraftList.map(a => ({ value: a.id, label: `${a.id} (${a.model})` }))]}
+                    placeholder="Select Aircraft..."
+                    style={{
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      fontWeight: '500',
+                      fontSize: '0.8rem',
+                      cursor: isFlightSigned && !isAdmin ? 'not-allowed' : 'pointer',
+                      opacity: isFlightSigned && !isAdmin ? 0.7 : 1
+                    }}
+                  />
+                ) : (
+                  <select 
+                    value={aircraftId} 
+                    onChange={e => handleAircraftChange(e.target.value)}
+                    disabled={isFlightSigned && !isAdmin}
+                    title={isFlightSigned && !isAdmin ? "Aircraft cannot be changed on a signed flight." : undefined}
+                    style={{ 
+                      border: 'none', 
+                      fontWeight: '500', 
+                      outline: 'none', 
+                      fontSize: '0.8rem', 
+                      backgroundColor: 'transparent', 
+                      cursor: isFlightSigned && !isAdmin ? 'not-allowed' : 'pointer', 
+                      opacity: isFlightSigned && !isAdmin ? 0.7 : 1,
+                      width: '100%', 
+                      textOverflow: 'ellipsis' 
+                    }}
+                  >
+                    <option value="">Select Aircraft...</option>
+                    {aircraftList.map(a => <option key={a.id} value={a.id}>{a.id} ({a.model})</option>)}
+                  </select>
+                )}
             </div>
             
             <div className="status-tags-row" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
@@ -1731,30 +1815,19 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                 <span style={{ display: 'block', fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: '2px' }}>Aircraft</span>
                 <MobileDropdownMenu
                   value={aircraftId}
-                  onChange={val => {
-                    const newAcId = val;
-                    setAircraftId(newAcId);
-                    let newLegs = [...legs];
-                    let changed = false;
-                    for (let i = 0; i < newLegs.length; i++) {
-                      const est = calculateEstimatedMinutes(newLegs[i].departure, newLegs[i].destination, newAcId);
-                      if (est) {
-                        newLegs[i].duration = est.mins;
-                        newLegs[i].distance = est.nm;
-                        const depTz = getLocationTimeZone(newLegs[i].departure);
-                        const arrTz = getLocationTimeZone(newLegs[i].destination);
-                        const depAbs = toDate(`${newLegs[i].date || new Date().toISOString().split('T')[0]}T${newLegs[i].takeoffTime}:00`, { timeZone: depTz });
-                        const arrAbs = new Date(depAbs.getTime() + est.mins * 60000);
-                        newLegs[i].landTime = formatInTimeZone(arrAbs, arrTz, 'HH:mm');
-                        newLegs[i].arrDate = formatInTimeZone(arrAbs, arrTz, 'yyyy-MM-dd');
-                        changed = true;
-                      }
-                    }
-                    if (changed) setLegs(recalculateLegTimes(newLegs));
-                  }}
+                  onChange={handleAircraftChange}
+                  disabled={isFlightSigned && !isAdmin}
                   options={[{ value: '', label: 'Select Aircraft...' }, ...aircraftList.map(a => ({ value: a.id, label: `${a.id} (${a.model})` }))]}
                   placeholder="Select Aircraft..."
-                  style={{ border: 'none', fontWeight: '500', fontSize: '0.85rem', backgroundColor: 'transparent', color: aircraftId ? 'var(--text-main)' : 'var(--text-muted)' }}
+                  style={{
+                    border: 'none',
+                    fontWeight: '500',
+                    fontSize: '0.85rem',
+                    backgroundColor: 'transparent',
+                    color: aircraftId ? 'var(--text-main)' : 'var(--text-muted)',
+                    cursor: isFlightSigned && !isAdmin ? 'not-allowed' : 'pointer',
+                    opacity: isFlightSigned && !isAdmin ? 0.7 : 1
+                  }}
                 />
               </div>
             </div>
