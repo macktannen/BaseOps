@@ -2,7 +2,23 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
-## [v0.3.90] - 2026-08-15
+## [v0.3.93] - 2026-08-16
+
+### Added
+- **Strict Protocol Enforcement** — Automated version bumping, comprehensive changelog tracking, and handoff synchronization for every update.
+- **Environment Isolation & Security Sandbox** — Isolated development environments (`localhost` / `127.0.0.1`) to `orgs/dev_sandbox` in Firestore, preventing local testing from ever polluting or overwriting production data.
+- **Data Management Center** — Added an administrative data management tab in `SettingsView` with one-click actions to clear test flights or wipe mock data across local and cloud databases.
+
+## [v0.3.92] - 2026-08-16
+
+### Fixed
+- **Atomic Single-Click Clear Signature Rewrite** — Centralized all clear-signature logic into `EventModal.jsx`, eliminating multi-layer callback bouncing. Resolved stale prop fallback bug in `isFlightSigned` that caused aircraft selectors and input boxes to require a second click to unlock.
+- **Vercel Cache-Control** — Added custom HTTP cache-control headers in `vercel.json` to prevent stale HTML edge caching on deployments.
+
+## [v0.3.91] - 2026-08-16
+
+### Fixed
+- **Flight Log Mapping Stability** — Fixed `legsActuals` array mapping crash when creating new flights and resolved Firestore conflict resolution bias.
 
 ### Fixed
 - **Flight Log Modal Crash** — Fixed a `ReferenceError` preventing the flight log modal from opening when creating a new flight. Reordered the initialization of flight log baseline variables to correctly resolve JavaScript scope constraints and eliminate the temporal dead zone error.

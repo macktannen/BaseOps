@@ -1,17 +1,16 @@
 # Switch (Handoff) Document
+Current Version: **v0.3.93**
 
 ## Project Overview
-Helicopter Scheduler Web App (`baseops`). We are actively debugging state synchronization bugs and building out new UI layouts.
+Helicopter Scheduler Web App (`baseops`). We are actively debugging state synchronization bugs, managing production data safety, and building out new UI layouts.
 
-## Current Status
-- **v0.3.92**: Fixed single-click clear signature issue by resolving prop fallback collision (`isFlightSigned` evaluating stale `flight` prop instead of component state `flightLog.signature`) and centralizing atomic unsigning in `EventModal.jsx`.
-- Pushed the latest build to production.
+## Current Status (v0.3.93)
+1. **Strict Tracking & Documentation Protocol**: Established mandatory version bumping (`package.json`), `CHANGELOG.md` entry generation, and `HANDOFF.md` updates with every single commit/update.
+2. **Production Safety & Sandbox Isolation**: Local development (`localhost`) is now automatically isolated to `orgs/dev_sandbox` in Firestore so local testing never alters production database (`orgs/default`).
+3. **Data Management Tools**: Added administrative controls in `SettingsView` under "Data Management" allowing one-click resets of flights or complete database wipes across local and cloud environments.
+4. **Clear Signature Single-Click Logic**: Completely rewritten into an atomic workflow inside `EventModal.jsx`, eliminating stale prop evaluations and multi-layer callback race conditions.
 
 ## Pending Tasks
-1. **Redo layout for schedules grid**: The user requested this earlier in the conversation. It has NOT been started yet.
-2. **Fleet view layout**: The user requested this earlier in the conversation. It has NOT been started yet.
+1. **Redo layout for schedules grid** (Not started).
+2. **Fleet view layout** (Not started).
 
-## Recent Context
-- **State Architecture**: `CalendarView.jsx` handles master saves to `localStorage` and triggers `CustomEvent('firestore-sync', { detail: { key: 'userFlights' } })`. `EventModal.jsx` listens to this event to keep its local state in sync.
-- **Clear Signature Flow**: `FlightLogTab.jsx` -> calls `updateGlobalAircraft(-1)` -> calls `EventModal`'s `onUnsign` -> calls `performSave` -> calls `CalendarView`'s `handleSaveFlight`.
-- **Open Questions**: We are currently waiting on the user to hard-refresh their browser and confirm that the "Clear Signature" functionality now works perfectly on the first click before proceeding to the layout reworks.
