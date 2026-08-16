@@ -1350,7 +1350,16 @@ const CalendarView = () => {
                       onChange={v => setCellModalOpen({...cellModalOpen, status: v})}
                     />
                   </div>
-                  <button className="btn btn-outline" style={{ color: '#e53e3e', borderColor: '#e53e3e', padding: '8px 12px' }} onClick={() => { handleCellStatusClick(personId, dateStr, 'Clear'); setCellModalOpen({...cellModalOpen, status: 'Clear'}); }}>Clear</button>
+                  <button 
+                    className="btn btn-outline" 
+                    style={{ color: '#e53e3e', borderColor: '#e53e3e', padding: '8px 14px' }} 
+                    onClick={() => { 
+                      handleCellStatusClick(personId, dateStr, 'Clear'); 
+                      setCellModalOpen(null); 
+                    }}
+                  >
+                    Clear
+                  </button>
                   <button className="btn btn-primary" onClick={handleSaveCellModal}>Save Status</button>
                 </div>
               </div>

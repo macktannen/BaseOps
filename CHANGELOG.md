@@ -2,7 +2,12 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
-## [v0.4.6] - 2026-08-16
+## [v0.4.7] - 2026-08-16
+
+### Fixed
+- **Instant Status Clearing in Daily Itinerary Modal** — 
+  - Updated the "Clear" button in both the Crew Schedules grid and Calendar View modals to immediately delete the scheduled duty status from local state & Firestore and close the modal.
+  - Added missing `storage` and `firestore-sync` events to `saveSchedules` in `CrewSchedule.jsx` so changes reflect in real-time across all views.
 
 ### Added
 - **Interactive Personnel Status Pills on Calendar View** — Clicking on any crew/passenger status bubble in the main Calendar View now immediately opens the Daily Itinerary modal with full status editing and scheduled flight inspection, identical to the Schedules grid.

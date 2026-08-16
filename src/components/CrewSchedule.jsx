@@ -166,6 +166,8 @@ const CrewSchedule = () => {
   const saveSchedules = (newSched) => {
     setSchedules(newSched);
     localStorage.setItem('crewSchedules', JSON.stringify(newSched));
+    window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'crewSchedules' } }));
   };
 
   const handleDropPerson = (targetPersonId) => {
@@ -810,7 +812,16 @@ const CrewSchedule = () => {
                       onChange={v => setCellModalOpen({...cellModalOpen, status: v})}
                     />
                   </div>
-                  <button className="btn btn-outline" style={{ color: '#e53e3e', borderColor: '#e53e3e', padding: '8px 12px' }} onClick={() => { handleCellClick(personId, dateStr, 'Clear'); setCellModalOpen({...cellModalOpen, status: 'Clear'}); }}>Clear</button>
+                  <button 
+                    className="btn btn-outline" 
+                    style={{ color: '#e53e3e', borderColor: '#e53e3e', padding: '8px 14px' }} 
+                    onClick={() => { 
+                      handleCellClick(personId, dateStr, 'Clear'); 
+                      setCellModalOpen(null); 
+                    }}
+                  >
+                    Clear
+                  </button>
                   <button className="btn btn-primary" onClick={handleSaveCellModal}>Save Status</button>
                 </div>
               </div>
