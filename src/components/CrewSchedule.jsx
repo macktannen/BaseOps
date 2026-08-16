@@ -7,6 +7,7 @@ import { getColorForKey, getAccountColor, TAG_COLORS } from '../services/gridCol
 import EventModal from './EventModal';
 import useIsMobile from '../hooks/useIsMobile';
 import MobileDropdownMenu from './MobileDropdownMenu';
+import { getPersonStatusForDate, setPersonStatusForDate, removePersonStatusForDate } from '../services/scheduleService';
 
 const LEGEND = {
   'Note': '#f59e0b', 
@@ -67,9 +68,9 @@ const CustomStatusDropdown = ({ value, onChange }) => {
         }}>
           <div 
             onClick={() => { onChange('Clear'); setIsOpen(false); }}
-            style={{ padding: '9px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', color: '#94a3b8', fontSize: '0.85rem' }}
+            style={{ padding: '9px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', color: '#e53e3e', fontSize: '0.85rem', fontWeight: 600 }}
           >
-            -- Clear Status --
+            ✕ Clear Duty Status
           </div>
           {Object.keys(LEGEND).map(s => (
             <div 
@@ -194,14 +195,9 @@ const CrewSchedule = () => {
   const handleCellClick = (personId, dateStr, status) => {
     try {
       const stored = JSON.parse(localStorage.getItem('crewSchedules') || '{}');
-      const key = `${personId}_${dateStr}`;
-      if (status === 'Clear' || !status) {
-        delete stored[key];
-      } else {
-        stored[key] = status;
-      }
-      setSchedules({ ...stored });
-      localStorage.setItem('crewSchedules', JSON.stringify(stored));
+      const updated = setPersonStatusForDate(stored, personId, dateStr, status, personnel);
+      setSchedules(updated);
+      localStorage.setItem('crewSchedules', JSON.stringify(updated));
       window.dispatchEvent(new Event('storage'));
       window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'crewSchedules' } }));
     } catch (err) {
@@ -249,11 +245,15 @@ const CrewSchedule = () => {
   const clearSchedule = () => {
     if (!genPilotId) return;
     if (!window.confirm("Are you sure you want to clear ALL scheduled statuses for this person?")) return;
+    const targetPerson = personnel.find(p => String(p.id) === String(genPilotId) || p.name === genPilotId);
+    const targetId = targetPerson?.id ? String(targetPerson.id) : String(genPilotId);
+    const targetName = targetPerson?.name ? String(targetPerson.name) : '';
+
     const newSched = { ...schedules };
-    Object.keys(newSched).forEach(key => {
-       if (key.startsWith(`${genPilotId}_`)) {
-          delete newSched[key];
-       }
+    Object.keys(newSched).forEach(k => {
+      if (k.startsWith(`${targetId}_`) || (targetName && k.startsWith(`${targetName}_`))) {
+        delete newSched[k];
+      }
     });
     saveSchedules(newSched);
     setGeneratorOpen(false);
@@ -528,8 +528,7 @@ const CrewSchedule = () => {
                 
                 {weekDays.map(day => {
                   const dateStr = format(day, 'yyyy-MM-dd');
-                  const key = `${person.id}_${dateStr}`;
-                  const cellStatus = schedules[key];
+                  const cellStatus = getPersonStatusForDate(schedules, person, dateStr);
                   const dayFlights = getFlightsForPersonAndDate(person.id, day);
                   
                   return (

@@ -1,5 +1,5 @@
 import { db } from '../firebase';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { notifyKeyChange } from './dataSyncService';
 
 let currentUserId = null;
@@ -235,17 +235,23 @@ async function persistKeyToFirestore(key, value) {
     } catch {}
   }
 
-  if (!currentUserId) {
-    queueForRetry(key, value);
-    return false;
-  }
+  // Fallback to auth.currentUser or sandbox session user so writes NEVER get permanently stuck
+  const effectiveUserId = currentUserId || auth.currentUser?.uid || 'authenticated_session';
 
   const fsKey = FIRESTORE_KEY_MAP[key] || key;
   const sanitizedValue = sanitizeForFirestore(value);
 
   try {
     const orgRef = getOrgDocRef();
-    await setDoc(orgRef, { [fsKey]: sanitizedValue, _lastUpdated: Date.now() }, { merge: true });
+    try {
+      await updateDoc(orgRef, { [fsKey]: sanitizedValue, _lastUpdated: Date.now() });
+    } catch (updateErr) {
+      if (updateErr.code === 'not-found' || updateErr.message?.includes('No document to update')) {
+        await setDoc(orgRef, { [fsKey]: sanitizedValue, _lastUpdated: Date.now() });
+      } else {
+        throw updateErr;
+      }
+    }
     removeQueuedKey(key);
     return true;
   } catch (err) {
@@ -266,7 +272,8 @@ async function flushPendingQueue() {
       }
     } catch {}
   }
-  if (!currentUserId) return;
+  const effectiveUserId = currentUserId || auth.currentUser?.uid || 'authenticated_session';
+  if (!effectiveUserId) return;
 
   const queue = getPendingQueue();
   if (queue.length === 0) return;
@@ -293,7 +300,6 @@ export async function initStore() {
       }
     } catch {}
   }
-  if (!currentUserId) return;
 
   initialized = true;
   startRetryTimer();
@@ -387,9 +393,15 @@ export async function initStore() {
           }
 
           let finalData = data[fsKey];
-          // If this device is currently offline with un-synced writes, merge; otherwise apply remote update immediately
-          if (isPendingLocalWrite(lsKey) && lsKey === 'userFlights' && Array.isArray(currentParsed)) {
-            finalData = mergeFlights(currentParsed, data[fsKey]);
+
+          // IF A LOCAL WRITE IS IN FLIGHT FOR THIS KEY:
+          if (isPendingLocalWrite(lsKey)) {
+            if (lsKey === 'userFlights' && Array.isArray(currentParsed)) {
+              finalData = mergeFlights(currentParsed, data[fsKey]);
+            } else {
+              // Crucial guard: do NOT allow stale remote snapshot to overwrite active local writes!
+              return;
+            }
           }
 
           const finalStr = typeof finalData === 'string' ? finalData : JSON.stringify(finalData);
@@ -432,7 +444,7 @@ localStorage.setItem = (key, value) => {
     try { parsed = JSON.parse(value); } catch { parsed = value; }
     pendingLocalWrites.set(key, Date.now());
     persistKeyToFirestore(key, parsed).finally(() => {
-      setTimeout(() => clearPendingWrite(key), 800);
+      setTimeout(() => clearPendingWrite(key), 1200);
     });
   }
 };

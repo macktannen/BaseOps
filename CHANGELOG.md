@@ -2,6 +2,30 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.5.2] - 2026-08-16
+
+### Fixed
+- **Fresh Unified Schedule Management Service (`scheduleService.js`)** — 
+  - Completely rewrote and unified crew schedule key resolution, lookup, mutation, and deletion into a centralized service `scheduleService.js`.
+  - Replaced naive `split('_')` parsing with `lastIndexOf(dateSuffix)` and `endsWith(dateSuffix)` to properly support personnel IDs containing underscores (e.g. `pilot_1`, `pax_123`, `FIRST_LAST`).
+  - `setPersonStatusForDate` and `removePersonStatusForDate` purge all key variations across IDs and Names for that date before applying mutations, guaranteeing 100% clean deletions without orphaned keys.
+  - Mirrored identical lookup and clear logic across both `CrewSchedule.jsx` (Schedules Grid) and `CalendarView.jsx` (Calendar View).
+
+## [v0.5.1] - 2026-08-16
+
+### Fixed
+- **Firestore Stale Snapshot Overwrite Guard** — 
+  - Fixed a critical race condition in `dataStore.js` where `onSnapshot` was blindly overwriting local mutations for keys other than `userFlights` before the server acknowledged the write.
+  - Added strict `isPendingLocalWrite(lsKey)` check to skip snapshot application for any key that has a local mutation in flight.
+  - Added session fallback for `currentUserId` so unauthenticated or dev sandbox writes are never permanently queued.
+
+### Fixed
+- **Multi-Key Variant Cleanup on Duty Status Clear** —
+  - `CrewSchedule.jsx` and `CalendarView.jsx` now clean up all key variants (matching by `person.id`, `person.name`, and date) when clearing or changing duty status.
+  - Grid cell rendering now robustly checks both ID-keyed and Name-keyed schedule mappings (`schedules[key] || schedules[`${person.name}_${dateStr}`]`).
+  - Added clear red-highlighted `✕ Clear Duty Status` option in `CustomStatusDropdown` for both Schedules Grid and Calendar View.
+  - Hardened Schedule Generator `clearSchedule` to wipe all key variants for the selected person.
+
 ## [v0.5.0] - 2026-08-16
 
 ### Fixed

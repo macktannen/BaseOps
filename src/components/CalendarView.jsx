@@ -7,6 +7,7 @@ import EventModal from './EventModal';
 import ConflictWarningModal from './ConflictWarningModal';
 import { detectConflicts } from '../services/schedulingConflicts';
 import { authService } from '../services/authService';
+import { setPersonStatusForDate, removePersonStatusForDate, getPersonStatusForDate } from '../services/scheduleService';
 
 const LEGEND = {
   'Note': '#f59e0b', 
@@ -67,9 +68,9 @@ const CustomStatusDropdown = ({ value, onChange }) => {
         }}>
           <div 
             onClick={() => { onChange('Clear'); setIsOpen(false); }}
-            style={{ padding: '9px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', color: '#94a3b8', fontSize: '0.85rem' }}
+            style={{ padding: '9px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', color: '#e53e3e', fontSize: '0.85rem', fontWeight: 600 }}
           >
-            -- Clear Status --
+            ✕ Clear Duty Status
           </div>
           {Object.keys(LEGEND).map(s => (
             <div 
@@ -190,15 +191,11 @@ const CalendarView = () => {
 
   const handleCellStatusClick = (personId, dateStr, status) => {
     try {
+      const allPersonnel = [...(pilotsList || []), ...(passengersList || [])];
       const stored = JSON.parse(localStorage.getItem('crewSchedules') || '{}');
-      const key = `${personId}_${dateStr}`;
-      if (status === 'Clear') {
-        delete stored[key];
-      } else {
-        stored[key] = status;
-      }
-      localStorage.setItem('crewSchedules', JSON.stringify(stored));
-      setCrewSchedules(stored);
+      const updated = setPersonStatusForDate(stored, personId, dateStr, status, allPersonnel);
+      setCrewSchedules(updated);
+      localStorage.setItem('crewSchedules', JSON.stringify(updated));
       window.dispatchEvent(new Event('storage'));
       window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'crewSchedules' } }));
     } catch (err) {
@@ -1103,15 +1100,19 @@ const CalendarView = () => {
               {viewSettings.showCrewPills && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: 'auto', paddingTop: '8px' }}>
                 {Object.keys(crewSchedules).map(key => {
-                   const [pId, dateStr] = key.split('_');
                    const dayStr = format(day, 'yyyy-MM-dd');
-                   if (dateStr !== dayStr) return null;
+                   const dateSuffix = `_${dayStr}`;
+                   if (!key.endsWith(dateSuffix) && !key.includes(dayStr)) return null;
+                   const pId = key.includes(dateSuffix) ? key.substring(0, key.lastIndexOf(dateSuffix)) : key.split('_')[0];
+                   const dateStr = dayStr;
                    
                    const status = crewSchedules[key];
-                   const pilot = pilotsList.find(p => String(p.id) === String(pId) || p.name === pId);
-                   const pax = passengersList.find(p => String(p.id) === String(pId) || p.name === pId);
+                   if (!status || status === 'Clear') return null;
+                   const pilot = (pilotsList || []).find(p => String(p.id) === String(pId) || p.name === pId);
+                   const pax = (passengersList || []).find(p => String(p.id) === String(pId) || p.name === pId);
                    if (!pilot && !pax) return null;
-                   const name = pilot ? pilot.name : pax.name;
+                   const person = pilot || pax;
+                   const name = person.name;
                    
                    const LEGEND = {
                      'Note': '#f59e0b', 
