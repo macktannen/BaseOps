@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.74] - 2026-08-15
+
+### Fixed
+- **Bulletproof Logbook Synchronization Architecture** — Reworked flight log merging in `dataStore.js`, `CalendarView.jsx`, and `ExpensesPage.jsx` to guarantee signed/locked flight log preservation during cloud synchronization. Decoupled modal state from background event loops and enforced idempotent deterministic calculations for aircraft meter readings, ensuring flight log and fleet logbook totals match accurately at all times across all users.
+
 ## [v0.3.73] - 2026-08-15
 
 ### Fixed

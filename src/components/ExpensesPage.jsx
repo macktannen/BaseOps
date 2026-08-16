@@ -294,7 +294,16 @@ const ExpensesPage = () => {
   const handleSaveFlight = (flightData) => {
     try {
       const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
-      const updatedFlights = storedFlights.map(f => f.id === flightData.id ? flightData : f);
+      const updatedFlights = storedFlights.map(f => {
+        if (String(f.id) === String(flightData.id) || (flightData.flightNumber && String(f.flightNumber) === String(flightData.flightNumber))) {
+          return {
+            ...f,
+            ...flightData,
+            flightLog: flightData.flightLog || f.flightLog
+          };
+        }
+        return f;
+      });
       localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
       loadExpensesData();
     } catch (e) {

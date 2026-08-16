@@ -359,13 +359,16 @@ const CalendarView = () => {
       const targetId = flightData.id || editingFlight?.id;
       const existing = currentStored.find(f => String(f.id) === String(targetId) || (flightData.flightNumber && String(f.flightNumber) === String(flightData.flightNumber)));
       
-      // Preserve uploads & expenses if existing record had them
+      // Preserve uploads, expenses & flightLog if existing record had them
       if (existing) {
         if ((!savedFlight.uploads || savedFlight.uploads.length === 0) && (existing.uploads && existing.uploads.length > 0)) {
           savedFlight.uploads = existing.uploads;
         }
         if ((!savedFlight.expenses || savedFlight.expenses.length === 0) && (existing.expenses && existing.expenses.length > 0)) {
           savedFlight.expenses = existing.expenses;
+        }
+        if (!savedFlight.flightLog && existing.flightLog) {
+          savedFlight.flightLog = existing.flightLog;
         }
       }
 

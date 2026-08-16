@@ -192,9 +192,18 @@ function mergeFlights(localFlights, remoteFlights) {
       });
       const mergedExpenses = Array.from(expMap.values());
 
+      // Merge flightLog (prefer signed/locked or richer log)
+      const lLog = lFlight.flightLog || null;
+      const rLog = rFlight.flightLog || null;
+      let mergedFlightLog = rLog;
+      if (lLog && (!rLog || (lLog.isLocked && !rLog.isLocked) || (lLog.signature && !rLog.signature) || ((lLog.legsActuals?.length || 0) > (rLog.legsActuals?.length || 0)))) {
+        mergedFlightLog = lLog;
+      }
+
       merged[rIdx] = {
         ...lFlight,
         ...rFlight,
+        flightLog: mergedFlightLog || rFlight.flightLog || lFlight.flightLog,
         uploads: mergedUploads,
         expenses: mergedExpenses
       };
