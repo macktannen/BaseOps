@@ -366,7 +366,7 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
           </thead>
           <tbody>
             {legs.map((leg, index) => {
-               const act = log.legsActuals[index] || {};
+               const act = legsActuals[index] || {};
                return (
                  <tr key={index}>
                    <td style={{ fontWeight: 'bold', padding: '2px 4px', borderRight: '1px solid #e2e8f0' }}>{formatLoc(leg.departure)} &rarr; {formatLoc(leg.destination)}</td>
@@ -571,7 +571,7 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
           </thead>
           <tbody>
              {legs.map((leg, index) => {
-                const act = log.legsActuals[index] || {};
+                const act = legsActuals[index] || {};
                 const legPilots = leg.pilots && leg.pilots.length > 0 ? leg.pilots : (leg.pilotId ? [leg.pilotId] : []);
                 const roles = leg.pilotRoles || {};
 
