@@ -2,7 +2,10 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
-## [v0.3.99] - 2026-08-16
+## [v0.4.1] - 2026-08-16
+
+### Reverted
+- **Reverted v0.4.0 Badge & Shading Changes** — Restored the previous high-contrast personnel typography and balanced 1.5px slate borders from `v0.3.99` per user request.
 
 ### Changed
 - **Personnel Typography & Balanced Row Dividers** — Enhanced the Crew Schedule grid with larger, high-contrast personnel names (`0.95rem` bold `#1e293b`) and balanced 1.5px medium-slate row divider lines (`#cbd5e1`), providing clear row separation without visual clutter.
