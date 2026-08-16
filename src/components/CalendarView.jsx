@@ -10,7 +10,6 @@ import { authService } from '../services/authService';
 import { setPersonStatusForDate, removePersonStatusForDate, getPersonStatusForDate } from '../services/scheduleService';
 
 const LEGEND = {
-  'Note': '#f59e0b', 
   'Off Duty': '#ef4444', 
   'On Duty': '#22c55e', 
   'Training': '#eab308', 
@@ -1115,7 +1114,6 @@ const CalendarView = () => {
                    const name = person.name;
                    
                    const LEGEND = {
-                     'Note': '#f59e0b', 
                      'Off Duty': '#ef4444', 
                      'On Duty': '#22c55e', 
                      'Training': '#eab308', 

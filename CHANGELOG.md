@@ -2,6 +2,14 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.5.3] - 2026-08-16
+
+### Changed
+- **Removed "Note" from Duty Status Options** — "Note" is no longer a selectable personnel duty status in either the Schedules Grid or the Calendar View legends and dropdowns.
+
+### Fixed
+- **Phantom Account Legend Fix** — Filtered out phantom account keys (such as `acc-1785523358176`) from appearing in the Schedules Grid bottom legend when coloring by Account. Accounts that no longer exist in the `accountsList` will be ignored.
+
 ## [v0.5.2] - 2026-08-16
 
 ### Fixed

@@ -10,7 +10,6 @@ import MobileDropdownMenu from './MobileDropdownMenu';
 import { getPersonStatusForDate, setPersonStatusForDate, removePersonStatusForDate } from '../services/scheduleService';
 
 const LEGEND = {
-  'Note': '#f59e0b', 
   'Off Duty': '#ef4444', 
   'On Duty': '#22c55e', 
   'Training': '#eab308', 
@@ -319,11 +318,12 @@ const CrewSchedule = () => {
       let label = k;
       if (colorBy === 'account') {
         const acc = accountsList.find(a => a.id === k || a.name === k);
-        if (acc) label = acc.name;
+        if (!acc) return null; // Filter out phantom accounts that no longer exist
+        label = acc.name;
         return { label, color: getAccountColor(k, accountsList) };
       }
       return { label, color: getColorForKey(k) };
-    });
+    }).filter(Boolean);
   };
 
   const changeColorBy = (mode) => {
