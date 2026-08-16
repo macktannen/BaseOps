@@ -2,6 +2,12 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.75] - 2026-08-15
+
+### Added
+- **Auto-Complete Status on Flight Log Sign** — Signing a flight log immediately transitions the flight status to `'Completed'` and persists the status to storage and Firestore.
+- **Admin-Only Flight Deletion for Signed Flights** — Protected signed flight logs from accidental deletion: non-admin users cannot delete flights with signed flight logs in `EventModal.jsx` or `CalendarView.jsx`, displaying disabled tooltips and authorization warnings. Only administrators are authorized to delete signed flights.
+
 ## [v0.3.74] - 2026-08-15
 
 ### Fixed

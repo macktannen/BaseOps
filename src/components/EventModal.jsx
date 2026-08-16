@@ -10,6 +10,7 @@ import SaveButton from './SaveButton';
 import ConflictWarningModal from './ConflictWarningModal';
 import { detectConflicts } from '../services/schedulingConflicts';
 import { FileStorageService } from '../services/FileStorageService';
+import { authService } from '../services/authService';
 import useIsMobile from '../hooks/useIsMobile';
 import MobileDropdownMenu from './MobileDropdownMenu';
 
@@ -696,6 +697,11 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const dragOverItem = useRef(null);
   const [draggableLegIndex, setDraggableLegIndex] = useState(null);
 
+  const currentUser = authService.getCurrentUser() || { name: 'Admin', role: 'admin' };
+  const isAdmin = currentUser?.role === 'admin';
+  const isFlightSigned = !!(flightLog?.signature || flight?.flightLog?.signature);
+  const canDeleteFlight = !isFlightSigned || isAdmin;
+
   const persistFlightLogToFlight = (nextFlightLog) => {
     if (!flight) return;
     try {
@@ -703,13 +709,22 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       const targetId = flight?.id ? String(flight.id) : null;
       const targetFlightNumber = flight?.flightNumber ? String(flight.flightNumber) : null;
 
+      const isSigned = !!(nextFlightLog?.signature);
+      if (isSigned) {
+        setStatus('Completed');
+      }
+
       let found = false;
       const updatedFlights = storedFlights.map(f => {
         const isMatch = (targetId && String(f.id) === targetId) ||
                         (targetFlightNumber && String(f.flightNumber) === targetFlightNumber);
         if (isMatch) {
           found = true;
-          return { ...f, flightLog: nextFlightLog };
+          return {
+            ...f,
+            flightLog: nextFlightLog,
+            status: isSigned ? 'Completed' : (f.status || status)
+          };
         }
         return f;
       });
@@ -718,7 +733,8 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
         updatedFlights.push({
           ...flight,
           id: flight.id || Date.now(),
-          flightLog: nextFlightLog
+          flightLog: nextFlightLog,
+          status: isSigned ? 'Completed' : (flight.status || status)
         });
       }
 
@@ -2223,6 +2239,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                 flightLog={flightLog} 
                 setFlightLog={setFlightLog}
                 persistFlightLog={persistFlightLogToFlight}
+                onSign={() => setStatus('Completed')}
                 aircraftId={aircraftId}
                 aircraftList={aircraftList}
                 pilotsList={pilotsList}
@@ -2293,7 +2310,28 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
 
         {/* FOOTER ACTIONS */}
         <div style={{ display: 'flex', flexWrap: 'nowrap', gap: '6px', width: '100%', padding: '8px 15px', borderTop: '1px solid var(--border-color)', backgroundColor: 'white', alignItems: 'center', flexShrink: 0, overflowX: 'auto' }}>
-           <button onClick={() => { if(flight) setDeleteConfirmOpen(true); }} disabled={!flight} className="btn btn-outline" style={{ flex: 1, color: '#e53e3e', borderColor: '#e53e3e', opacity: flight ? 1 : 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '5px 6px', fontSize: '0.7rem', textAlign: 'center', lineHeight: '1', whiteSpace: 'nowrap' }}>
+           <button
+             onClick={() => {
+               if (!flight) return;
+               if (isFlightSigned && !isAdmin) {
+                 alert('This flight has a signed flight log and can only be deleted by an administrator.');
+                 return;
+               }
+               setDeleteConfirmOpen(true);
+             }}
+             disabled={!flight || (isFlightSigned && !isAdmin)}
+             className="btn btn-outline"
+             title={(isFlightSigned && !isAdmin) ? 'Signed flights can only be deleted by an administrator' : 'Delete Flight'}
+             style={{
+               flex: 1,
+               color: (isFlightSigned && !isAdmin) ? 'var(--text-muted)' : '#e53e3e',
+               borderColor: (isFlightSigned && !isAdmin) ? 'var(--border-color)' : '#e53e3e',
+               opacity: (!flight || (isFlightSigned && !isAdmin)) ? 0.45 : 1,
+               cursor: (isFlightSigned && !isAdmin) ? 'not-allowed' : 'pointer',
+               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+               padding: '5px 6px', fontSize: '0.7rem', textAlign: 'center', lineHeight: '1', whiteSpace: 'nowrap'
+             }}
+           >
               <Trash2 size={13} /> Delete
            </button>
            <button onClick={() => onDuplicate && onDuplicate({ ...flight, title, accountId, legs, aircraftId, comments, opsNotes, status, tag, expenses: [], uploads: [], documents: [], files: [], receipts: [], receiptFiles: [] })} className="btn btn-outline" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '5px 6px', fontSize: '0.7rem', textAlign: 'center', lineHeight: '1', whiteSpace: 'nowrap' }}>
@@ -2351,7 +2389,14 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
             <div style={{ width: '1px', backgroundColor: 'var(--border-color)' }} />
             <button
               type="button"
-              onClick={() => { setDeleteConfirmOpen(false); if (flight) onDelete(flight.id); }}
+              onClick={() => {
+                if (isFlightSigned && !isAdmin) {
+                  alert('This flight has a signed flight log and can only be deleted by an administrator.');
+                  return;
+                }
+                setDeleteConfirmOpen(false);
+                if (flight) onDelete(flight.id);
+              }}
               style={{
                 flex: 1, padding: '14px', border: 'none', background: 'transparent',
                 fontSize: '0.9rem', fontWeight: 700, color: '#e53e3e', cursor: 'pointer'

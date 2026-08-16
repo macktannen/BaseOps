@@ -4,7 +4,7 @@ import { authService } from '../services/authService';
 import useIsMobile from '../hooks/useIsMobile';
 import MobileDropdownMenu from './MobileDropdownMenu';
 
-const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, aircraftId, aircraftList, pilotsList }) => {
+const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign, aircraftId, aircraftList, pilotsList }) => {
   const isMobile = useIsMobile();
   const [auditExpanded, setAuditExpanded] = useState(false);
   const [log, setLog] = useState({
@@ -245,6 +245,7 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, aircraf
         `Signed by ${currentUser.name || 'Pilot'} on ${new Date().toLocaleString()}`
       ]
     }));
+    if (onSign) onSign();
   };
 
   const handleClearSignature = () => {

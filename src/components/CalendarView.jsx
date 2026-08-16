@@ -6,6 +6,7 @@ import airportsData from '../data/airports.json';
 import EventModal from './EventModal';
 import ConflictWarningModal from './ConflictWarningModal';
 import { detectConflicts } from '../services/schedulingConflicts';
+import { authService } from '../services/authService';
 
 const getDefaultPilotForDate = (dateStr) => {
   try {
@@ -400,7 +401,19 @@ const CalendarView = () => {
       currentStored = JSON.parse(localStorage.getItem('userFlights') || '[]');
     } catch {}
     const base = currentStored.length > 0 ? currentStored : flights;
-    const updatedFlights = base.filter(f => f.id !== flightId);
+    const targetFlight = base.find(f => String(f.id) === String(flightId));
+    
+    // Check admin authorization if flight is signed
+    const currentUser = authService.getCurrentUser() || { role: 'admin' };
+    const isAdmin = currentUser?.role === 'admin';
+    const isSigned = !!(targetFlight?.flightLog?.signature || targetFlight?.flightLog?.isLocked);
+    
+    if (isSigned && !isAdmin) {
+      alert('This flight has a signed flight log and can only be deleted by an administrator.');
+      return;
+    }
+
+    const updatedFlights = base.filter(f => String(f.id) !== String(flightId));
     setFlights(updatedFlights);
     localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
     setIsModalOpen(false);
