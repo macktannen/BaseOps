@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.68] - 2026-08-15
+
+### Fixed
+- **Engine 1 Hours Double-Addition Bug** — Resolved an issue in `FlightLogTab.jsx` where modifying `ac.totalHours` prior to snapshotting the baseline engine hours caused uninitialized or fallback `engine1Hours` properties to read the already-incremented total hours and add the flight leg duration a second time. Baseline values are now fully snapshotted before performing increments.
+
 ## [v0.3.67] - 2026-08-15
 
 ### Added

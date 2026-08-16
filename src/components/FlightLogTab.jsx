@@ -42,16 +42,25 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList,
         setAircraft(ac);
         // If log is NOT locked/signed, keep aircraftTotals matching the live Aircraft Page figures
         if (!log.isLocked) {
+          const baseTotalHours = parseFloat(ac.totalHours !== undefined && ac.totalHours !== '' ? ac.totalHours : 0);
           setLog(prev => ({
             ...prev,
             aircraftTotals: {
-              flightBefore: parseFloat(ac.totalHours || 0),
-              hobbsBefore: parseFloat(ac.hobbs || 0),
-              landingsBefore: parseInt(ac.landings || 0),
-              engine1Before: parseFloat(ac.engine1Hours !== undefined ? ac.engine1Hours : (ac.engineHours || ac.totalHours || 0)),
-              engine2Before: parseFloat(ac.engine2Hours || 0),
-              cycles1Before: parseInt(ac.engine1Cycles !== undefined ? ac.engine1Cycles : (ac.engineCycles || 0)),
-              cycles2Before: parseInt(ac.engine2Cycles || 0),
+              flightBefore: baseTotalHours,
+              hobbsBefore: parseFloat(ac.hobbs !== undefined && ac.hobbs !== '' ? ac.hobbs : 0),
+              landingsBefore: parseInt(ac.landings !== undefined && ac.landings !== '' ? ac.landings : 0),
+              engine1Before: parseFloat(
+                ac.engine1Hours !== undefined && ac.engine1Hours !== ''
+                  ? ac.engine1Hours
+                  : (ac.engineHours !== undefined && ac.engineHours !== '' ? ac.engineHours : baseTotalHours)
+              ),
+              engine2Before: parseFloat(ac.engine2Hours !== undefined && ac.engine2Hours !== '' ? ac.engine2Hours : 0),
+              cycles1Before: parseInt(
+                ac.engine1Cycles !== undefined && ac.engine1Cycles !== ''
+                  ? ac.engine1Cycles
+                  : (ac.engineCycles !== undefined && ac.engineCycles !== '' ? ac.engineCycles : 0)
+              ),
+              cycles2Before: parseInt(ac.engine2Cycles !== undefined && ac.engine2Cycles !== '' ? ac.engine2Cycles : 0),
               dualEngine: !!ac.dualEngine
             }
           }));
@@ -144,28 +153,40 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList,
         const ac = storedAircraft[acIndex];
         const dual = ac.dualEngine || isTwin;
 
-        ac.totalHours = Math.max(0, parseFloat(ac.totalHours || 0) + (changeFlight * multiplier)).toFixed(1);
-        ac.landings = Math.max(0, parseInt(ac.landings || 0) + (changeLandings * multiplier));
-        ac.hobbs = Math.max(0, parseFloat(ac.hobbs || 0) + (changeHobbs * multiplier)).toFixed(1);
+        // Snapshot existing values BEFORE mutating any properties on ac
+        const prevTotalHours = parseFloat(ac.totalHours !== undefined && ac.totalHours !== '' ? ac.totalHours : 0);
+        const prevLandings = parseInt(ac.landings !== undefined && ac.landings !== '' ? ac.landings : 0);
+        const prevHobbs = parseFloat(ac.hobbs !== undefined && ac.hobbs !== '' ? ac.hobbs : 0);
+        const prevEngine1Hours = parseFloat(
+          ac.engine1Hours !== undefined && ac.engine1Hours !== ''
+            ? ac.engine1Hours
+            : (ac.engineHours !== undefined && ac.engineHours !== '' ? ac.engineHours : prevTotalHours)
+        );
+        const prevEngine1Cycles = parseInt(
+          ac.engine1Cycles !== undefined && ac.engine1Cycles !== ''
+            ? ac.engine1Cycles
+            : (ac.engineCycles !== undefined && ac.engineCycles !== '' ? ac.engineCycles : 0)
+        );
+        const prevEngine2Hours = parseFloat(ac.engine2Hours !== undefined && ac.engine2Hours !== '' ? ac.engine2Hours : 0);
+        const prevEngine2Cycles = parseInt(ac.engine2Cycles !== undefined && ac.engine2Cycles !== '' ? ac.engine2Cycles : 0);
 
-        // Engine 1
-        const curE1H = parseFloat(ac.engine1Hours !== undefined ? ac.engine1Hours : (ac.engineHours || ac.totalHours || 0));
-        ac.engine1Hours = Math.max(0, curE1H + (changeEngine1Hours * multiplier)).toFixed(1);
+        // Apply incremental changes cleanly
+        ac.totalHours = Math.max(0, prevTotalHours + (changeFlight * multiplier)).toFixed(1);
+        ac.landings = Math.max(0, prevLandings + (changeLandings * multiplier));
+        ac.hobbs = Math.max(0, prevHobbs + (changeHobbs * multiplier)).toFixed(1);
+
+        ac.engine1Hours = Math.max(0, prevEngine1Hours + (changeEngine1Hours * multiplier)).toFixed(1);
         ac.engineHours = ac.engine1Hours;
-
-        const curE1C = parseInt(ac.engine1Cycles !== undefined ? ac.engine1Cycles : (ac.engineCycles || 0));
-        ac.engine1Cycles = Math.max(0, curE1C + (changeEngine1Cycles * multiplier));
+        ac.engine1Cycles = Math.max(0, prevEngine1Cycles + (changeEngine1Cycles * multiplier));
         ac.engineCycles = ac.engine1Cycles;
 
         // Engine 2 (if twin)
         if (dual) {
-          const curE2H = parseFloat(ac.engine2Hours || 0);
-          ac.engine2Hours = Math.max(0, curE2H + (changeEngine2Hours * multiplier)).toFixed(1);
-
-          const curE2C = parseInt(ac.engine2Cycles || 0);
-          ac.engine2Cycles = Math.max(0, curE2C + (changeEngine2Cycles * multiplier));
+          ac.engine2Hours = Math.max(0, prevEngine2Hours + (changeEngine2Hours * multiplier)).toFixed(1);
+          ac.engine2Cycles = Math.max(0, prevEngine2Cycles + (changeEngine2Cycles * multiplier));
         }
 
+        storedAircraft[acIndex] = ac;
         localStorage.setItem('userAircraft', JSON.stringify(storedAircraft));
         window.dispatchEvent(new Event('storage'));
       }
