@@ -3,8 +3,9 @@
 ## Project Overview
 **BaseOps:** A web-based application to manage a fleet of helicopters, crew scheduling, mission planning, document uploads, and flight expenses. The app uses React, localStorage with offline retry queues, IndexedDB localforage resilience, and live synchronization with Firebase Firestore & Firebase Storage.
 
-## Current Status (v0.3.76)
-- **Automatic Flight Save on Logbook Signing:** Signing the flight log now triggers an immediate automatic `performSave()` invocation in `EventModal.jsx`. This commits all flight edits, updates the status to `'Completed'`, snapshots the logbook totals, and broadcasts the changes to Firestore with full visual save confirmation.
+## Current Status (v0.3.77)
+- **Clickable BaseOps Logo Sidebar Toggle:** Clicking the "BaseOps" logo at the top of the left menu bar now collapses and expands the sidebar, featuring smooth hover feedback and accessible tooltip indicators.
+- **Automatic Flight Save on Logbook Signing:** Signing the flight log triggers an immediate automatic `performSave()` invocation in `EventModal.jsx`. This commits all flight edits, updates the status to `'Completed'`, snapshots the logbook totals, and broadcasts the changes to Firestore with full visual save confirmation.
 - **Auto-Complete Status on Flight Log Sign:** Signing a flight log automatically sets the flight's status to `'Completed'` and updates both the active modal state and persisted cloud records.
 - **Admin-Only Flight Deletion for Signed Flights:** Non-admin users are prevented from deleting any flight that possesses a signed flight log in `EventModal.jsx` and `CalendarView.jsx`, with disabled buttons and security alerts. Administrators retain full deletion authority.
 - **Bulletproof Logbook Synchronization Architecture:** Reworked flight log synchronization across `dataStore.js`, `CalendarView.jsx`, `ExpensesPage.jsx`, `EventModal.jsx`, and `FlightLogTab.jsx`. Guarantees signed/locked flight log preservation during cloud and local merges, eliminates background overwrite loops during open modal edits, and enforces idempotent deterministic calculations for aircraft meters so that fleet totals always accurately match flight logs across all user sessions.

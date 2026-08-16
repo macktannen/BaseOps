@@ -63,7 +63,12 @@ function DashboardLayout({ activeTab, setActiveTab }) {
     <div className="app-container">
       {/* Sidebar */}
       <div className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
-        <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', justifyContent: isSidebarCollapsed ? 'center' : 'flex-start', gap: '10px', padding: isSidebarCollapsed ? '16px 8px' : '16px 20px' }}>
+        <div 
+          className="sidebar-header" 
+          onClick={toggleSidebar}
+          title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: isSidebarCollapsed ? 'center' : 'flex-start', gap: '10px', padding: isSidebarCollapsed ? '16px 8px' : '16px 20px', cursor: 'pointer', userSelect: 'none' }}
+        >
           {isSidebarCollapsed ? (
             <Logo size={28} light={true} iconOnly={true} />
           ) : (

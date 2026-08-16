@@ -74,6 +74,13 @@ h1, h2, h3, h4, h5, h6 {
   gap: 10px;
   height: 60px;
   box-sizing: border-box;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.sidebar-header:hover {
+  background-color: rgba(255, 255, 255, 0.06);
 }
 
 .sidebar.collapsed .sidebar-header {

@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.77] - 2026-08-15
+
+### Added
+- **Clickable BaseOps Logo Sidebar Toggle** — Clicking the "BaseOps" logo at the top of the left navigation menu bar now collapses or expands the sidebar smoothly, with hover styling and interactive cursor indicators.
+
 ## [v0.3.76] - 2026-08-15
 
 ### Added
