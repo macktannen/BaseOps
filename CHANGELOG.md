@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.84] - 2026-08-15
+
+### Fixed
+- **Atomic Single-Click Clear Signature with Live Status & Meter Reversion** — Unified and streamlined the "Clear Signature" execution flow: baseline meters are now computed deterministically before aircraft mutations, `setAircraft` updates the local UI immediately, and cross-tab/storage sync hooks update status to `Confirmed` and revert aircraft totals on the exact first click.
+
 ## [v0.3.83] - 2026-08-15
 
 ### Added

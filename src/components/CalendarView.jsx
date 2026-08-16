@@ -393,6 +393,8 @@ const CalendarView = () => {
 
     setFlights(updatedFlights);
     localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
+    window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'userFlights' } }));
   };
 
   const handleDeleteFlight = (flightId) => {
@@ -416,6 +418,8 @@ const CalendarView = () => {
     const updatedFlights = base.filter(f => String(f.id) !== String(flightId));
     setFlights(updatedFlights);
     localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
+    window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'userFlights' } }));
     setIsModalOpen(false);
   };
 

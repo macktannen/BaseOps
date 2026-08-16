@@ -692,6 +692,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
           if (updatedFlight.expenses) setExpenses(updatedFlight.expenses);
           if (updatedFlight.uploads) setUploads(updatedFlight.uploads);
           if (updatedFlight.flightLog) setFlightLog(updatedFlight.flightLog);
+          if (updatedFlight.status) setStatus(normalizeStatus(updatedFlight.status));
         }
       } catch (err) {
         console.error('Remote sync update failed in modal:', err);
