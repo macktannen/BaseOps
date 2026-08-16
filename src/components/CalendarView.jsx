@@ -515,6 +515,12 @@ const CalendarView = () => {
         const sourceFlight = flights.find(f => f.id === id);
         if (!sourceFlight) return;
 
+        const isFlightSigned = !!(sourceFlight.flightLog?.signature || sourceFlight.flightLog?.isLocked);
+        if (isFlightSigned) {
+          alert('This flight has a signed flight log and cannot be moved to a different day. It must remain as logged on the date flown.');
+          return;
+        }
+
         const legs = sourceFlight.legs || [];
         const sourceDepDate = sourceDayStr ? sourceDayStr.split('T')[0] : (legs[0]?.date || (sourceFlight.date ? sourceFlight.date.split('T')[0] : targetDateStr));
         
@@ -845,12 +851,20 @@ const CalendarView = () => {
                     return (arrDate > depDate) || (firstLegDate && depDate !== firstLegDate) || (firstLegDate && arrDate !== firstLegDate);
                   });
 
+                  const isFlightSigned = !!(flight.flightLog?.signature || flight.flightLog?.isLocked);
+
                   return (
                     <div 
                       key={flight.id} 
                       className="event-badge"
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, flight.id, day)}
+                      draggable={!isFlightSigned}
+                      onDragStart={(e) => {
+                        if (isFlightSigned) {
+                          e.preventDefault();
+                          return;
+                        }
+                        handleDragStart(e, flight.id, day);
+                      }}
                       onDragEnd={() => setDraggableFlightId(null)}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -897,12 +911,20 @@ const CalendarView = () => {
                       )}
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
                         <div 
-                          style={{ cursor: 'grab', marginTop: '1px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                          onMouseEnter={() => setDraggableFlightId(flight.id)}
+                          style={{ 
+                            cursor: isFlightSigned ? 'not-allowed' : 'grab', 
+                            marginTop: '1px', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            opacity: isFlightSigned ? 0.35 : 0.7
+                          }}
+                          title={isFlightSigned ? "Signed flights cannot be moved to a different day" : "Drag to move flight"}
+                          onMouseEnter={() => !isFlightSigned && setDraggableFlightId(flight.id)}
                           onMouseLeave={() => setDraggableFlightId(null)}
                           onClick={(e) => e.stopPropagation()} // Prevent modal from opening when clicking drag handle
                         >
-                          <GripVertical size={14} color="var(--primary-color)" style={{ opacity: 0.7 }} />
+                          <GripVertical size={14} color="var(--primary-color)" />
                         </div>
                         <div style={{ fontWeight: 'bold', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
                           <span>#{flight.flightNumber}: {flight.title}</span>

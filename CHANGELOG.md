@@ -2,6 +2,14 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.86] - 2026-08-15
+
+### Added
+- **Signed Flight Date & Drag Immutability Guard** — Signed flights are now strictly locked to the logged date flown:
+  - Calendar flight cards cannot be dragged or dropped to a different day on the calendar grid.
+  - In `EventModal`, leg departure and arrival date pickers are disabled and read-only for signed flights.
+  - Leg reordering drag grips, `ADD LEG`, and `Remove Leg` controls are disabled and locked on signed flights to guarantee route integrity.
+
 ## [v0.3.85] - 2026-08-15
 
 ### Fixed

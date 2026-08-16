@@ -1937,10 +1937,10 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                 <React.Fragment key={index}>
                   <div 
                     className="flight-leg-row"
-                    draggable={draggableLegIndex === index}
-                    onDragStart={() => (dragItem.current = index)}
-                    onDragEnter={() => (dragOverItem.current = index)}
-                    onDragEnd={() => { handleSort(); setDraggableLegIndex(null); }}
+                    draggable={!isFlightSigned && draggableLegIndex === index}
+                    onDragStart={() => !isFlightSigned && (dragItem.current = index)}
+                    onDragEnter={() => !isFlightSigned && (dragOverItem.current = index)}
+                    onDragEnd={() => { if (!isFlightSigned) handleSort(); setDraggableLegIndex(null); }}
                     onDragOver={(e) => e.preventDefault()}
                     style={{ 
                       display: 'flex', backgroundColor: 'white',                       borderRadius: index === 0 ? '8px 8px 0 0' : index === legs.length - 1 ? '0 0 8px 8px' : '0', 
@@ -1951,14 +1951,28 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                     {/* Leg Number */}
                     <div className="leg-number-col" style={{ width: '40px', borderRight: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '4px 0', backgroundColor: '#fafbfc' }}>
                       <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>{index + 1}</div>
-                      <div style={{ cursor: 'grab', marginTop: 'auto', paddingBottom: '4px' }} onMouseEnter={() => setDraggableLegIndex(index)} onMouseLeave={() => setDraggableLegIndex(null)}><GripVertical size={14} color="var(--text-muted)"/></div>
+                      <div 
+                        style={{ cursor: isFlightSigned ? 'not-allowed' : 'grab', marginTop: 'auto', paddingBottom: '4px', opacity: isFlightSigned ? 0.35 : 1 }} 
+                        onMouseEnter={() => !isFlightSigned && setDraggableLegIndex(index)} 
+                        onMouseLeave={() => setDraggableLegIndex(null)}
+                        title={isFlightSigned ? "Signed flight leg order is locked" : "Drag to reorder leg"}
+                      >
+                        <GripVertical size={14} color="var(--text-muted)"/>
+                      </div>
                     </div>
 
                     {/* Departure */}
                     <div className="leg-departure-col" style={{ flex: '1', padding: '4px 8px', borderRight: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px', alignItems: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <input type="date" value={leg.date} onChange={e => handleUpdateLeg(index, 'date', e.target.value)} style={{ fontSize: '0.75rem', color: 'var(--text-muted)', border: 'none', background: 'transparent', outline: 'none', cursor: 'pointer', padding: 0 }} />
+                          <input 
+                            type="date" 
+                            value={leg.date} 
+                            disabled={isFlightSigned} 
+                            onChange={e => handleUpdateLeg(index, 'date', e.target.value)} 
+                            style={{ fontSize: '0.75rem', color: 'var(--text-muted)', border: 'none', background: 'transparent', outline: 'none', cursor: isFlightSigned ? 'not-allowed' : 'pointer', opacity: isFlightSigned ? 0.7 : 1, padding: 0 }} 
+                            title={isFlightSigned ? "Signed flight dates cannot be changed" : undefined}
+                          />
                           {index > 0 && legs[0].date && leg.date && leg.date !== legs[0].date && (
                             <span style={{ fontSize: '0.65rem', backgroundColor: '#e9d8fd', color: '#6b46c1', padding: '1px 5px', borderRadius: '4px', fontWeight: 'bold' }}>
                               Multi-day leg
@@ -2046,8 +2060,10 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                             type="date" 
                             value={leg.arrDate || leg.date} 
                             min={leg.date}
+                            disabled={isFlightSigned}
                             onChange={e => handleUpdateLeg(index, 'arrDate', e.target.value)} 
-                            style={{ fontSize: '0.75rem', color: 'var(--text-muted)', border: 'none', background: 'transparent', outline: 'none', cursor: 'pointer', padding: 0 }} 
+                            style={{ fontSize: '0.75rem', color: 'var(--text-muted)', border: 'none', background: 'transparent', outline: 'none', cursor: isFlightSigned ? 'not-allowed' : 'pointer', opacity: isFlightSigned ? 0.7 : 1, padding: 0 }} 
+                            title={isFlightSigned ? "Signed flight dates cannot be changed" : undefined}
                           />
                           {leg.arrDate && leg.date && leg.arrDate > leg.date && (
                             <span style={{ fontSize: '0.65rem', backgroundColor: '#feebc8', color: '#c05621', padding: '1px 5px', borderRadius: '4px', fontWeight: 'bold' }}>
@@ -2267,7 +2283,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                             </div>
                           )}
                         </div>
-                       {legs.length > 1 && (
+                       {!isFlightSigned && legs.length > 1 && (
                          <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'flex-end' }}>
                            <button onClick={() => handleRemoveLeg(index)} style={{ background: 'none', border: 'none', color: 'red', fontSize: '0.75rem', cursor: 'pointer', padding: '0', width: 'fit-content' }}>Remove Leg</button>
                          </div>
@@ -2280,11 +2296,13 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
               );
             })}
             
-            <div style={{ marginTop: '15px' }}>
-              <button type="button" onClick={handleAddLeg} style={{ backgroundColor: 'white', border: '1px dashed var(--primary-color)', color: 'var(--primary-color)', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                 <Plus size={16}/> ADD LEG
-              </button>
-            </div>
+            {!isFlightSigned && (
+              <div style={{ marginTop: '15px' }}>
+                <button type="button" onClick={handleAddLeg} style={{ backgroundColor: 'white', border: '1px dashed var(--primary-color)', color: 'var(--primary-color)', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                   <Plus size={16}/> ADD LEG
+                </button>
+              </div>
+            )}
           </div>
 
           {/* BOTTOM TABS */}

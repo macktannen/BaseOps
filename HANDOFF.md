@@ -3,7 +3,8 @@
 ## Project Overview
 **BaseOps:** A web-based application to manage a fleet of helicopters, crew scheduling, mission planning, document uploads, and flight expenses. The app uses React, localStorage with offline retry queues, IndexedDB localforage resilience, and live synchronization with Firebase Firestore & Firebase Storage.
 
-## Current Status (v0.3.85)
+## Current Status (v0.3.86)
+- **Signed Flight Date & Drag Immutability Guard:** Signed flights cannot be dragged or dropped to a different day on the calendar grid. In `EventModal.jsx`, leg departure and arrival dates, leg reordering drag grips, `ADD LEG`, and `Remove Leg` controls are disabled on signed flights so they strictly remain as logged on the date flown.
 - **Instant Single-Click Unsign Architecture:** Replaced duplicate internal component state in `FlightLogTab.jsx` with direct consumption of `flightLog` prop. All actions (clear signature, revert aircraft meters, set status to `Confirmed`, unlock aircraft dropdown, and cloud persistence) execute synchronously in one single click.
 - **Signed Flight Aircraft Change Protection & Automatic Meter Reversion:** Non-admin users cannot change aircraft on signed flights. When an admin reassigns the aircraft on a signed flight, a confirmation warning un-signs the logbook, unlocks the flight, uncommits and reverts all meter totals and landings from the old aircraft record, updates status to open, and notifies the admin to review and re-sign the flight log.
 - **Audit Logs Ordering & Granular Admin Deletion:** Reordered all audit logs (Flight Log in EventModal, Aircraft Logbook in desktop & mobile fleet views) to display the most recent entry at the top. Removed the bulk clear-all button and added individual trash icon actions for administrators to prune specific audit entries.
