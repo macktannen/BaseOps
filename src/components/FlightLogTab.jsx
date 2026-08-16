@@ -277,6 +277,19 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
     }));
   };
 
+  const handleDeleteAuditEntry = (originalIndex) => {
+    const updatedAudit = (log.auditLog || []).filter((_, idx) => idx !== originalIndex);
+    const nextLog = {
+      ...log,
+      auditLog: updatedAudit
+    };
+    setLog(nextLog);
+    setFlightLog(nextLog);
+    if (persistFlightLog) {
+      persistFlightLog(nextLog);
+    }
+  };
+
   const formatLoc = (loc) => {
     if (!loc) return '';
     if (loc.type === 'airport') return loc.id;
@@ -613,66 +626,79 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
           </tbody>
         </table>
       </div>
+ 
+      {/* 4. AUDIT LOG */}
+      {log.auditLog && log.auditLog.length > 0 && (() => {
+        const indexedAuditLog = log.auditLog.map((text, originalIndex) => ({ text, originalIndex }));
+        const reversedAuditLog = [...indexedAuditLog].reverse();
+        const entriesToDisplay = (isAdmin && auditExpanded) ? reversedAuditLog : [reversedAuditLog[0]];
 
-      {log.auditLog && log.auditLog.length > 0 && (
-         <div style={{ padding: '10px 12px', fontSize: '0.75rem', color: '#742a2a', backgroundColor: '#fff5f5', border: '1px solid #feb2b2', borderRadius: '4px', marginTop: '12px' }}>
+        return (
+          <div style={{ padding: '10px 12px', fontSize: '0.75rem', color: '#742a2a', backgroundColor: '#fff5f5', border: '1px solid #feb2b2', borderRadius: '4px', marginTop: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', color: '#c53030' }}>
                 <History size={14} />
                 <span>Flight Log Audit Trail {isAdmin && `(${log.auditLog.length})`}</span>
               </div>
-              {isAdmin && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {log.auditLog.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setAuditExpanded(prev => !prev)}
-                      style={{
-                        background: 'none',
-                        border: '1px solid #feb2b2',
-                        borderRadius: '4px',
-                        padding: '2px 6px',
-                        fontSize: '0.7rem',
-                        color: '#c53030',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '3px'
-                      }}
-                    >
-                      {auditExpanded ? <><ChevronUp size={12} /> Collapse</> : <><ChevronDown size={12} /> Expand All ({log.auditLog.length})</>}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (window.confirm("Are you sure you want to clear the Flight Log Audit Log?")) {
-                        setLog(prev => ({
-                          ...prev,
-                          auditLog: [`Audit log reset by Admin (${currentUser?.name || 'Admin'}) on ${new Date().toLocaleString()}`]
-                        }));
-                      }
-                    }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#e53e3e',
-                      fontSize: '0.7rem',
-                      cursor: 'pointer',
-                      textDecoration: 'underline',
-                      padding: '2px 4px'
-                    }}
-                    title="Clear flight audit log (Admin only)"
-                  >
-                    Clear
-                  </button>
-                </div>
+              {isAdmin && log.auditLog.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setAuditExpanded(prev => !prev)}
+                  style={{
+                    background: 'none',
+                    border: '1px solid #feb2b2',
+                    borderRadius: '4px',
+                    padding: '2px 6px',
+                    fontSize: '0.7rem',
+                    color: '#c53030',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '3px'
+                  }}
+                >
+                  {auditExpanded ? <><ChevronUp size={12} /> Collapse</> : <><ChevronDown size={12} /> Expand All ({log.auditLog.length})</>}
+                </button>
               )}
             </div>
-            <ul style={{ paddingLeft: '18px', margin: '4px 0 0 0', maxHeight: auditExpanded ? '200px' : 'none', overflowY: auditExpanded ? 'auto' : 'visible' }}>
-               {(isAdmin && auditExpanded ? log.auditLog : [log.auditLog[log.auditLog.length - 1]]).map((entry, i) => (
-                 <li key={i} style={{ marginBottom: '3px', lineHeight: '1.3' }}>{entry}</li>
-               ))}
+            <ul style={{ margin: '4px 0 0 0', padding: 0, listStyle: 'none', maxHeight: auditExpanded ? '200px' : 'none', overflowY: auditExpanded ? 'auto' : 'visible' }}>
+              {entriesToDisplay.map((item) => (
+                <li 
+                  key={item.originalIndex} 
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'flex-start', 
+                    justifyContent: 'space-between', 
+                    gap: '8px', 
+                    padding: '3px 0', 
+                    borderBottom: '1px dashed rgba(254, 178, 178, 0.4)',
+                    fontSize: '0.75rem',
+                    lineHeight: '1.3'
+                  }}
+                >
+                  <span style={{ flex: 1 }}>• {item.text}</span>
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteAuditEntry(item.originalIndex)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#e53e3e',
+                        cursor: 'pointer',
+                        padding: '1px 4px',
+                        borderRadius: '3px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        opacity: 0.75
+                      }}
+                      title="Delete this audit entry (Admin only)"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  )}
+                </li>
+              ))}
             </ul>
             {isAdmin && !auditExpanded && log.auditLog.length > 1 && (
               <div 
@@ -682,8 +708,9 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
                 + {log.auditLog.length - 1} older audit record{log.auditLog.length - 1 > 1 ? 's' : ''} (click to expand)
               </div>
             )}
-         </div>
-      )}
+          </div>
+        );
+      })()}
 
       {/* 5. ACTION BUTTONS */}
       <div style={{ display: 'flex', gap: '8px', marginTop: '20px', flexWrap: 'wrap', alignItems: 'center' }}>

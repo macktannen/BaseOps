@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.80] - 2026-08-15
+
+### Changed
+- **Audit Logs Ordering & Granular Admin Deletion** — Reordered all audit logs (Flight Log Audit Trail and Aircraft Logbook Audit Trail) so the most recent entry appears at the top. Removed the bulk "Clear All" button and equipped administrators with individual delete actions on each audit row.
+
 ## [v0.3.79] - 2026-08-15
 
 ### Fixed

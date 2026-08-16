@@ -140,6 +140,22 @@ const MobileFleet = () => {
     }
   };
 
+  const handleDeleteAuditEntry = (originalIndex) => {
+    const updatedAudit = (editForm?.auditLog || []).filter((_, idx) => idx !== originalIndex);
+    const updated = { ...editForm, auditLog: updatedAudit };
+    setEditForm(updated);
+    try {
+      const stored = JSON.parse(localStorage.getItem('userAircraft') || '[]');
+      const idx = stored.findIndex(a => a.id === updated.id);
+      if (idx >= 0) {
+        stored[idx] = updated;
+        localStorage.setItem('userAircraft', JSON.stringify(stored));
+        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'userAircraft' } }));
+      }
+    } catch(err) { console.error(err); }
+  };
+
   const handleSave = (e) => {
     if (e && e.preventDefault) e.preventDefault();
     if (!editForm) return;
@@ -479,91 +495,92 @@ const MobileFleet = () => {
               </div>
             </div>
 
-            {editForm.auditLog && editForm.auditLog.length > 0 && (
-              <div className="card" style={{ padding: '12px 15px', backgroundColor: '#fff5f5', border: '1px solid #feb2b2' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <History size={14} color="#c53030" />
-                    <h4 style={{ margin: 0, fontSize: '0.875rem', color: '#c53030' }}>
-                      Logbook Audit Trail {isAdmin && `(${editForm.auditLog.length})`}
-                    </h4>
-                  </div>
-                  {isAdmin && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      {editForm.auditLog.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => setAuditExpanded(prev => !prev)}
-                          style={{
-                            background: 'none',
-                            border: '1px solid #feb2b2',
-                            borderRadius: '4px',
-                            padding: '2px 6px',
-                            fontSize: '0.7rem',
-                            color: '#c53030',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '3px'
-                          }}
-                        >
-                          {auditExpanded ? <><ChevronUp size={12} /> Collapse</> : <><ChevronDown size={12} /> Expand ({editForm.auditLog.length})</>}
-                        </button>
-                      )}
+            {editForm.auditLog && editForm.auditLog.length > 0 && (() => {
+              const indexedAuditLog = editForm.auditLog.map((text, originalIndex) => ({ text, originalIndex }));
+              const reversedAuditLog = [...indexedAuditLog].reverse();
+              const entriesToDisplay = (isAdmin && auditExpanded) ? reversedAuditLog : [reversedAuditLog[0]];
+
+              return (
+                <div className="card" style={{ padding: '12px 15px', backgroundColor: '#fff5f5', border: '1px solid #feb2b2' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <History size={14} color="#c53030" />
+                      <h4 style={{ margin: 0, fontSize: '0.875rem', color: '#c53030' }}>
+                        Logbook Audit Trail {isAdmin && `(${editForm.auditLog.length})`}
+                      </h4>
+                    </div>
+                    {isAdmin && editForm.auditLog.length > 1 && (
                       <button
                         type="button"
-                        onClick={() => {
-                          if (window.confirm("Are you sure you want to clear the Logbook Audit Trail for this aircraft?")) {
-                            const updated = { 
-                              ...editForm, 
-                              auditLog: [`Audit trail cleared by Admin (${currentUser?.name || 'Admin'}) on ${new Date().toLocaleString()}`] 
-                            };
-                            setEditForm(updated);
-                            try {
-                              const stored = JSON.parse(localStorage.getItem('userAircraft') || '[]');
-                              const idx = stored.findIndex(a => a.id === updated.id);
-                              if (idx >= 0) {
-                                stored[idx] = updated;
-                                localStorage.setItem('userAircraft', JSON.stringify(stored));
-                                window.dispatchEvent(new Event('storage'));
-                                window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'userAircraft' } }));
-                              }
-                            } catch(err) { console.error(err); }
-                          }
-                        }}
+                        onClick={() => setAuditExpanded(prev => !prev)}
                         style={{
                           background: 'none',
-                          border: 'none',
-                          color: '#e53e3e',
+                          border: '1px solid #feb2b2',
+                          borderRadius: '4px',
+                          padding: '2px 6px',
                           fontSize: '0.7rem',
+                          color: '#c53030',
                           cursor: 'pointer',
-                          textDecoration: 'underline',
-                          padding: '2px 4px'
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px'
                         }}
                       >
-                        Clear
+                        {auditExpanded ? <><ChevronUp size={12} /> Collapse</> : <><ChevronDown size={12} /> Expand ({editForm.auditLog.length})</>}
                       </button>
+                    )}
+                  </div>
+
+                  <ul style={{ margin: '4px 0 0 0', padding: 0, listStyle: 'none', fontSize: '0.75rem', color: '#742a2a', maxHeight: auditExpanded ? '200px' : 'none', overflowY: auditExpanded ? 'auto' : 'visible' }}>
+                    {entriesToDisplay.map((item) => (
+                      <li 
+                        key={item.originalIndex} 
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'flex-start', 
+                          justifyContent: 'space-between', 
+                          gap: '8px', 
+                          padding: '3px 0', 
+                          borderBottom: '1px dashed rgba(254, 178, 178, 0.4)',
+                          fontSize: '0.75rem',
+                          lineHeight: '1.35'
+                        }}
+                      >
+                        <span style={{ flex: 1 }}>• {item.text}</span>
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAuditEntry(item.originalIndex)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#e53e3e',
+                              cursor: 'pointer',
+                              padding: '1px 4px',
+                              borderRadius: '3px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              opacity: 0.75
+                            }}
+                            title="Delete this audit entry (Admin only)"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  {isAdmin && !auditExpanded && editForm.auditLog.length > 1 && (
+                    <div 
+                      onClick={() => setAuditExpanded(true)}
+                      style={{ fontSize: '0.7rem', color: '#c53030', marginTop: '6px', cursor: 'pointer', fontStyle: 'italic', textDecoration: 'underline' }}
+                    >
+                      + {editForm.auditLog.length - 1} older audit record{editForm.auditLog.length - 1 > 1 ? 's' : ''} (tap to expand)
                     </div>
                   )}
                 </div>
-
-                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '0.75rem', color: '#742a2a', maxHeight: auditExpanded ? '200px' : 'none', overflowY: auditExpanded ? 'auto' : 'visible' }}>
-                  {(isAdmin && auditExpanded ? editForm.auditLog : [editForm.auditLog[editForm.auditLog.length - 1]]).map((logEntry, i) => (
-                    <li key={i} style={{ marginBottom: '4px', lineHeight: '1.3' }}>
-                      {logEntry}
-                    </li>
-                  ))}
-                </ul>
-                {isAdmin && !auditExpanded && editForm.auditLog.length > 1 && (
-                  <div 
-                    onClick={() => setAuditExpanded(true)}
-                    style={{ fontSize: '0.7rem', color: '#c53030', marginTop: '6px', cursor: 'pointer', fontStyle: 'italic', textDecoration: 'underline' }}
-                  >
-                    + {editForm.auditLog.length - 1} older audit record{editForm.auditLog.length - 1 > 1 ? 's' : ''} (tap to expand)
-                  </div>
-                )}
-              </div>
-            )}
+              );
+            })()}
 
             <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'nowrap', alignItems: 'stretch' }}>
               {!editForm.isNew && canAddDeleteAircraft && (
