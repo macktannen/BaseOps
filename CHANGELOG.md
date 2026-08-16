@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.71] - 2026-08-15
+
+### Fixed
+- **Flight Log Infinite Sync Loop & Glitching Fix** — Resolved recursive re-render feedback loop in `FlightLogTab.jsx` caused by `refreshAircraftData` calling `setLog` on every Firestore/storage event and echoing back to `setFlightLog`. Replaced with a clean unidirectional state architecture, decoupling live aircraft reads from internal flight log state and eliminating all UI flicker and constant sync loops in the signature block and aircraft logbook totals table.
+
 ## [v0.3.70] - 2026-08-15
 
 ### Added

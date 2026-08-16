@@ -33,9 +33,24 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList,
   const isEditable = !log.isLocked;
 
   const [aircraft, setAircraft] = useState(null);
-  
+  const isInternalChangeRef = React.useRef(false);
+
+  // Sync to parent when user modifies log
+  const updateLog = (updater) => {
+    isInternalChangeRef.current = true;
+    setLog(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      if (setFlightLog) setFlightLog(next);
+      return next;
+    });
+  };
+
   // Real-time synchronization when parent flightLog updates from Firestore/other devices
   useEffect(() => {
+    if (isInternalChangeRef.current) {
+      isInternalChangeRef.current = false;
+      return;
+    }
     if (flightLog && typeof flightLog === 'object' && Object.keys(flightLog).length > 0) {
       setLog(prev => {
         const prevStr = JSON.stringify(prev);
@@ -50,54 +65,25 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList,
     }
   }, [flightLog]);
 
-  const refreshAircraftData = React.useCallback(() => {
-    if (aircraftId) {
-      const storedAircraft = JSON.parse(localStorage.getItem('userAircraft') || '[]');
-      const ac = storedAircraft.find(a => a.id === aircraftId) || aircraftList?.find(a => a.id === aircraftId);
-      if (ac) {
-        setAircraft(ac);
-        if (!log.isLocked) {
-          const baseTotalHours = parseFloat(ac.totalHours !== undefined && ac.totalHours !== '' ? ac.totalHours : 0);
-          setLog(prev => ({
-            ...prev,
-            aircraftTotals: {
-              flightBefore: baseTotalHours,
-              hobbsBefore: parseFloat(ac.hobbs !== undefined && ac.hobbs !== '' ? ac.hobbs : 0),
-              landingsBefore: parseInt(ac.landings !== undefined && ac.landings !== '' ? ac.landings : 0),
-              engine1Before: parseFloat(
-                ac.engine1Hours !== undefined && ac.engine1Hours !== ''
-                  ? ac.engine1Hours
-                  : (ac.engineHours !== undefined && ac.engineHours !== '' ? ac.engineHours : baseTotalHours)
-              ),
-              engine2Before: parseFloat(ac.engine2Hours !== undefined && ac.engine2Hours !== '' ? ac.engine2Hours : 0),
-              cycles1Before: parseInt(
-                ac.engine1Cycles !== undefined && ac.engine1Cycles !== ''
-                  ? ac.engine1Cycles
-                  : (ac.engineCycles !== undefined && ac.engineCycles !== '' ? ac.engineCycles : 0)
-              ),
-              cycles2Before: parseInt(ac.engine2Cycles !== undefined && ac.engine2Cycles !== '' ? ac.engine2Cycles : 0),
-              dualEngine: !!ac.dualEngine
-            }
-          }));
-        }
+  // Load and listen to aircraft baseline data in real time (WITHOUT modifying log state)
+  useEffect(() => {
+    const loadAc = () => {
+      if (aircraftId) {
+        try {
+          const storedAircraft = JSON.parse(localStorage.getItem('userAircraft') || '[]');
+          const ac = storedAircraft.find(a => a.id === aircraftId) || aircraftList?.find(a => a.id === aircraftId);
+          if (ac) setAircraft(ac);
+        } catch(e) { console.error(e); }
       }
-    }
-  }, [aircraftId, aircraftList, log.isLocked]);
-
-  useEffect(() => {
-    refreshAircraftData();
-    window.addEventListener('storage', refreshAircraftData);
-    window.addEventListener('firestore-sync', refreshAircraftData);
-    return () => {
-      window.removeEventListener('storage', refreshAircraftData);
-      window.removeEventListener('firestore-sync', refreshAircraftData);
     };
-  }, [refreshAircraftData]);
-
-  // Sync back to parent when log changes
-  useEffect(() => {
-    setFlightLog(log);
-  }, [log, setFlightLog]);
+    loadAc();
+    window.addEventListener('storage', loadAc);
+    window.addEventListener('firestore-sync', loadAc);
+    return () => {
+      window.removeEventListener('storage', loadAc);
+      window.removeEventListener('firestore-sync', loadAc);
+    };
+  }, [aircraftId, aircraftList]);
 
   const isTwin = aircraft?.dualEngine || log.aircraftTotals?.dualEngine || false;
 
@@ -107,7 +93,7 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList,
        newLegs[index] = { flightHrs: '', blockHrs: '', hobbs: '', engineCycles: '', engine1Cycles: '', engine2Cycles: '', engine1Hrs: '', engine2Hrs: '', landings: '', landingType: '', fuelPurchased: '' };
     }
     newLegs[index][field] = value;
-    setLog(prev => ({ ...prev, legsActuals: newLegs }));
+    updateLog(prev => ({ ...prev, legsActuals: newLegs }));
   };
 
   const calculateTotals = () => {
@@ -234,20 +220,41 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList,
 
   const handleSign = () => {
     updateGlobalAircraft(1); // Add totals
-    setLog(prev => ({
+    const snapshottedTotals = {
+      flightBefore: parseFloat(flightBefore),
+      hobbsBefore: parseFloat(hobbsBefore),
+      landingsBefore: parseInt(landingsBefore),
+      engine1Before: parseFloat(engine1Before),
+      engine2Before: parseFloat(engine2Before),
+      cycles1Before: parseInt(cycles1Before),
+      cycles2Before: parseInt(cycles2Before),
+      dualEngine: !!isTwin
+    };
+    updateLog(prev => ({
       ...prev,
       isLocked: true,
+      aircraftTotals: snapshottedTotals,
       signature: {
         name: currentUser.name || 'Pilot',
         timestamp: new Date().toLocaleString(),
         isoTimestamp: new Date().toISOString()
-      }
+      },
+      auditLog: [
+        ...(prev.auditLog || []),
+        `Signed by ${currentUser.name || 'Pilot'} on ${new Date().toLocaleString()}`
+      ]
     }));
   };
 
   const handleClearSignature = () => {
     updateGlobalAircraft(-1); // Revert totals
-    setLog(prev => ({ ...prev, signature: null, isLocked: false, auditLog: [...(prev.auditLog || []), `Signature cleared by ${currentUser.name} on ${new Date().toLocaleString()}`] }));
+    updateLog(prev => ({
+      ...prev,
+      signature: null,
+      isLocked: false,
+      aircraftTotals: null,
+      auditLog: [...(prev.auditLog || []), `Signature cleared by ${currentUser.name} on ${new Date().toLocaleString()}`]
+    }));
   };
   
   const handleToggleLock = () => {
@@ -255,18 +262,16 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList,
     const canToggle = isAdmin || (canSign && hoursSinceSign <= 24);
     if (!canToggle) return;
     
-    setLog(prev => {
-      const newLocked = !prev.isLocked;
-      const action = newLocked ? 'locked' : 'unlocked';
-      if (newLocked) updateGlobalAircraft(1);
-      else updateGlobalAircraft(-1);
-      
-      return {
-        ...prev,
-        isLocked: newLocked,
-        auditLog: [...(prev.auditLog || []), `Log ${action} by Admin (${currentUser.name}) on ${new Date().toLocaleString()}`]
-      };
-    });
+    const newLocked = !log.isLocked;
+    const action = newLocked ? 'locked' : 'unlocked';
+    if (newLocked) updateGlobalAircraft(1);
+    else updateGlobalAircraft(-1);
+    
+    updateLog(prev => ({
+      ...prev,
+      isLocked: newLocked,
+      auditLog: [...(prev.auditLog || []), `Log ${action} by Admin (${currentUser.name}) on ${new Date().toLocaleString()}`]
+    }));
   };
 
   const formatLoc = (loc) => {
@@ -275,13 +280,41 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList,
     return loc.id || 'Custom';
   };
 
-  const flightBefore = log.aircraftTotals?.flightBefore ?? 0;
-  const landingsBefore = log.aircraftTotals?.landingsBefore ?? 0;
-  const engine1Before = log.aircraftTotals?.engine1Before ?? flightBefore;
-  const cycles1Before = log.aircraftTotals?.cycles1Before ?? 0;
-  const engine2Before = log.aircraftTotals?.engine2Before ?? 0;
-  const cycles2Before = log.aircraftTotals?.cycles2Before ?? 0;
-  const hobbsBefore = log.aircraftTotals?.hobbsBefore ?? 0;
+  const flightBefore = log.aircraftTotals?.flightBefore !== undefined
+    ? log.aircraftTotals.flightBefore
+    : (parseFloat(aircraft?.totalHours !== undefined && aircraft?.totalHours !== '' ? aircraft.totalHours : 0));
+
+  const landingsBefore = log.aircraftTotals?.landingsBefore !== undefined
+    ? log.aircraftTotals.landingsBefore
+    : (parseInt(aircraft?.landings !== undefined && aircraft?.landings !== '' ? aircraft.landings : 0));
+
+  const engine1Before = log.aircraftTotals?.engine1Before !== undefined
+    ? log.aircraftTotals.engine1Before
+    : (parseFloat(
+        aircraft?.engine1Hours !== undefined && aircraft?.engine1Hours !== ''
+          ? aircraft.engine1Hours
+          : (aircraft?.engineHours !== undefined && aircraft?.engineHours !== '' ? aircraft.engineHours : flightBefore)
+      ));
+
+  const cycles1Before = log.aircraftTotals?.cycles1Before !== undefined
+    ? log.aircraftTotals.cycles1Before
+    : (parseInt(
+        aircraft?.engine1Cycles !== undefined && aircraft?.engine1Cycles !== ''
+          ? aircraft.engine1Cycles
+          : (aircraft?.engineCycles !== undefined && aircraft?.engineCycles !== '' ? aircraft.engineCycles : 0)
+      ));
+
+  const engine2Before = log.aircraftTotals?.engine2Before !== undefined
+    ? log.aircraftTotals.engine2Before
+    : (parseFloat(aircraft?.engine2Hours !== undefined && aircraft?.engine2Hours !== '' ? aircraft.engine2Hours : 0));
+
+  const cycles2Before = log.aircraftTotals?.cycles2Before !== undefined
+    ? log.aircraftTotals.cycles2Before
+    : (parseInt(aircraft?.engine2Cycles !== undefined && aircraft?.engine2Cycles !== '' ? aircraft.engine2Cycles : 0));
+
+  const hobbsBefore = log.aircraftTotals?.hobbsBefore !== undefined
+    ? log.aircraftTotals.hobbsBefore
+    : (parseFloat(aircraft?.hobbs !== undefined && aircraft?.hobbs !== '' ? aircraft.hobbs : 0));
 
   return (
     <div style={{ display: 'block', minHeight: '100%', backgroundColor: '#f4f5f7', padding: '10px' }}>
