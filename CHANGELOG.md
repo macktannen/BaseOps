@@ -2,7 +2,13 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
-## [v0.4.9] - 2026-08-16
+## [v0.5.0] - 2026-08-16
+
+### Fixed
+- **Synchronous Direct State Mutation on Status Clear** — 
+  - `handleCellClick` now immediately sets `setSchedules({ ...stored })` synchronously in React state rather than relying on decoupled storage callbacks.
+  - Normalized date parsing in schedule generator to `format(currDate, 'yyyy-MM-dd')`.
+  - Guaranteed instant visual update and Firestore cloud synchronization when clicking "Clear" in the Schedules Grid Daily Itinerary modal.
 
 ### Fixed
 - **Timezone UTC Date Key Normalization** — Replaced `day.toISOString().split('T')[0]` (which caused UTC timezone offset drift, writing/reading the previous or next day's key depending on user timezone) with `format(day, 'yyyy-MM-dd')` across both `CrewSchedule.jsx` and `CalendarView.jsx`. This ensures schedule keys match 100% identically across views.

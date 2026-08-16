@@ -197,12 +197,13 @@ const CrewSchedule = () => {
       const key = `${personId}_${dateStr}`;
       if (status === 'Clear' || !status) {
         delete stored[key];
-      } else if (stored[key] === status) {
-        delete stored[key];
       } else {
         stored[key] = status;
       }
-      saveSchedules(stored);
+      setSchedules({ ...stored });
+      localStorage.setItem('crewSchedules', JSON.stringify(stored));
+      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'crewSchedules' } }));
     } catch (err) {
       console.error('Failed to update crew schedule:', err);
     }
@@ -221,7 +222,7 @@ const CrewSchedule = () => {
     let currDate = new Date(genStartDate + 'T12:00:00Z');
     
     for (let day = 0; day < 365; day++) {
-      const dateStr = currDate.toISOString().split('T')[0];
+      const dateStr = format(currDate, 'yyyy-MM-dd');
       const key = `${genPilotId}_${dateStr}`;
       
       let isOnDuty = false;
