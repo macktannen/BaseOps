@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.76] - 2026-08-15
+
+### Added
+- **Automatic Flight Save on Logbook Signing** — When a user signs the flight logbook, the entire flight record (including updated leg actuals, signed logbook totals, and 'Completed' status) is automatically saved with visual save feedback, identical to clicking the "Save Flight" button.
+
 ## [v0.3.75] - 2026-08-15
 
 ### Added

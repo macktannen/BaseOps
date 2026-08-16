@@ -1289,7 +1289,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     catch { return []; }
   })();
 
-  const performSave = () => {
+  const performSave = (overrideFlightLog = null, overrideStatus = null) => {
     legs.forEach(leg => {
       if (leg.departure && leg.departure.id) incrementUsage(leg.departure.id);
       if (leg.destination && leg.destination.id) incrementUsage(leg.destination.id);
@@ -1305,6 +1305,9 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     }));
     setExpenses(savedExpenses);
 
+    const finalLog = overrideFlightLog || flightLog;
+    const finalStatus = overrideStatus || status;
+
     onSave({
       id: flight ? flight.id : undefined,
       flightNumber,
@@ -1314,12 +1317,12 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       aircraftId,
       comments,
       opsNotes,
-      status,
+      status: finalStatus,
       tag,
       legs,
       passengers,
       pilotId: firstLeg.pilotId || '',
-      flightLog,
+      flightLog: finalLog,
       expenses: savedExpenses,
       uploads
     });
@@ -2239,7 +2242,10 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                 flightLog={flightLog} 
                 setFlightLog={setFlightLog}
                 persistFlightLog={persistFlightLogToFlight}
-                onSign={() => setStatus('Completed')}
+                onSign={(signedLog) => {
+                  setStatus('Completed');
+                  performSave(signedLog, 'Completed');
+                }}
                 aircraftId={aircraftId}
                 aircraftList={aircraftList}
                 pilotsList={pilotsList}

@@ -231,8 +231,8 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
       cycles2Before: parseInt(cycles2Before),
       dualEngine: !!isTwin
     };
-    updateLog(prev => ({
-      ...prev,
+    const nextLog = {
+      ...log,
       isLocked: true,
       aircraftTotals: snapshottedTotals,
       signature: {
@@ -241,11 +241,12 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
         isoTimestamp: new Date().toISOString()
       },
       auditLog: [
-        ...(prev.auditLog || []),
+        ...(log.auditLog || []),
         `Signed by ${currentUser.name || 'Pilot'} on ${new Date().toLocaleString()}`
       ]
-    }));
-    if (onSign) onSign();
+    };
+    updateLog(nextLog);
+    if (onSign) onSign(nextLog);
   };
 
   const handleClearSignature = () => {
