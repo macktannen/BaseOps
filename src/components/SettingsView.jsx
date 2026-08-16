@@ -270,10 +270,11 @@ const SettingsView = () => {
   const TAB_LABELS = {
     account: 'My Account',
     ai: 'AI & Integrations',
-    users: 'System Users'
+    users: 'System Users',
+    data: 'Data Management'
   };
 
-  const visibleTabs = ['account', ...(isAdmin ? ['ai', 'users'] : [])];
+  const visibleTabs = ['account', ...(isAdmin ? ['ai', 'users', 'data'] : [])];
 
   const handleTabSelect = (tab) => {
     setActiveTab(tab);
@@ -628,8 +629,66 @@ const SettingsView = () => {
           </div>
         )}
 
+        {/* DATA MANAGEMENT */}
+        {activeTab === 'data' && (
+          <div style={{ maxWidth: '650px' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '8px', fontSize: '1.1rem' }}>Data Management</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
+              Manage, clean up, and reset application data across your devices and cloud storage.
+            </p>
 
-      </div>
+            <div style={{ padding: '16px', borderRadius: '8px', border: '1px solid #fed7d7', backgroundColor: '#fff5f5', marginBottom: '20px' }}>
+              <h4 style={{ margin: '0 0 6px 0', fontSize: '0.95rem', color: '#c53030' }}>Clear All Flight Records</h4>
+              <p style={{ fontSize: '0.8rem', color: '#742a2a', margin: '0 0 12px 0' }}>
+                Removes all flights and flight logs from both local storage and cloud database.
+              </p>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  if (window.confirm('⚠️ Are you sure you want to delete ALL flights from the database? This cannot be undone.')) {
+                    localStorage.setItem('userFlights', JSON.stringify([]));
+                    window.dispatchEvent(new Event('storage'));
+                    window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'userFlights' } }));
+                    alert('All flight records cleared!');
+                  }
+                }}
+                style={{ backgroundColor: '#e53e3e', color: 'white', fontWeight: 600, padding: '6px 12px', fontSize: '0.8rem' }}
+              >
+                Clear All Flights
+              </button>
+            </div>
+
+            <div style={{ padding: '16px', borderRadius: '8px', border: '1px solid #fed7d7', backgroundColor: '#fff5f5' }}>
+              <h4 style={{ margin: '0 0 6px 0', fontSize: '0.95rem', color: '#c53030' }}>Reset Entire Database to Empty</h4>
+              <p style={{ fontSize: '0.8rem', color: '#742a2a', margin: '0 0 12px 0' }}>
+                Wipes all flights, aircraft hours, crew schedules, and custom data from local and cloud storage.
+              </p>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  if (window.confirm('🚨 DANGER: This will wipe all application data (flights, crew schedules, aircraft, notes). Continue?')) {
+                    const keysToClear = [
+                      'userFlights', 'userAircraft', 'crewSchedules', 'calendarNotes',
+                      'userAccounts', 'userVendors', 'userPassengers', 'globalContacts'
+                    ];
+                    keysToClear.forEach(k => {
+                      localStorage.setItem(k, JSON.stringify([]));
+                      window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: k } }));
+                    });
+                    window.dispatchEvent(new Event('storage'));
+                    alert('Database successfully reset!');
+                  }
+                }}
+                style={{ backgroundColor: '#9b2c2c', color: 'white', fontWeight: 600, padding: '6px 12px', fontSize: '0.8rem' }}
+              >
+                Wipe All App Data
+              </button>
+            </div>
+          </div>
+        )}
+        </div>
       </div>
     </div>
   );
