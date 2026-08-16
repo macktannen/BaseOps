@@ -126,6 +126,15 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
 
   const totals = calculateTotals();
 
+  // Auto-calculated changes based on legs
+  const changeHobbs = parseFloat(totals.hobbs) || 0;
+  const changeFlight = parseFloat(totals.flight) || 0;
+  const changeLandings = totals.lndgs || 0;
+  const changeEngine1Cycles = totals.cycles1 || 0;
+  const changeEngine2Cycles = totals.cycles2 || 0;
+  const changeEngine1Hours = parseFloat(totals.eng1HrsTotal) || 0;
+  const changeEngine2Hours = parseFloat(totals.eng2HrsTotal) || 0;
+
   // Baseline meters before this flight (Self-healing: uses snapshot, or dynamically infers if signed)
   const isCurrentlySigned = !!(log.signature);
 
@@ -171,14 +180,7 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
         ? Math.max(0, parseInt(aircraft?.engine2Cycles || 0) - changeEngine2Cycles)
         : parseInt(aircraft?.engine2Cycles || 0));
 
-  // Auto-calculated changes based on legs
-  const changeHobbs = parseFloat(totals.hobbs) || 0;
-  const changeFlight = parseFloat(totals.flight) || 0;
-  const changeLandings = totals.lndgs || 0;
-  const changeEngine1Cycles = totals.cycles1 || 0;
-  const changeEngine2Cycles = totals.cycles2 || 0;
-  const changeEngine1Hours = parseFloat(totals.eng1HrsTotal) || 0;
-  const changeEngine2Hours = parseFloat(totals.eng2HrsTotal) || 0;
+
 
   const updateGlobalAircraft = (multiplier = 1) => {
     if (!aircraftId) return;
@@ -312,7 +314,6 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
       ...log,
       auditLog: updatedAudit
     };
-    setLog(nextLog);
     setFlightLog(nextLog);
     if (persistFlightLog) {
       persistFlightLog(nextLog);

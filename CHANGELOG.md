@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.90] - 2026-08-15
+
+### Fixed
+- **Flight Log Modal Crash** — Fixed a `ReferenceError` preventing the flight log modal from opening when creating a new flight. Reordered the initialization of flight log baseline variables to correctly resolve JavaScript scope constraints and eliminate the temporal dead zone error.
+
 ## [v0.3.89] - 2026-08-15
 
 ### Fixed
