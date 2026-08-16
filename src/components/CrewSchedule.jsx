@@ -447,35 +447,35 @@ const CrewSchedule = () => {
                 onDrop={() => handleDropPerson(person.id)}
                 className="crew-row"
                 style={{ 
-                  borderBottom: '2px solid #cbd5e1', 
+                  borderBottom: '1px solid #e2e8f0', 
                   backgroundColor: draggedPersonId === person.id 
-                    ? '#e2e8f0' 
-                    : (rowIndex % 2 === 0 ? '#ffffff' : '#f8fafc'),
+                    ? '#edf2f7' 
+                    : (rowIndex % 2 === 0 ? '#ffffff' : '#fafbfc'),
                   transition: 'background-color 0.15s ease'
                 }}
               >
                 <td style={{ 
-                  padding: '12px 16px', 
-                  borderRight: '2px solid #cbd5e1', 
-                  borderLeft: person.type === 'pilot' ? '4px solid #3182ce' : person.type === 'crew' ? '4px solid #d69e2e' : '4px solid #38a169',
+                  padding: '10px 14px', 
+                  borderRight: '1px solid #e2e8f0', 
+                  borderLeft: person.type === 'pilot' ? '3px solid #63b3ed' : person.type === 'crew' ? '3px solid #ecc94b' : '3px solid #68d391',
                   verticalAlign: 'middle', 
                   cursor: 'grab',
-                  backgroundColor: rowIndex % 2 === 0 ? '#ffffff' : '#f8fafc'
+                  backgroundColor: rowIndex % 2 === 0 ? '#ffffff' : '#fafbfc'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ color: '#94a3b8' }}><GripVertical size={16} /></div>
+                    <div style={{ color: '#cbd5e0' }}><GripVertical size={15} /></div>
                     <span style={{ 
-                       fontSize: '0.65rem', 
-                       fontWeight: 'bold', 
-                       padding: '2px 6px', 
-                       borderRadius: '4px', 
+                       fontSize: '0.62rem', 
+                       fontWeight: 600, 
+                       padding: '1px 5px', 
+                       borderRadius: '3px', 
                        backgroundColor: person.type === 'pilot' ? '#ebf8ff' : person.type === 'crew' ? '#fefcbf' : '#f0fdf4',
                        color: person.type === 'pilot' ? '#2b6cb0' : person.type === 'crew' ? '#975a16' : '#166534',
-                       border: `1px solid ${person.type === 'pilot' ? '#90cdf4' : person.type === 'crew' ? '#f6e05e' : '#86efac'}`
+                       border: `1px solid ${person.type === 'pilot' ? '#bee3f8' : person.type === 'crew' ? '#fef08a' : '#bbf7d0'}`
                     }}>
                       {person.type === 'pilot' ? 'PILOT' : person.type === 'crew' ? 'CREW' : 'PAX'}
                     </span>
-                    <span style={{ fontWeight: 'bold' }}>{person.name}</span>
+                    <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{person.name}</span>
                   </div>
                 </td>
                 
@@ -489,13 +489,13 @@ const CrewSchedule = () => {
                     <td 
                       key={day.toString()} 
                       style={{ 
-                        borderRight: '1px solid #e2e8f0', 
-                        borderBottom: '2px solid #cbd5e1',
+                        borderRight: '1px solid #edf2f7', 
+                        borderBottom: '1px solid #e2e8f0',
                         verticalAlign: 'top', 
-                        padding: '6px 4px', 
+                        padding: '4px 3px', 
                         position: 'relative', 
                         cursor: activeDuplicateStatus ? 'crosshair' : 'pointer',
-                        backgroundColor: cellStatus ? undefined : (rowIndex % 2 === 0 ? '#ffffff' : '#f8fafc')
+                        backgroundColor: cellStatus ? undefined : (rowIndex % 2 === 0 ? '#ffffff' : '#fafbfc')
                       }}
                       onClick={(e) => {
                          if (activeDuplicateStatus) {

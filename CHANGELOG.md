@@ -2,7 +2,10 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
-## [v0.3.97] - 2026-08-16
+## [v0.3.98] - 2026-08-16
+
+### Changed
+- **Subdued Crew Schedule Grid Delineation** — Softened row divider lines from bold borders to clean, faint 1px borders (`#e2e8f0` / `#edf2f7`) with ultra-subtle off-white alternating tint (`#fafbfc`), creating an elegant, non-distracting separation matching the core BaseOps theme.
 
 ### Added
 - **Crew Schedule Grid Visual Row Dividers** — Enhanced the Crew & Passengers schedules grid with clear visual demarcation between personnel rows:
