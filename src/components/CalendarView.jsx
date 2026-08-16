@@ -560,7 +560,7 @@ const CalendarView = () => {
                 ...l,
                 date: newDepDate,
                 arrDate: newArrDate,
-                pilotId: getDefaultPilotForDate(newDepDate) || l.pilotId
+                pilotId: l.pilotId || (l.pilots && l.pilots.length > 0 ? l.pilots[0] : getDefaultPilotForDate(newDepDate))
               };
            }
 

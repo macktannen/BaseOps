@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.88] - 2026-08-15
+
+### Fixed
+- **Preserve Assigned Pilots During Calendar Drag & Drop** — Fixed an issue in `CalendarView.jsx` where dragging a flight to another date was forcibly overwriting the flight's assigned pilot with the default on-duty pilot scheduled for that day, creating false pilot conflict warnings. Moving a flight now preserves its existing assigned pilot.
+
 ## [v0.3.87] - 2026-08-15
 
 ### Fixed
