@@ -1104,7 +1104,7 @@ const CalendarView = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: 'auto', paddingTop: '8px' }}>
                 {Object.keys(crewSchedules).map(key => {
                    const [pId, dateStr] = key.split('_');
-                   const dayStr = day.toISOString().split('T')[0];
+                   const dayStr = format(day, 'yyyy-MM-dd');
                    if (dateStr !== dayStr) return null;
                    
                    const status = crewSchedules[key];

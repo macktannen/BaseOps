@@ -526,7 +526,7 @@ const CrewSchedule = () => {
                 </td>
                 
                 {weekDays.map(day => {
-                  const dateStr = day.toISOString().split('T')[0];
+                  const dateStr = format(day, 'yyyy-MM-dd');
                   const key = `${person.id}_${dateStr}`;
                   const cellStatus = schedules[key];
                   const dayFlights = getFlightsForPersonAndDate(person.id, day);
