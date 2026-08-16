@@ -67,15 +67,12 @@ function DashboardLayout({ activeTab, setActiveTab }) {
           className="sidebar-header" 
           onClick={toggleSidebar}
           title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: isSidebarCollapsed ? 'center' : 'flex-start', gap: '10px', padding: isSidebarCollapsed ? '16px 8px' : '16px 20px', cursor: 'pointer', userSelect: 'none' }}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isSidebarCollapsed ? '16px 8px' : '24px 20px', cursor: 'pointer', userSelect: 'none' }}
         >
           {isSidebarCollapsed ? (
             <Logo size={28} light={true} iconOnly={true} />
           ) : (
-            <>
-              <Logo size={28} light={true} />
-              <span className="sidebar-version" style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.6)', fontWeight: 500, padding: '2px 5px', background: 'rgba(255,255,255,0.12)', borderRadius: '4px', letterSpacing: '0.5px' }}>{APP_VERSION}</span>
-            </>
+            <Logo size={38} light={true} />
           )}
         </div>
         <ul className="nav-menu" style={{ flex: 1 }}>
@@ -143,6 +140,18 @@ function DashboardLayout({ activeTab, setActiveTab }) {
 
         {/* Sidebar Footer with Smooth Sliding Caret */}
         <div className="sidebar-footer">
+          <span className="sidebar-version" style={{ 
+            position: 'absolute', 
+            left: '20px', 
+            top: '50%', 
+            transform: 'translateY(-50%)', 
+            fontSize: '0.7rem', 
+            color: 'rgba(255,255,255,0.4)', 
+            fontWeight: 500, 
+            letterSpacing: '0.5px'
+          }}>
+            {APP_VERSION}
+          </span>
           <button 
             onClick={toggleSidebar}
             className="sidebar-bottom-toggle"
