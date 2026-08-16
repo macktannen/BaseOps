@@ -82,7 +82,9 @@ const FIRESTORE_KEY_MAP = {
 };
 
 function getOrgDocRef() {
-  return doc(db, 'orgs', 'default');
+  const isDev = import.meta.env.DEV || (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'));
+  const orgName = isDev ? 'dev_sandbox' : 'default';
+  return doc(db, 'orgs', orgName);
 }
 
 /**
