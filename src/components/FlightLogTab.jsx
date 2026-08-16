@@ -249,35 +249,26 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
   };
 
   const handleSign = () => {
-    updateGlobalAircraft(1); // Add totals
     const snapshottedTotals = {
-      flightBefore: parseFloat(flightBefore),
-      hobbsBefore: parseFloat(hobbsBefore),
-      landingsBefore: parseInt(landingsBefore),
-      engine1Before: parseFloat(engine1Before),
-      engine2Before: parseFloat(engine2Before),
-      cycles1Before: parseInt(cycles1Before),
-      cycles2Before: parseInt(cycles2Before),
+      flightBefore: parseFloat(flightBefore || 0),
+      hobbsBefore: parseFloat(hobbsBefore || 0),
+      landingsBefore: parseInt(landingsBefore || 0),
+      engine1Before: parseFloat(engine1Before || 0),
+      engine2Before: parseFloat(engine2Before || 0),
+      cycles1Before: parseInt(cycles1Before || 0),
+      cycles2Before: parseInt(cycles2Before || 0),
+      changeFlight,
+      changeHobbs,
+      changeLandings,
+      changeEngine1Hours,
+      changeEngine2Hours,
+      changeEngine1Cycles,
+      changeEngine2Cycles,
       dualEngine: !!isTwin
     };
-    const nextLog = {
-      ...log,
-      isLocked: true,
-      aircraftTotals: snapshottedTotals,
-      signature: {
-        name: currentUser.name || 'Pilot',
-        timestamp: new Date().toLocaleString(),
-        isoTimestamp: new Date().toISOString()
-      },
-      auditLog: [
-        ...(log.auditLog || []),
-        `Signed by ${currentUser.name || 'Pilot'} on ${new Date().toLocaleString()}`
-      ]
-    };
+
     if (onSign) {
-      onSign(nextLog);
-    } else {
-      updateLog(nextLog);
+      onSign(log, snapshottedTotals);
     }
   };
 

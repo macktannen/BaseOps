@@ -720,7 +720,75 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const isFlightSigned = !!(flightLog?.signature);
   const canDeleteFlight = !isFlightSigned || isAdmin;
 
-  // ── CLEAR SIGNATURE (rebuilt from scratch — single atomic operation) ──
+  // ── ATOMIC SIGN FLIGHT LOG ──
+  const handleSignFlight = (logData, snapshottedTotals) => {
+    if (!aircraftId) return;
+
+    // STEP 1: Block remote sync overwrites during sign
+    suppressSyncRef.current = true;
+
+    // STEP 2: Update aircraft record in single atomic commit
+    try {
+      const storedAircraft = JSON.parse(localStorage.getItem('userAircraft') || '[]');
+      const acIndex = storedAircraft.findIndex(a => a.id === aircraftId);
+      if (acIndex >= 0) {
+        const ac = { ...storedAircraft[acIndex] };
+        const isTwin = ac.dualEngine || snapshottedTotals.dualEngine;
+
+        ac.totalHours = (Math.round((parseFloat(snapshottedTotals.flightBefore || 0) + snapshottedTotals.changeFlight) * 10) / 10).toFixed(1);
+        ac.landings = parseInt(snapshottedTotals.landingsBefore || 0) + snapshottedTotals.changeLandings;
+        ac.hobbs = (Math.round((parseFloat(snapshottedTotals.hobbsBefore || 0) + snapshottedTotals.changeHobbs) * 10) / 10).toFixed(1);
+
+        ac.engine1Hours = (Math.round((parseFloat(snapshottedTotals.engine1Before || 0) + snapshottedTotals.changeEngine1Hours) * 10) / 10).toFixed(1);
+        ac.engineHours = ac.engine1Hours;
+        ac.engine1Cycles = parseInt(snapshottedTotals.cycles1Before || 0) + snapshottedTotals.changeEngine1Cycles;
+        ac.engineCycles = ac.engine1Cycles;
+
+        if (isTwin) {
+          ac.engine2Hours = (Math.round((parseFloat(snapshottedTotals.engine2Before || 0) + snapshottedTotals.changeEngine2Hours) * 10) / 10).toFixed(1);
+          ac.engine2Cycles = parseInt(snapshottedTotals.cycles2Before || 0) + snapshottedTotals.changeEngine2Cycles;
+        }
+
+        if (!ac.auditLog) ac.auditLog = [];
+        ac.auditLog.push(`Signed flight #${flightNumber || ''} by ${currentUser?.name || 'Pilot'} on ${new Date().toLocaleString()}: +${snapshottedTotals.changeFlight}h`);
+        
+        storedAircraft[acIndex] = ac;
+        localStorage.setItem('userAircraft', JSON.stringify(storedAircraft));
+        window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'userAircraft' } }));
+        window.dispatchEvent(new CustomEvent('storage', { detail: { key: 'userAircraft' } }));
+      }
+    } catch (err) {
+      console.error('Failed to update aircraft on sign:', err);
+    }
+
+    // STEP 3: Build the signed flight log
+    const signedLog = {
+      ...logData,
+      isLocked: true,
+      aircraftTotals: snapshottedTotals,
+      signature: {
+        name: currentUser?.name || 'Pilot',
+        timestamp: new Date().toLocaleString(),
+        isoTimestamp: new Date().toISOString()
+      },
+      auditLog: [
+        ...(logData.auditLog || []),
+        `Signed by ${currentUser?.name || 'Pilot'} on ${new Date().toLocaleString()}`
+      ]
+    };
+
+    // STEP 4: Update React state
+    setFlightLog(signedLog);
+    setStatus('completed');
+
+    // STEP 5: Persist flight
+    performSave(signedLog, 'completed');
+
+    // STEP 6: Release sync guard
+    setTimeout(() => { suppressSyncRef.current = false; }, 3000);
+  };
+
+  // ── CLEAR SIGNATURE (single atomic operation) ──
   const handleClearSignature = () => {
     if (!flightLog?.signature) return;
     
@@ -755,6 +823,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
           storedAircraft[acIndex] = ac;
           localStorage.setItem('userAircraft', JSON.stringify(storedAircraft));
           window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'userAircraft' } }));
+          window.dispatchEvent(new CustomEvent('storage', { detail: { key: 'userAircraft' } }));
         }
       } catch (e) { console.error('Failed to revert aircraft totals:', e); }
     }
@@ -2426,11 +2495,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                 flightLog={flightLog} 
                 setFlightLog={setFlightLog}
                 persistFlightLog={persistFlightLogToFlight}
-                onSign={(signedLog) => {
-                  setFlightLog(signedLog);
-                  setStatus('completed');
-                  performSave(signedLog, 'completed');
-                }}
+                onSign={handleSignFlight}
                 onClearSignature={handleClearSignature}
                 aircraftId={aircraftId}
                 aircraftList={aircraftList}

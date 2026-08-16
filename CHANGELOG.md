@@ -2,7 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
-## [v0.3.95] - 2026-08-16
+## [v0.3.96] - 2026-08-16
+
+### Fixed
+- **Atomic Single-Click Signing Architecture** — Unified signing execution into `EventModal.jsx` (`handleSignFlight`), ensuring aircraft meter updates, log snapshotting, flight persistence, and status updates execute in a single atomic transaction with active remote-sync suppression guards.
+- **Strict Signed-Only Aircraft Totals Guarantee** — Aircraft meter totals update strictly once upon signature and revert cleanly upon clear signature with zero drift or multi-event echoes.
 
 ### Fixed
 - **Failsafe Flight Log Totalling & Precision Rounding** — Hardened all mathematical addition and subtraction across aircraft meter hours, hobbs, engine hours, and cycles with `Math.round(x * 10) / 10` precision guards. Eliminated potential floating-point accumulation errors and enforced strict idempotent state synchronization for maintenance tracking.
