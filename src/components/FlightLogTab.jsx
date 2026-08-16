@@ -4,7 +4,7 @@ import { authService } from '../services/authService';
 import useIsMobile from '../hooks/useIsMobile';
 import MobileDropdownMenu from './MobileDropdownMenu';
 
-const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign, onUnsign, aircraftId, aircraftList, pilotsList }) => {
+const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign, onClearSignature, aircraftId, aircraftList, pilotsList }) => {
   const isMobile = useIsMobile();
   const [auditExpanded, setAuditExpanded] = useState(false);
 
@@ -278,33 +278,8 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
     if (onSign) onSign(nextLog);
   };
 
-  const handleClearSignature = (e) => {
-    if (e && e.preventDefault) e.preventDefault();
-    if (e && e.stopPropagation) e.stopPropagation();
-    
-    // 1. Revert totals exactly once synchronously
-    updateGlobalAircraft(-1); 
-    
-    // 2. Prepare the unsigned log payload
-    const nextLog = {
-      ...log,
-      signature: null,
-      isLocked: false,
-      aircraftTotals: null,
-      auditLog: [...(log.auditLog || []), `Signature cleared by ${currentUser.name || 'Admin'} on ${new Date().toLocaleString()}`]
-    };
-    
-    // 3. Update local state immediately so UI updates
-    if (setFlightLog) setFlightLog(nextLog);
-    
-    // 4. Defer to parent (EventModal) to perform the atomic save to CalendarView
-    if (onUnsign) {
-      onUnsign(nextLog);
-    } else if (persistFlightLog) {
-      // Fallback if onUnsign not provided
-      persistFlightLog(nextLog);
-    }
-  };
+  // handleClearSignature is now handled entirely by the parent (EventModal)
+  // via the onClearSignature prop — no local logic needed
   
   const handleToggleLock = () => {
     const hoursSinceSign = log.signature?.isoTimestamp ? (Date.now() - new Date(log.signature.isoTimestamp).getTime()) / (1000 * 60 * 60) : 0;
@@ -724,7 +699,7 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
 
       {/* 5. ACTION BUTTONS */}
       <div style={{ display: 'flex', gap: '8px', marginTop: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <button type="button" className="btn" style={{ backgroundColor: '#e53e3e', color: 'white', fontWeight: 'bold', padding: '4px 8px', fontSize: '0.7rem' }} onClick={handleClearSignature} disabled={!log.signature || (!isAdmin && !canSign)}>
+        <button type="button" className="btn" style={{ backgroundColor: '#e53e3e', color: 'white', fontWeight: 'bold', padding: '4px 8px', fontSize: '0.7rem' }} onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (onClearSignature) onClearSignature(); }} disabled={!log.signature || (!isAdmin && !canSign)}>
            <Trash2 size={12} style={{ marginRight: '4px' }} /> CLEAR SIGNATURE
         </button>
         {log.signature && (() => {

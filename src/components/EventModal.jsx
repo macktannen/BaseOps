@@ -587,7 +587,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   
   const [activeView, setActiveView] = useState(defaultActiveView || 'Plan'); // 'Plan' or 'Log' or 'Expenses'
   const prevFlightIdRef = useRef(flight?.id ? String(flight.id) : (flight ? String(flight.flightNumber || 'new') : 'new'));
-  const [flightLog, setFlightLog] = useState({});
+  const [flightLog, setFlightLog] = useState(() => flight?.flightLog || {});
   const suppressSyncRef = useRef(false); // Guard against sync overwrites during active unsign
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [conflictModal, setConflictModal] = useState({ open: false, pilotConflicts: [], aircraftConflicts: [] });
@@ -717,8 +717,70 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
 
   const currentUser = authService.getCurrentUser() || { name: 'Admin', role: 'admin' };
   const isAdmin = currentUser?.role === 'admin';
-  const isFlightSigned = !!(flightLog?.signature || flight?.flightLog?.signature);
+  const isFlightSigned = !!(flightLog?.signature);
   const canDeleteFlight = !isFlightSigned || isAdmin;
+
+  // ── CLEAR SIGNATURE (rebuilt from scratch — single atomic operation) ──
+  const handleClearSignature = () => {
+    if (!flightLog?.signature) return;
+    
+    // STEP 1: Block all sync overwrites immediately
+    suppressSyncRef.current = true;
+
+    // STEP 2: Revert aircraft totals from the snapshot
+    const totals = flightLog.aircraftTotals;
+    if (aircraftId && totals) {
+      try {
+        const storedAircraft = JSON.parse(localStorage.getItem('userAircraft') || '[]');
+        const acIndex = storedAircraft.findIndex(a => a.id === aircraftId);
+        if (acIndex >= 0) {
+          const ac = { ...storedAircraft[acIndex] };
+          if (totals.flightBefore !== undefined) ac.totalHours = parseFloat(totals.flightBefore).toFixed(1);
+          if (totals.landingsBefore !== undefined) ac.landings = parseInt(totals.landingsBefore);
+          if (totals.hobbsBefore !== undefined) ac.hobbs = parseFloat(totals.hobbsBefore).toFixed(1);
+          if (totals.engine1Before !== undefined) {
+            ac.engine1Hours = parseFloat(totals.engine1Before).toFixed(1);
+            ac.engineHours = ac.engine1Hours;
+          }
+          if (totals.cycles1Before !== undefined) {
+            ac.engine1Cycles = parseInt(totals.cycles1Before);
+            ac.engineCycles = ac.engine1Cycles;
+          }
+          if (totals.dualEngine && totals.engine2Before !== undefined) {
+            ac.engine2Hours = parseFloat(totals.engine2Before).toFixed(1);
+            ac.engine2Cycles = parseInt(totals.cycles2Before || 0);
+          }
+          if (!ac.auditLog) ac.auditLog = [];
+          ac.auditLog.push(`Signature cleared & meters reverted by ${currentUser?.name || 'Admin'} on ${new Date().toLocaleString()}`);
+          storedAircraft[acIndex] = ac;
+          localStorage.setItem('userAircraft', JSON.stringify(storedAircraft));
+          window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'userAircraft' } }));
+        }
+      } catch (e) { console.error('Failed to revert aircraft totals:', e); }
+    }
+
+    // STEP 3: Build the clean unsigned flight log
+    const unsignedLog = {
+      ...flightLog,
+      signature: null,
+      isLocked: false,
+      aircraftTotals: null,
+      auditLog: [
+        ...(flightLog.auditLog || []),
+        `Signature cleared by ${currentUser?.name || 'Admin'} on ${new Date().toLocaleString()}`
+      ]
+    };
+
+    // STEP 4: Update ALL React state synchronously
+    setFlightLog(unsignedLog);
+    setStatus('confirmed');
+
+    // STEP 5: Persist atomically via performSave
+    performSave(unsignedLog, 'confirmed');
+
+    // STEP 6: Release the sync guard after Firestore echo settles
+    setTimeout(() => { suppressSyncRef.current = false; }, 3000);
+  };
 
   const persistFlightLogToFlight = (nextFlightLog) => {
     if (!flight) return;
@@ -2369,21 +2431,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                   setStatus('completed');
                   performSave(signedLog, 'completed');
                 }}
-                onUnsign={(unsignedLog) => {
-                  // Activate guard to prevent sync overwrites during unsign
-                  suppressSyncRef.current = true;
-                  const forcedUnsigned = {
-                    ...unsignedLog,
-                    signature: null,
-                    isLocked: false,
-                    aircraftTotals: null
-                  };
-                  setFlightLog(forcedUnsigned);
-                  setStatus('confirmed');
-                  performSave(forcedUnsigned, 'confirmed');
-                  // Release guard after React has committed and Firestore echo has settled
-                  setTimeout(() => { suppressSyncRef.current = false; }, 2000);
-                }}
+                onClearSignature={handleClearSignature}
                 aircraftId={aircraftId}
                 aircraftList={aircraftList}
                 pilotsList={pilotsList}

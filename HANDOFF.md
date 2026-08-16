@@ -4,9 +4,7 @@
 Helicopter Scheduler Web App (`baseops`). We are actively debugging state synchronization bugs and building out new UI layouts.
 
 ## Current Status
-- **Fix "Clear Signature" Single-Click Functionality (AWAITING VERIFICATION)**: Just implemented a comprehensive fix for a race condition where the "Clear Signature" button in the flight log required two clicks to fully update the UI. The issue involved duplicate `firestore-sync` events and React batching quirks that kept the signature visually present despite the backend un-signing the flight.
-- Made `handleClearSignature` atomic in `FlightLogTab.jsx`.
-- Forced the signature object to be strictly stripped via `forcedUnsigned` inside `EventModal.jsx`'s `onUnsign` handler before persisting to `localStorage.userFlights`.
+- **v0.3.92**: Fixed single-click clear signature issue by resolving prop fallback collision (`isFlightSigned` evaluating stale `flight` prop instead of component state `flightLog.signature`) and centralizing atomic unsigning in `EventModal.jsx`.
 - Pushed the latest build to production.
 
 ## Pending Tasks
