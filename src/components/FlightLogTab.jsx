@@ -33,14 +33,28 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList,
 
   const [aircraft, setAircraft] = useState(null);
   
+  // Real-time synchronization when parent flightLog updates from Firestore/other devices
   useEffect(() => {
-    // Pull current live aircraft data from localStorage or passed aircraftList
+    if (flightLog && typeof flightLog === 'object' && Object.keys(flightLog).length > 0) {
+      setLog(prev => {
+        const prevStr = JSON.stringify(prev);
+        const nextMerged = {
+          ...prev,
+          ...flightLog,
+          legsActuals: (flightLog.legsActuals && flightLog.legsActuals.length > 0) ? flightLog.legsActuals : prev.legsActuals,
+          auditLog: flightLog.auditLog || prev.auditLog || []
+        };
+        return JSON.stringify(nextMerged) !== prevStr ? nextMerged : prev;
+      });
+    }
+  }, [flightLog]);
+
+  const refreshAircraftData = React.useCallback(() => {
     if (aircraftId) {
       const storedAircraft = JSON.parse(localStorage.getItem('userAircraft') || '[]');
       const ac = storedAircraft.find(a => a.id === aircraftId) || aircraftList?.find(a => a.id === aircraftId);
       if (ac) {
         setAircraft(ac);
-        // If log is NOT locked/signed, keep aircraftTotals matching the live Aircraft Page figures
         if (!log.isLocked) {
           const baseTotalHours = parseFloat(ac.totalHours !== undefined && ac.totalHours !== '' ? ac.totalHours : 0);
           setLog(prev => ({
@@ -68,6 +82,16 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList,
       }
     }
   }, [aircraftId, aircraftList, log.isLocked]);
+
+  useEffect(() => {
+    refreshAircraftData();
+    window.addEventListener('storage', refreshAircraftData);
+    window.addEventListener('firestore-sync', refreshAircraftData);
+    return () => {
+      window.removeEventListener('storage', refreshAircraftData);
+      window.removeEventListener('firestore-sync', refreshAircraftData);
+    };
+  }, [refreshAircraftData]);
 
   // Sync back to parent when log changes
   useEffect(() => {
@@ -186,9 +210,23 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, aircraftId, aircraftList,
           ac.engine2Cycles = Math.max(0, prevEngine2Cycles + (changeEngine2Cycles * multiplier));
         }
 
+        // Maintain logbook audit trail on aircraft record for real-time cloud sync
+        if (!ac.auditLog) ac.auditLog = [];
+        const signAction = multiplier > 0 ? 'Signed flight log' : 'Reverted flight log signature';
+        const changesList = [];
+        if (changeFlight) changesList.push(`Flight: +${changeFlight}h`);
+        if (changeEngine1Hours) changesList.push(`Eng 1: +${changeEngine1Hours}h`);
+        if (dual && changeEngine2Hours) changesList.push(`Eng 2: +${changeEngine2Hours}h`);
+        if (changeLandings) changesList.push(`Landings: +${changeLandings}`);
+        if (changeHobbs) changesList.push(`Hobbs: +${changeHobbs}h`);
+        if (changesList.length > 0) {
+          ac.auditLog.push(`${signAction} (${currentUser?.name || 'Pilot'}) on ${new Date().toLocaleString()}: ${changesList.join(', ')}`);
+        }
+
         storedAircraft[acIndex] = ac;
         localStorage.setItem('userAircraft', JSON.stringify(storedAircraft));
         window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'userAircraft' } }));
       }
     } catch(e) { console.error("Failed to update aircraft totals", e); }
   };

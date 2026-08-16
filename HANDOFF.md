@@ -3,8 +3,9 @@
 ## Project Overview
 **BaseOps:** A web-based application to manage a fleet of helicopters, crew scheduling, mission planning, document uploads, and flight expenses. The app uses React, localStorage with offline retry queues, IndexedDB localforage resilience, and live synchronization with Firebase Firestore & Firebase Storage.
 
-## Current Status (v0.3.68)
-- **Engine 1 Hours Double-Addition Fix:** Fixed a mutation order bug in `FlightLogTab.jsx`'s `updateGlobalAircraft` function where `totalHours` was mutated before evaluating `curE1H`. Baseline totals for all meters are now snapshotted before any increment calculation occurs.
+## Current Status (v0.3.69)
+- **Real-Time Cross-Device Logbook & Audit Trail Synchronization:** Connected `AircraftList.jsx`, `MobileFleet.jsx`, `FlightLogTab.jsx`, and `EventModal.jsx` to live Firestore `firestore-sync` events. Aircraft Logbook Totals, the Logbook Audit Trail, and Event Modal Flight Log Audit Log are synchronized in real time across the app and persisted to Firebase Firestore.
+- **Flight Log Sign / Unlock Audit Logging:** Signing or unlocking a flight log automatically appends a detailed audit trail entry with delta breakdown to the aircraft's logbook audit history and broadcasts the changes instantly to the cloud.
 - **Flight Log Fuel Quantity Input & Auto PAX Calculations:** In the event modal's Flight Log tab (`FlightLogTab.jsx`), added an input field for fuel purchases to enter exact gallons per leg with automatic totals summation, and removed the manual `Total Pax` input, automatically computing passenger counts from the flight plan's passenger manifest and displaying leg counts and totals in the bottom Aircraft Log Summary.
 - **Flight Log Fuel Purchased Column:** Added dedicated fuel tracking per leg in the flight log table with automatic totals tracking.
 - **Clickable Stat Card Filtering:** Clicking `NET 15` instantly filters the expenses table/list to overdue invoices (> 15 days from transaction date and unpaid). Clicking `Paid` filters to paid expenses, `Unpaid` filters to unpaid expenses, and clicking `Total Expenses` resets the filter to show all rows. Active state borders and a filter clear badge are included on desktop (`ExpensesPage.jsx`) and mobile (`MobileExpenses.jsx`).

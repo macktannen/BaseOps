@@ -73,7 +73,11 @@ const AircraftList = () => {
     loadData();
     const handleStorage = () => loadData();
     window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
+    window.addEventListener('firestore-sync', handleStorage);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('firestore-sync', handleStorage);
+    };
   }, [loadData]);
 
   const filteredAircraft = aircraft.filter(a => 

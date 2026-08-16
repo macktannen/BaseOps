@@ -2,6 +2,12 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.69] - 2026-08-15
+
+### Added
+- **Real-Time Cross-Device Logbook & Audit Trail Synchronization** — Connected `AircraftList.jsx`, `MobileFleet.jsx`, `FlightLogTab.jsx`, and `EventModal.jsx` to live Firestore `firestore-sync` events. The Aircraft Logbook Totals, Logbook Audit Trail, and Event Modal Flight Log Audit Log now broadcast and receive real-time updates seamlessly across all devices and active sessions.
+- **Flight Log Sign / Unlock Audit Logging** — Signing or unlocking a flight log automatically appends a detailed audit trail entry with delta breakdown to the aircraft's logbook audit history and broadcasts the changes instantly to the cloud.
+
 ## [v0.3.68] - 2026-08-15
 
 ### Fixed
