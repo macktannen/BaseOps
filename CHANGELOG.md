@@ -2,12 +2,7 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
-## [v0.4.0] - 2026-08-16
-
-### Changed
-- **Unified Role Badge Design & Soft Shading Separation** — 
-  - Standardized the visual style of PILOT, CREW, and PAX badges so all 3 share the same crisp outline, background fill, padding, and typography hierarchy.
-  - Replaced heavy border line breaks with subtle alternating row shading (`#ffffff` vs `#f8fafc`) and ultra-faint borders (`#f1f5f9`) for clean, natural row separation across the grid.
+## [v0.3.99] - 2026-08-16
 
 ### Changed
 - **Personnel Typography & Balanced Row Dividers** — Enhanced the Crew Schedule grid with larger, high-contrast personnel names (`0.95rem` bold `#1e293b`) and balanced 1.5px medium-slate row divider lines (`#cbd5e1`), providing clear row separation without visual clutter.
