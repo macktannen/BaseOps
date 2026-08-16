@@ -1,12 +1,101 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, addDays, startOfMonth, endOfMonth, isSameMonth, isSameDay, parseISO, differenceInCalendarDays } from 'date-fns';
-import { ChevronLeft, ChevronRight, Plus, GripVertical, Moon, Filter, RotateCcw, MessageSquare } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Plus, GripVertical, Moon, Filter, RotateCcw, MessageSquare, Helicopter, X } from 'lucide-react';
 import { mockFlights, mockPilots, mockAccounts, mockCustomZones } from '../data';
 import airportsData from '../data/airports.json';
 import EventModal from './EventModal';
 import ConflictWarningModal from './ConflictWarningModal';
 import { detectConflicts } from '../services/schedulingConflicts';
 import { authService } from '../services/authService';
+
+const LEGEND = {
+  'Note': '#f59e0b', 
+  'Off Duty': '#ef4444', 
+  'On Duty': '#22c55e', 
+  'Training': '#eab308', 
+  'Vacation': '#3b82f6', 
+  'Overnight': '#6b7280'
+};
+
+const CustomStatusDropdown = ({ value, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const isSelected = value && value !== 'Clear';
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        style={{ 
+          padding: '9px 12px', 
+          border: '1px solid var(--border-color)', 
+          borderRadius: '6px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          cursor: 'pointer', 
+          backgroundColor: '#fff',
+          transition: 'border-color 0.15s ease',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {isSelected ? (
+            <>
+              <div style={{ width: 14, height: 14, backgroundColor: LEGEND[value], borderRadius: '3px' }}></div>
+              <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1e293b' }}>{value}</span>
+            </>
+          ) : (
+            <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>-- Select Status --</span>
+          )}
+        </div>
+        <ChevronDown size={16} style={{ color: '#64748b', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+      </div>
+
+      {isOpen && (
+        <div style={{ 
+          position: 'absolute', 
+          top: 'calc(100% + 4px)', 
+          left: 0, 
+          right: 0, 
+          backgroundColor: 'white', 
+          border: '1px solid var(--border-color)', 
+          borderRadius: '6px',
+          zIndex: 500, 
+          maxHeight: '220px', 
+          overflowY: 'auto', 
+          boxShadow: '0 6px 16px rgba(0,0,0,0.12)' 
+        }}>
+          <div 
+            onClick={() => { onChange('Clear'); setIsOpen(false); }}
+            style={{ padding: '9px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', color: '#94a3b8', fontSize: '0.85rem' }}
+          >
+            -- Clear Status --
+          </div>
+          {Object.keys(LEGEND).map(s => (
+            <div 
+              key={s} 
+              onClick={() => { onChange(s); setIsOpen(false); }}
+              style={{ 
+                padding: '9px 12px', 
+                cursor: 'pointer', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px', 
+                borderBottom: '1px solid #f1f5f9',
+                backgroundColor: value === s ? '#f8fafc' : 'transparent',
+                fontWeight: value === s ? 600 : 400,
+                fontSize: '0.88rem'
+              }}
+            >
+              <div style={{ width: 14, height: 14, backgroundColor: LEGEND[s], borderRadius: '3px' }}></div>
+              <span>{s}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const getDefaultPilotForDate = (dateStr) => {
   try {
@@ -97,6 +186,32 @@ const CalendarView = () => {
   });
   const [noteModal, setNoteModal] = useState({ open: false, date: null, dateEnd: null, title: '', content: '', editId: null });
   const [dropConflictModal, setDropConflictModal] = useState({ open: false, pilotConflicts: [], aircraftConflicts: [], pendingFlight: null });
+  const [cellModalOpen, setCellModalOpen] = useState(null); // { personId, dateStr, status }
+
+  const handleCellStatusClick = (personId, dateStr, status) => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('crewSchedules') || '{}');
+      const key = `${personId}_${dateStr}`;
+      if (status === 'Clear') {
+        delete stored[key];
+      } else {
+        stored[key] = status;
+      }
+      localStorage.setItem('crewSchedules', JSON.stringify(stored));
+      setCrewSchedules(stored);
+      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'crewSchedules' } }));
+    } catch (err) {
+      console.error('Error saving crew schedule:', err);
+    }
+  };
+
+  const handleSaveCellModal = () => {
+    if (!cellModalOpen) return;
+    const { personId, dateStr, status } = cellModalOpen;
+    handleCellStatusClick(personId, dateStr, status);
+    setCellModalOpen(null);
+  };
 
   const updateViewSettings = (patch) => {
     setViewSettings(prev => {
@@ -996,19 +1111,30 @@ const CalendarView = () => {
                    const color = LEGEND[status] || '#ccc';
 
                    return (
-                     <div key={key} style={{
-                        backgroundColor: color,
-                        color: 'white',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.7rem',
-                        fontWeight: 'bold',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                     }}>
+                     <div 
+                       key={key} 
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         setCellModalOpen({ personId: pId, dateStr, status: status || '' });
+                       }}
+                       title={`Click to edit ${name}'s itinerary for ${dateStr}`}
+                       style={{
+                         backgroundColor: color,
+                         color: 'white',
+                         padding: '3px 7px',
+                         borderRadius: '4px',
+                         fontSize: '0.7rem',
+                         fontWeight: 'bold',
+                         display: 'flex',
+                         justifyContent: 'space-between',
+                         alignItems: 'center',
+                         cursor: 'pointer',
+                         boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                         transition: 'transform 0.1s ease, filter 0.1s ease'
+                       }}
+                     >
                        <span>{name}</span>
-                       <span style={{ opacity: 0.85, fontSize: '0.6rem', textTransform: 'uppercase' }}>{status}</span>
+                       <span style={{ opacity: 0.9, fontSize: '0.62rem', textTransform: 'uppercase' }}>{status}</span>
                      </div>
                    );
                 })}
@@ -1151,6 +1277,139 @@ const CalendarView = () => {
           onCancel={() => setDropConflictModal({ open: false, pilotConflicts: [], aircraftConflicts: [], pendingFlight: null })}
         />
       )}
+
+      {/* Daily Itinerary Modal */}
+      {cellModalOpen && (() => {
+        const { personId, dateStr, status } = cellModalOpen;
+        const pilot = pilotsList.find(p => String(p.id) === String(personId) || p.name === personId);
+        const pax = passengersList.find(p => String(p.id) === String(personId) || p.name === personId);
+        const person = pilot ? { ...pilot, type: 'pilot' } : pax ? { ...pax, type: pax.isCrew ? 'crew' : 'pax' } : { id: personId, name: personId, type: 'pilot' };
+        
+        const targetDate = new Date(dateStr + 'T12:00:00');
+        const dayFlights = (flights || []).filter(f => {
+          const fDate = f.date ? f.date.split('T')[0] : '';
+          const legs = f.legs || [];
+          if (legs.length === 0) {
+            const hasPerson = (f.pilotId === personId) || (f.passengers && f.passengers.includes(personId));
+            return fDate === dateStr && hasPerson;
+          }
+          return legs.some(l => {
+            const lDate = l.date || fDate;
+            const hasPerson = (l.pilotId === personId) || (l.pilots && l.pilots.includes(personId)) || (l.passengers && l.passengers.includes(personId));
+            return lDate === dateStr && hasPerson;
+          });
+        });
+
+        const getName = (val) => {
+          if (!val) return '';
+          if (airportsData[val]) return val;
+          const zone = mockCustomZones.find(z => z.id === val || z.name === val);
+          if (zone) return zone.name;
+          return val;
+        };
+
+        return (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 1000, padding: '20px'
+          }}>
+            <div className="card" style={{ width: '550px', maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto', backgroundColor: '#fff', padding: '0', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+              
+              {/* Header */}
+              <div style={{ padding: '20px', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--panel-bg)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <h3 style={{ margin: 0, color: 'var(--primary-color)' }}>Daily Itinerary</h3>
+                    <span style={{ 
+                       fontSize: '0.68rem', 
+                       fontWeight: 700, 
+                       padding: '2px 6px', 
+                       borderRadius: '4px', 
+                       backgroundColor: person?.type === 'pilot' ? '#bee3f8' : person?.type === 'crew' ? '#fefcbf' : '#c6f6d5',
+                       color: person?.type === 'pilot' ? '#2b6cb0' : person?.type === 'crew' ? '#975a16' : '#22543d',
+                       border: `1px solid ${person?.type === 'pilot' ? '#90cdf4' : person?.type === 'crew' ? '#f6e05e' : '#9ae6b4'}`
+                    }}>
+                      {person?.type === 'pilot' ? 'PILOT' : person?.type === 'crew' ? 'CREW' : 'PAX'}
+                    </span>
+                  </div>
+                  <button style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setCellModalOpen(null)}><X size={20} /></button>
+                </div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{person?.name}</div>
+                <div style={{ color: 'var(--text-muted)' }}>{format(targetDate, 'EEEE, MMMM do, yyyy')}</div>
+              </div>
+
+              {/* Status Assignment */}
+              <div style={{ padding: '20px', borderBottom: '1px solid var(--border-color)' }}>
+                <h4 style={{ margin: '0 0 10px 0', fontSize: '0.9rem' }}>Duty Status</h4>
+                <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                  <div style={{ flex: 1 }}>
+                    <CustomStatusDropdown 
+                      value={status} 
+                      onChange={v => setCellModalOpen({...cellModalOpen, status: v})}
+                    />
+                  </div>
+                  <button className="btn btn-outline" style={{ color: '#e53e3e', borderColor: '#e53e3e', padding: '8px 12px' }} onClick={() => { handleCellStatusClick(personId, dateStr, 'Clear'); setCellModalOpen({...cellModalOpen, status: 'Clear'}); }}>Clear</button>
+                  <button className="btn btn-primary" onClick={handleSaveCellModal}>Save Status</button>
+                </div>
+              </div>
+
+              {/* Flights List */}
+              <div style={{ padding: '20px', flex: 1 }}>
+                <h4 style={{ margin: '0 0 15px 0', fontSize: '0.9rem' }}>Scheduled Flights ({dayFlights.length})</h4>
+                
+                {dayFlights.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                    <Helicopter size={32} style={{ opacity: 0.3, marginBottom: '10px' }} />
+                    <div>No flights scheduled for this day.</div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                    {dayFlights.map(f => {
+                      const color = f.tag === 'Emergency' ? '#ed8936' : f.tag === 'Maintenance' ? '#e53e3e' : '#8b5cf6';
+                      return (
+                        <div key={f.id} style={{ border: `1px solid ${color}`, borderRadius: '8px', overflow: 'hidden', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
+                          <div style={{ backgroundColor: color, color: 'white', padding: '10px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>
+                              <Helicopter size={16} style={{ display: 'inline', marginRight: '6px' }}/>
+                              Flight #{f.flightNumber}
+                            </div>
+                            <button 
+                              className="btn" 
+                              style={{ padding: '4px 10px', fontSize: '0.75rem', backgroundColor: 'rgba(255,255,255,0.2)', color: 'white', border: '1px solid rgba(255,255,255,0.3)' }}
+                              onClick={() => {
+                                setCellModalOpen(null);
+                                openModalForFlight(f);
+                              }}
+                            >
+                              Open Flight
+                            </button>
+                          </div>
+                          <div style={{ padding: '15px', display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: 'white' }}>
+                            <div><strong>Aircraft:</strong> {f.aircraftId || 'None'}</div>
+                            {f.legs && f.legs.length > 0 && (
+                              <div>
+                                <strong>Route:</strong>
+                                <ul style={{ margin: '5px 0 0 0', paddingLeft: '20px' }}>
+                                  {f.legs.map((l, i) => (
+                                    <li key={i}>{getName(l.departure)} &#8594; {getName(l.destination)} ({l.takeoffTime || '--:--'} - {l.landTime || '--:--'})</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

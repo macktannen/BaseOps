@@ -2,7 +2,10 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
-## [v0.4.5] - 2026-08-16
+## [v0.4.6] - 2026-08-16
+
+### Added
+- **Interactive Personnel Status Pills on Calendar View** — Clicking on any crew/passenger status bubble in the main Calendar View now immediately opens the Daily Itinerary modal with full status editing and scheduled flight inspection, identical to the Schedules grid.
 
 ### Fixed
 - **Missing ChevronDown Import** — Fixed `ReferenceError: ChevronDown is not defined` by adding `ChevronDown` to `lucide-react` import statement in `CrewSchedule.jsx`.
