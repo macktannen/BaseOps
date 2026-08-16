@@ -438,21 +438,32 @@ const CrewSchedule = () => {
             {personnel.filter(p => activeFilter === 'All' || 
                                   (activeFilter === 'Pilots' && p.type === 'pilot') || 
                                   (activeFilter === 'Crew' && p.type === 'crew') || 
-                                  (activeFilter === 'Passengers' && p.type === 'pax')).map(person => (
+                                  (activeFilter === 'Passengers' && p.type === 'pax')).map((person, rowIndex) => (
               <tr 
                 key={person.id} 
                 draggable
                 onDragStart={() => setDraggedPersonId(person.id)}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => handleDropPerson(person.id)}
+                className="crew-row"
                 style={{ 
-                  borderBottom: '1px solid var(--border-color)', 
-                  backgroundColor: draggedPersonId === person.id ? '#edf2f7' : 'white',
+                  borderBottom: '2px solid #cbd5e1', 
+                  backgroundColor: draggedPersonId === person.id 
+                    ? '#e2e8f0' 
+                    : (rowIndex % 2 === 0 ? '#ffffff' : '#f8fafc'),
+                  transition: 'background-color 0.15s ease'
                 }}
               >
-                <td style={{ padding: '15px', borderRight: '1px solid var(--border-color)', verticalAlign: 'middle', cursor: 'grab' }}>
+                <td style={{ 
+                  padding: '12px 16px', 
+                  borderRight: '2px solid #cbd5e1', 
+                  borderLeft: person.type === 'pilot' ? '4px solid #3182ce' : person.type === 'crew' ? '4px solid #d69e2e' : '4px solid #38a169',
+                  verticalAlign: 'middle', 
+                  cursor: 'grab',
+                  backgroundColor: rowIndex % 2 === 0 ? '#ffffff' : '#f8fafc'
+                }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ color: '#cbd5e0' }}><GripVertical size={16} /></div>
+                    <div style={{ color: '#94a3b8' }}><GripVertical size={16} /></div>
                     <span style={{ 
                        fontSize: '0.65rem', 
                        fontWeight: 'bold', 
@@ -477,7 +488,15 @@ const CrewSchedule = () => {
                   return (
                     <td 
                       key={day.toString()} 
-                      style={{ borderRight: '1px solid var(--border-color)', verticalAlign: 'top', padding: '4px', position: 'relative', cursor: activeDuplicateStatus ? 'crosshair' : 'pointer' }}
+                      style={{ 
+                        borderRight: '1px solid #e2e8f0', 
+                        borderBottom: '2px solid #cbd5e1',
+                        verticalAlign: 'top', 
+                        padding: '6px 4px', 
+                        position: 'relative', 
+                        cursor: activeDuplicateStatus ? 'crosshair' : 'pointer',
+                        backgroundColor: cellStatus ? undefined : (rowIndex % 2 === 0 ? '#ffffff' : '#f8fafc')
+                      }}
                       onClick={(e) => {
                          if (activeDuplicateStatus) {
                             handleCellClick(person.id, dateStr, activeDuplicateStatus);

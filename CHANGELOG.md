@@ -2,7 +2,13 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
-## [v0.3.96] - 2026-08-16
+## [v0.3.97] - 2026-08-16
+
+### Added
+- **Crew Schedule Grid Visual Row Dividers** — Enhanced the Crew & Passengers schedules grid with clear visual demarcation between personnel rows:
+  - Added thick 2px slate row borders (`#cbd5e1`) and alternating zebra striping (`#ffffff` / `#f8fafc`).
+  - Added colored left-accent border tabs per personnel type (Blue for Pilots, Gold for Crew, Green for Passengers).
+  - Added subtle hover highlight (`.crew-row:hover td`) so users can easily trace which schedule events and flight cards belong to each person.
 
 ### Fixed
 - **Atomic Single-Click Signing Architecture** — Unified signing execution into `EventModal.jsx` (`handleSignFlight`), ensuring aircraft meter updates, log snapshotting, flight persistence, and status updates execute in a single atomic transaction with active remote-sync suppression guards.

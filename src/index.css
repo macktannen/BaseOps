@@ -528,6 +528,18 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+@media (max-width: 1200px) {
+  .location-editor-row {
+    flex-direction: column !important;
+  }
+
+  .location-editor-row .location-map-container {
+    flex: 1 1 auto !important;
+    min-height: 300px;
+    width: 100%;
+  }
+}
+
 /* ============================================
    EVENT MODAL LEG ROWS — DESKTOP RESPONSIVE
    Compresses the fixed-width columns in flight
@@ -604,4 +616,9 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 0.75rem !important;
     padding: 3px 5px !important;
   }
+}
+
+/* Crew Schedule Grid Row Distinction */
+.crew-row:hover td {
+  background-color: #f1f5f9 !important;
 }
