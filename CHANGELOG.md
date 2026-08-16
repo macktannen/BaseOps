@@ -2,7 +2,10 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
-## [v0.4.1] - 2026-08-16
+## [v0.4.2] - 2026-08-16
+
+### Changed
+- **Matching Saturated Badge Fills for Pilot, Crew, and Pax** — Updated the `PILOT` (`#bee3f8`) and `PAX` (`#c6f6d5`) badge fills and borders to have the exact same rich, saturated aesthetic as `CREW` (`#fefcbf`).
 
 ### Reverted
 - **Reverted v0.4.0 Badge & Shading Changes** — Restored the previous high-contrast personnel typography and balanced 1.5px slate borders from `v0.3.99` per user request.

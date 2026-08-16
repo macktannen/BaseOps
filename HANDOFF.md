@@ -1,11 +1,11 @@
 # Switch (Handoff) Document
-Current Version: **v0.4.1**
+Current Version: **v0.4.2**
 
 ## Project Overview
 Helicopter Scheduler Web App (`baseops`). We are actively debugging state synchronization bugs, managing production data safety, and building out new UI layouts.
 
-## Current Status (v0.4.1)
-1. **Reverted v0.4.0 Grid Update**: Restored the balanced 1.5px slate borders and personnel typography layout from `v0.3.99`.
+## Current Status (v0.4.2)
+1. **Personnel Badge Fill Matching**: Filled in `PILOT` (rich sky blue) and `PAX` (rich soft mint) badges to match the solid, saturated look of `CREW`.
 2. **Production Safety & Sandbox Isolation**: Local development (`localhost`) is now automatically isolated to `orgs/dev_sandbox` in Firestore so local testing never alters production database (`orgs/default`).
 3. **Data Management Tools**: Added administrative controls in `SettingsView` under "Data Management" allowing one-click resets of flights or complete database wipes across local and cloud environments.
 4. **Clear Signature Single-Click Logic**: Completely rewritten into an atomic workflow inside `EventModal.jsx`, eliminating stale prop evaluations and multi-layer callback race conditions.

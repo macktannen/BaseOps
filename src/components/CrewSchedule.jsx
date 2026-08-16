@@ -469,9 +469,9 @@ const CrewSchedule = () => {
                        fontWeight: 700, 
                        padding: '2px 6px', 
                        borderRadius: '4px', 
-                       backgroundColor: person.type === 'pilot' ? '#ebf8ff' : person.type === 'crew' ? '#fefcbf' : '#f0fdf4',
-                       color: person.type === 'pilot' ? '#2b6cb0' : person.type === 'crew' ? '#975a16' : '#166534',
-                       border: `1px solid ${person.type === 'pilot' ? '#90cdf4' : person.type === 'crew' ? '#f6e05e' : '#86efac'}`
+                       backgroundColor: person.type === 'pilot' ? '#bee3f8' : person.type === 'crew' ? '#fefcbf' : '#c6f6d5',
+                       color: person.type === 'pilot' ? '#2b6cb0' : person.type === 'crew' ? '#975a16' : '#22543d',
+                       border: `1px solid ${person.type === 'pilot' ? '#90cdf4' : person.type === 'crew' ? '#f6e05e' : '#9ae6b4'}`
                     }}>
                       {person.type === 'pilot' ? 'PILOT' : person.type === 'crew' ? 'CREW' : 'PAX'}
                     </span>
