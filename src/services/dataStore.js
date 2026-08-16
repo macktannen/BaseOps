@@ -192,11 +192,22 @@ function mergeFlights(localFlights, remoteFlights) {
       });
       const mergedExpenses = Array.from(expMap.values());
 
-      // Merge flightLog (prefer signed/locked or richer log)
+      // Merge flightLog (prefer signed/locked or richer log, but respect intentional unsigning)
       const lLog = lFlight.flightLog || null;
       const rLog = rFlight.flightLog || null;
       let mergedFlightLog = rLog;
-      if (lLog && (!rLog || (lLog.isLocked && !rLog.isLocked) || (lLog.signature && !rLog.signature) || ((lLog.legsActuals?.length || 0) > (rLog.legsActuals?.length || 0)))) {
+      
+      // Check if either log was intentionally unsigned (audit log contains 'Signature cleared')
+      const lIntentionallyUnsigned = lLog && !lLog.signature && Array.isArray(lLog.auditLog) && lLog.auditLog.some(e => typeof e === 'string' && e.includes('Signature cleared'));
+      const rIntentionallyUnsigned = rLog && !rLog.signature && Array.isArray(rLog.auditLog) && rLog.auditLog.some(e => typeof e === 'string' && e.includes('Signature cleared'));
+      
+      if (lIntentionallyUnsigned) {
+        // Local was intentionally unsigned — respect the admin's action
+        mergedFlightLog = lLog;
+      } else if (rIntentionallyUnsigned) {
+        // Remote was intentionally unsigned — respect the admin's action
+        mergedFlightLog = rLog;
+      } else if (lLog && (!rLog || (lLog.isLocked && !rLog.isLocked) || (lLog.signature && !rLog.signature) || ((lLog.legsActuals?.length || 0) > (rLog.legsActuals?.length || 0)))) {
         mergedFlightLog = lLog;
       }
 

@@ -588,6 +588,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const [activeView, setActiveView] = useState(defaultActiveView || 'Plan'); // 'Plan' or 'Log' or 'Expenses'
   const prevFlightIdRef = useRef(flight?.id ? String(flight.id) : (flight ? String(flight.flightNumber || 'new') : 'new'));
   const [flightLog, setFlightLog] = useState({});
+  const suppressSyncRef = useRef(false); // Guard against sync overwrites during active unsign
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [conflictModal, setConflictModal] = useState({ open: false, pilotConflicts: [], aircraftConflicts: [] });
   const [expenses, setExpenses] = useState([]);
@@ -681,12 +682,13 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   useEffect(() => {
     const handleRemoteSync = (e) => {
       // Filter out storage/firestore events for unrelated keys (e.g. userAircraft)
-      // Pass through: CustomEvent('storage', {detail:{key:'userFlights'}}), StorageEvent with key='userFlights', CustomEvent('firestore-sync', {detail:{key:'userFlights'}})
       if (e?.detail?.key && e.detail.key !== 'userFlights') return;
       if (e?.key && e.key !== 'userFlights') return;
       // Block plain Event('storage') with no key/detail — those are aircraft updates from FlightLogTab
       if (!e?.detail?.key && !e?.key) return;
       if (!flight || !flight.id) return;
+      // Guard: skip sync overwrites during an active unsign/clear-signature operation
+      if (suppressSyncRef.current) return;
 
       try {
         const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
@@ -890,11 +892,14 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       setComments(flight.comments || '');
       setOpsNotes(flight.opsNotes || '');
       const currentFlightLog = flight.flightLog || {};
-      setFlightLog(currentFlightLog);
-      if (currentFlightLog.signature) {
-        setStatus('completed');
-      } else {
-        setStatus(normalizeStatus(flight.status || 'confirmed'));
+      // Guard: don't overwrite flightLog during an active unsign operation
+      if (!suppressSyncRef.current) {
+        setFlightLog(currentFlightLog);
+        if (currentFlightLog.signature) {
+          setStatus('completed');
+        } else {
+          setStatus(normalizeStatus(flight.status || 'confirmed'));
+        }
       }
       setTag(flight.tag || '');
       setExpenses(flight.expenses || []);
@@ -2365,9 +2370,19 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                   performSave(signedLog, 'completed');
                 }}
                 onUnsign={(unsignedLog) => {
-                  setFlightLog(unsignedLog);
+                  // Activate guard to prevent sync overwrites during unsign
+                  suppressSyncRef.current = true;
+                  const forcedUnsigned = {
+                    ...unsignedLog,
+                    signature: null,
+                    isLocked: false,
+                    aircraftTotals: null
+                  };
+                  setFlightLog(forcedUnsigned);
                   setStatus('confirmed');
-                  performSave(unsignedLog, 'confirmed');
+                  performSave(forcedUnsigned, 'confirmed');
+                  // Release guard after React has committed and Firestore echo has settled
+                  setTimeout(() => { suppressSyncRef.current = false; }, 2000);
                 }}
                 aircraftId={aircraftId}
                 aircraftList={aircraftList}

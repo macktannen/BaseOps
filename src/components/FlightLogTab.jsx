@@ -278,8 +278,14 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
     if (onSign) onSign(nextLog);
   };
 
-  const handleClearSignature = () => {
-    updateGlobalAircraft(-1); // Revert totals
+  const handleClearSignature = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (e && e.stopPropagation) e.stopPropagation();
+    
+    // 1. Revert totals exactly once synchronously
+    updateGlobalAircraft(-1); 
+    
+    // 2. Prepare the unsigned log payload
     const nextLog = {
       ...log,
       signature: null,
@@ -287,8 +293,17 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
       aircraftTotals: null,
       auditLog: [...(log.auditLog || []), `Signature cleared by ${currentUser.name || 'Admin'} on ${new Date().toLocaleString()}`]
     };
-    updateLog(nextLog);
-    if (onUnsign) onUnsign(nextLog);
+    
+    // 3. Update local state immediately so UI updates
+    if (setFlightLog) setFlightLog(nextLog);
+    
+    // 4. Defer to parent (EventModal) to perform the atomic save to CalendarView
+    if (onUnsign) {
+      onUnsign(nextLog);
+    } else if (persistFlightLog) {
+      // Fallback if onUnsign not provided
+      persistFlightLog(nextLog);
+    }
   };
   
   const handleToggleLock = () => {
