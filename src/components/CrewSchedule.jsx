@@ -447,7 +447,7 @@ const CrewSchedule = () => {
                 onDrop={() => handleDropPerson(person.id)}
                 className="crew-row"
                 style={{ 
-                  borderBottom: '1.5px solid #cbd5e1', 
+                  borderBottom: '1px solid #f1f5f9', 
                   backgroundColor: draggedPersonId === person.id 
                     ? '#edf2f7' 
                     : (rowIndex % 2 === 0 ? '#ffffff' : '#f8fafc'),
@@ -456,7 +456,7 @@ const CrewSchedule = () => {
               >
                 <td style={{ 
                   padding: '12px 16px', 
-                  borderRight: '1.5px solid #cbd5e1', 
+                  borderRight: '1px solid #e2e8f0', 
                   borderLeft: person.type === 'pilot' ? '4px solid #3182ce' : person.type === 'crew' ? '4px solid #d69e2e' : '4px solid #38a169',
                   verticalAlign: 'middle', 
                   cursor: 'grab',
@@ -489,8 +489,8 @@ const CrewSchedule = () => {
                     <td 
                       key={day.toString()} 
                       style={{ 
-                        borderRight: '1px solid #e2e8f0', 
-                        borderBottom: '1.5px solid #cbd5e1',
+                        borderRight: '1px solid #f1f5f9', 
+                        borderBottom: '1px solid #f1f5f9',
                         verticalAlign: 'top', 
                         padding: '6px 4px', 
                         position: 'relative', 

@@ -2,7 +2,10 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
-## [v0.4.2] - 2026-08-16
+## [v0.4.3] - 2026-08-16
+
+### Changed
+- **Subtle Row Dividing Lines** — Softened the crew schedule grid row lines from prominent 1.5px slate borders to very subtle, faint 1px divider lines (`#f1f5f9`) for clean, understated visual separation.
 
 ### Changed
 - **Matching Saturated Badge Fills for Pilot, Crew, and Pax** — Updated the `PILOT` (`#bee3f8`) and `PAX` (`#c6f6d5`) badge fills and borders to have the exact same rich, saturated aesthetic as `CREW` (`#fefcbf`).
