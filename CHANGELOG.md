@@ -2,7 +2,10 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
-## [v0.3.93] - 2026-08-16
+## [v0.3.94] - 2026-08-16
+
+### Fixed
+- **Aircraft Meter Double-Addition On Signing** — Fixed an issue in `FlightLogTab.jsx` where clicking "Sign Logbook" triggered both `updateLog(nextLog)` and `onSign(nextLog)` simultaneously, creating duplicate save/sync calls and resulting in meter over-increments.
 
 ### Added
 - **Strict Protocol Enforcement** — Automated version bumping, comprehensive changelog tracking, and handoff synchronization for every update.

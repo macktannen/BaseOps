@@ -274,8 +274,11 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
         `Signed by ${currentUser.name || 'Pilot'} on ${new Date().toLocaleString()}`
       ]
     };
-    updateLog(nextLog);
-    if (onSign) onSign(nextLog);
+    if (onSign) {
+      onSign(nextLog);
+    } else {
+      updateLog(nextLog);
+    }
   };
 
   // handleClearSignature is now handled entirely by the parent (EventModal)

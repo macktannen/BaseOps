@@ -1,11 +1,11 @@
 # Switch (Handoff) Document
-Current Version: **v0.3.93**
+Current Version: **v0.3.94**
 
 ## Project Overview
 Helicopter Scheduler Web App (`baseops`). We are actively debugging state synchronization bugs, managing production data safety, and building out new UI layouts.
 
-## Current Status (v0.3.93)
-1. **Strict Tracking & Documentation Protocol**: Established mandatory version bumping (`package.json`), `CHANGELOG.md` entry generation, and `HANDOFF.md` updates with every single commit/update.
+## Current Status (v0.3.94)
+1. **Aircraft Meter Signing Fix**: Eliminated duplicate execution of `updateLog` and `onSign` in `FlightLogTab.jsx` when signing a flight log, ensuring aircraft flight totals increment by the exact single logged amount.
 2. **Production Safety & Sandbox Isolation**: Local development (`localhost`) is now automatically isolated to `orgs/dev_sandbox` in Firestore so local testing never alters production database (`orgs/default`).
 3. **Data Management Tools**: Added administrative controls in `SettingsView` under "Data Management" allowing one-click resets of flights or complete database wipes across local and cloud environments.
 4. **Clear Signature Single-Click Logic**: Completely rewritten into an atomic workflow inside `EventModal.jsx`, eliminating stale prop evaluations and multi-layer callback race conditions.
