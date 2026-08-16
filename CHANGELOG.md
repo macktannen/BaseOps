@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v0.3.85] - 2026-08-15
+
+### Fixed
+- **Instant Single-Click Unsign Architecture** — Refactored `FlightLogTab.jsx` to eliminate internal duplicate state (`useState(log)`) and consume `flightLog` directly as the single source of truth. Clicking "Clear Signature" now synchronously uncommits aircraft totals, removes signature, sets status to `Confirmed`, unlocks the aircraft dropdown, and saves the flight in a single instantaneous click.
+
 ## [v0.3.84] - 2026-08-15
 
 ### Fixed

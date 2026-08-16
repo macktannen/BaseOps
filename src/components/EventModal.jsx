@@ -2338,10 +2338,12 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                 setFlightLog={setFlightLog}
                 persistFlightLog={persistFlightLogToFlight}
                 onSign={(signedLog) => {
+                  setFlightLog(signedLog);
                   setStatus('completed');
                   performSave(signedLog, 'completed');
                 }}
                 onUnsign={(unsignedLog) => {
+                  setFlightLog(unsignedLog);
                   setStatus('confirmed');
                   performSave(unsignedLog, 'confirmed');
                 }}

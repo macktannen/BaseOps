@@ -7,15 +7,13 @@ import MobileDropdownMenu from './MobileDropdownMenu';
 const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign, onUnsign, aircraftId, aircraftList, pilotsList }) => {
   const isMobile = useIsMobile();
   const [auditExpanded, setAuditExpanded] = useState(false);
-  const [log, setLog] = useState({
-    legsActuals: legs.map(() => ({
-      flightHrs: '', blockHrs: '', hobbs: '', engineCycles: '', engine1Cycles: '', engine2Cycles: '', engine1Hrs: '', engine2Hrs: '', landings: '', landingType: '', fuelPurchased: ''
-    })),
-    signature: null, // { name: '', timestamp: '' }
-    isLocked: false,
-    auditLog: [],
-    ...flightLog
-  });
+
+  const defaultLegsActuals = legs.map(() => ({
+    flightHrs: '', blockHrs: '', hobbs: '', engineCycles: '', engine1Cycles: '', engine2Cycles: '', engine1Hrs: '', engine2Hrs: '', landings: '', landingType: '', fuelPurchased: ''
+  }));
+
+  const log = flightLog && typeof flightLog === 'object' ? flightLog : {};
+  const legsActuals = (log.legsActuals && log.legsActuals.length > 0) ? log.legsActuals : defaultLegsActuals;
 
   const currentUser = authService.getCurrentUser() || { name: 'Admin', role: 'admin' };
   const isAdmin = currentUser?.role === 'admin';
@@ -29,41 +27,23 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
   });
 
   const canSign = isAdmin || assignedPilotNames.some(name => name === currentUser?.name || name === currentUser?.id);
-  
   const isEditable = !log.isLocked;
-
   const [aircraft, setAircraft] = useState(null);
-  const lastInternalLogJsonRef = React.useRef(null);
 
-  // Sync to parent and storage when user modifies log
+  // Sync directly to parent and persistent storage
   const updateLog = (updater) => {
-    setLog(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      lastInternalLogJsonRef.current = JSON.stringify(next);
-      if (setFlightLog) setFlightLog(next);
-      if (persistFlightLog) persistFlightLog(next);
-      return next;
-    });
+    const current = {
+      legsActuals,
+      signature: log.signature || null,
+      isLocked: log.isLocked || false,
+      aircraftTotals: log.aircraftTotals || null,
+      auditLog: log.auditLog || [],
+      ...log
+    };
+    const next = typeof updater === 'function' ? updater(current) : updater;
+    if (setFlightLog) setFlightLog(next);
+    if (persistFlightLog) persistFlightLog(next);
   };
-
-  // Real-time synchronization when parent flightLog updates from Firestore/other devices
-  useEffect(() => {
-    if (!flightLog || typeof flightLog !== 'object' || Object.keys(flightLog).length === 0) return;
-    const incomingJson = JSON.stringify(flightLog);
-    // Ignore if this prop update is identical to what we just internally generated
-    if (incomingJson === lastInternalLogJsonRef.current) {
-      return;
-    }
-    setLog(prev => {
-      const nextMerged = {
-        ...prev,
-        ...flightLog,
-        legsActuals: (flightLog.legsActuals && flightLog.legsActuals.length > 0) ? flightLog.legsActuals : prev.legsActuals,
-        auditLog: flightLog.auditLog || prev.auditLog || []
-      };
-      return nextMerged;
-    });
-  }, [flightLog]);
 
   // Load and listen to aircraft baseline data in real time (WITHOUT modifying log state)
   useEffect(() => {
@@ -88,7 +68,7 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
   const isTwin = aircraft?.dualEngine || log.aircraftTotals?.dualEngine || false;
 
   const handleUpdateLeg = (index, field, value) => {
-    const newLegs = [...log.legsActuals];
+    const newLegs = [...legsActuals];
     if (!newLegs[index]) {
        newLegs[index] = { flightHrs: '', blockHrs: '', hobbs: '', engineCycles: '', engine1Cycles: '', engine2Cycles: '', engine1Hrs: '', engine2Hrs: '', landings: '', landingType: '', fuelPurchased: '' };
     }
@@ -102,7 +82,7 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
     let eng1HrsTotal = 0, eng2HrsTotal = 0;
     let fuelPurchasedTotal = 0;
 
-    log.legsActuals.forEach((l, idx) => {
+    legsActuals.forEach((l, idx) => {
       const fHrs = parseFloat(l.flightHrs || 0);
       flight += fHrs;
       block += parseFloat(l.blockHrs || 0);
