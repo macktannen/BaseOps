@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v1.0.5] - 2026-08-17
+
+### Fixed
+- **Expenses overview table truncation** — Removed artificial `maxWidth` constraints on Account, Vendor, Category, Payment, Fuel Provider, Purchaser, and Notes columns in the desktop expenses overview table. Changed container `overflowX` from `hidden` to `auto` so a horizontal scrollbar appears when the table exceeds the viewport width.
+
 ## [v1.0.4] - 2026-08-17
 
 ### Fixed

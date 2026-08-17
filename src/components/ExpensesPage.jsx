@@ -981,7 +981,7 @@ const ExpensesPage = () => {
               </div>
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+            <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
               <table className="data-table expenses-table" style={{ width: '100%', tableLayout: 'auto', borderCollapse: 'collapse' }}>
                 <thead style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 1 }}>
                   <tr>
@@ -1023,14 +1023,14 @@ const ExpensesPage = () => {
                           ) : null}
                         </td>
                         <td style={{ padding: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{exp.flightAircraft || '-'}</td>
-                        <td style={{ padding: '6px', fontSize: '0.75rem', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={exp.flightAccount}>
+                        <td style={{ padding: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap' }} title={exp.flightAccount}>
                           {(() => {
                             if (!exp.flightAccount) return '-';
                             const act = accounts.find(a => a.id === exp.flightAccount || a.name === exp.flightAccount);
                             return act ? act.name : exp.flightAccount;
                           })()}
                         </td>
-                        <td style={{ padding: '6px', fontWeight: 500, fontSize: '0.75rem', maxWidth: '110px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={exp.vendor}>
+                        <td style={{ padding: '6px', fontWeight: 500, fontSize: '0.75rem', whiteSpace: 'nowrap' }} title={exp.vendor}>
                           {(() => {
                             const foundVendor = vendors.find(v => v.vendorId === exp.vendor || v.name === exp.vendor);
                             return foundVendor?.name || exp.vendor || '-';
@@ -1042,18 +1042,15 @@ const ExpensesPage = () => {
                             backgroundColor: getCategoryColor(exp.category).bg, 
                             color: getCategoryColor(exp.category).text,
                             display: 'inline-block',
-                            maxWidth: '120px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap'
                           }} title={exp.category}>
                             {exp.category}
                           </span>
                         </td>
-                        <td style={{ padding: '6px', fontSize: '0.75rem', maxWidth: '85px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={exp.payer}>{exp.payer || '-'}</td>
-                        <td style={{ padding: '6px', fontSize: '0.75rem', maxWidth: '85px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={exp.fuelType}>{exp.fuelType || '-'}</td>
-                        <td style={{ padding: '6px', fontSize: '0.75rem', maxWidth: '85px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={exp.purchaser}>{exp.purchaser || '-'}</td>
-                        <td style={{ padding: '6px', maxWidth: '130px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.75rem' }} title={exp.description}>
+                        <td style={{ padding: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap' }} title={exp.payer}>{exp.payer || '-'}</td>
+                        <td style={{ padding: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap' }} title={exp.fuelType}>{exp.fuelType || '-'}</td>
+                        <td style={{ padding: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap' }} title={exp.purchaser}>{exp.purchaser || '-'}</td>
+                        <td style={{ padding: '6px', whiteSpace: 'nowrap', fontSize: '0.75rem' }} title={exp.description}>
                           {exp.description || '-'}
                         </td>
                         <td style={{ padding: '6px 4px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>

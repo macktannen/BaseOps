@@ -3,7 +3,7 @@
 - **Timestamp:** Aug 17, 2026
 - **Tool used:** opencode
 - **Branch:** main
-- **Last commit:** 41ee1b3 fix(data): merge expenses by ID on flight save to prevent data loss from race condition
+- **Last commit:** 3480ea7 fix(aircraft): idempotent hour commits and longer sync guard to prevent double-counting and stale overwrites
 
 ## Project Overview
 Helicopter Scheduler Web App (`baseops`). Manages flights, crew schedules, expenses, fleet, and documents with Firebase/Firestore backend.
