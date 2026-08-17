@@ -384,13 +384,15 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
     }
 
     const newFiles = currentFiles.filter((_, idx) => idx !== fileIndex);
-    
-    setExpenses(prev => prev.map(e => e.id === expId ? {
+    const updatedExpenses = expenses.map(e => e.id === expId ? {
       ...e,
       receiptFiles: newFiles,
       receiptCount: newFiles.length,
       hasReceipt: newFiles.length > 0
-    } : e));
+    } : e);
+    
+    setExpenses(updatedExpenses);
+    persistExpensesToFlight(updatedExpenses);
     
     if (viewingExpId === expId) {
       setLoadedReceipts(prev => prev.filter((_, idx) => idx !== fileIndex));
