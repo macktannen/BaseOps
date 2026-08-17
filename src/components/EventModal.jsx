@@ -1445,50 +1445,70 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   };
 
   const performSave = (overrideFlightLog = null, overrideStatus = null) => {
-    legs.forEach(leg => {
-      if (leg.departure && leg.departure.id) incrementUsage(leg.departure.id);
-      if (leg.destination && leg.destination.id) incrementUsage(leg.destination.id);
-    });
+    try {
+      legs.forEach(leg => {
+        if (leg.departure && leg.departure.id) incrementUsage(leg.departure.id);
+        if (leg.destination && leg.destination.id) incrementUsage(leg.destination.id);
+      });
 
-    const firstLeg = legs[0] || {};
-    const passengers = firstLeg.passengers || [];
+      const firstLeg = legs[0] || {};
+      const passengers = firstLeg.passengers || [];
 
-    const savedExpenses = expenses.map(exp => ({
-      ...exp,
-      _dirty: false,
-      _saved: true
-    }));
-    setExpenses(savedExpenses);
+      const savedExpenses = expenses.map(exp => ({
+        ...exp,
+        _dirty: false,
+        _saved: true
+      }));
+      setExpenses(savedExpenses);
 
-    const finalLog = overrideFlightLog || flightLog;
-    const finalStatus = overrideStatus || status;
+      const finalLog = overrideFlightLog || flightLog;
+      const finalStatus = overrideStatus || status;
 
-    onSave({
-      id: flight ? flight.id : undefined,
-      flightNumber,
-      title,
-      accountId,
-      date: legs[0]?.date ? new Date(legs[0].date).toISOString() : new Date(date).toISOString(),
-      aircraftId,
-      comments,
-      opsNotes,
-      status: finalStatus,
-      tag,
-      legs,
-      passengers,
-      pilotId: firstLeg.pilotId || '',
-      flightLog: finalLog,
-      expenses: savedExpenses,
-      uploads
-    });
-    
-    setIsSaved(false);
-    setTimeout(() => {
-      setIsSaved(true);
-    }, 50);
+      const rawDateStr = legs[0]?.date || date || new Date().toISOString().split('T')[0];
+      let safeIsoDate;
+      try {
+        safeIsoDate = new Date(rawDateStr.includes('T') ? rawDateStr : `${rawDateStr}T00:00:00`).toISOString();
+      } catch {
+        safeIsoDate = new Date().toISOString();
+      }
+
+      const flightPayload = {
+        id: flight ? flight.id : undefined,
+        flightNumber,
+        title,
+        accountId,
+        date: safeIsoDate,
+        aircraftId,
+        comments,
+        opsNotes,
+        status: finalStatus,
+        tag,
+        legs,
+        passengers,
+        pilotId: firstLeg.pilotId || '',
+        flightLog: finalLog,
+        expenses: savedExpenses,
+        uploads
+      };
+
+      if (onSave) {
+        onSave(flightPayload);
+      }
+
+      setIsSaved(false);
+      setTimeout(() => {
+        setIsSaved(true);
+      }, 50);
+    } catch (err) {
+      console.error("performSave error:", err);
+      alert("Failed to save flight: " + err.message);
+    }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (e && e.stopPropagation) e.stopPropagation();
+
     // Check route legs
     const invalidLegIndex = legs.findIndex(l => !l.departure || !l.destination);
     if (invalidLegIndex !== -1) {
@@ -1497,12 +1517,20 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       return;
     }
 
+    const rawDateStr = legs[0]?.date || date || new Date().toISOString().split('T')[0];
+    let safeIsoDate;
+    try {
+      safeIsoDate = new Date(rawDateStr.includes('T') ? rawDateStr : `${rawDateStr}T00:00:00`).toISOString();
+    } catch {
+      safeIsoDate = new Date().toISOString();
+    }
+
     const flightData = {
       id: flight ? flight.id : undefined,
       flightNumber,
       title,
       accountId,
-      date: legs[0]?.date ? new Date(legs[0].date).toISOString() : new Date(date).toISOString(),
+      date: safeIsoDate,
       aircraftId,
       comments,
       opsNotes,
@@ -1516,11 +1544,15 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       uploads
     };
 
-    const { pilotConflicts, aircraftConflicts } = detectConflicts(flightData, allFlights);
+    try {
+      const { pilotConflicts, aircraftConflicts } = detectConflicts(flightData, allFlights);
 
-    if (pilotConflicts.length > 0 || aircraftConflicts.length > 0) {
-      setConflictModal({ open: true, pilotConflicts, aircraftConflicts });
-      return;
+      if (pilotConflicts.length > 0 || aircraftConflicts.length > 0) {
+        setConflictModal({ open: true, pilotConflicts, aircraftConflicts });
+        return;
+      }
+    } catch (conflictErr) {
+      console.warn("Conflict detection bypassed:", conflictErr);
     }
 
     performSave();
