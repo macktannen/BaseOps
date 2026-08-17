@@ -88,6 +88,7 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
   const [viewingExpId, setViewingExpId] = useState(null);
   const [loadedReceipts, setLoadedReceipts] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [aiLoadingId, setAiLoadingId] = useState(null);
 
   const { userFlights, userVendors, updateData } = useData();
 
@@ -249,7 +250,35 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
     persistExpensesToFlight(next);
   };
 
+  const handleAiProcessingStart = () => {
+    const newExpId = Date.now();
+    setAiLoadingId(newExpId);
+    const loadingRow = {
+      id: newExpId,
+      category: '',
+      vendor: '',
+      amount: '',
+      description: '',
+      date: defaultDate,
+      payer: '',
+      location: flightAirports[0] || '',
+      fuelType: '',
+      gallons: '',
+      purchaser: aircraftId,
+      receiptFiles: [],
+      receiptCount: 0,
+      hasReceipt: false,
+      _aiLoading: true,
+      _dirty: false,
+      _saved: false
+    };
+    const next = [...expenses, loadingRow];
+    setExpenses(next);
+    persistExpensesToFlight(next);
+  };
+
   const handleAutoFillParsedExpense = async (parsedData) => {
+    const loadingId = aiLoadingId;
     const defaultPayers = ['Avcard', 'Avfuel', 'World Fuel', 'Direct Bill', 'Titan', 'Company Card', 'Personal Card', 'Other'];
     const defaultFuelTypes = ['Avfuel', 'AEG', 'Atlantic', 'Everest', 'EVO', 'FBO', 'Phillip66', 'Signature', 'Titan', 'World Fuel', 'CAA', 'Other'];
 
@@ -309,7 +338,7 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
     let receiptFiles = [];
     let receiptCount = 0;
 
-    const newExpId = Date.now();
+    const expId = loadingId || Date.now();
     const flightId = flight?.id || 'flight_' + Date.now();
 
     if (parsedData._originalFile) {
@@ -318,7 +347,7 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
         if (!validation.valid) {
           setUploadError(validation.error);
         } else {
-          const result = await FileStorageService.saveReceipt(flightId, newExpId, parsedData._originalFile);
+          const result = await FileStorageService.saveReceipt(flightId, expId, parsedData._originalFile);
           receiptFiles = [{ storagePath: result.storagePath, name: parsedData._originalFile.name, type: parsedData._originalFile.type, size: result.size, url: result.url }];
           receiptCount = 1;
         }
@@ -326,7 +355,7 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
     }
 
     const newExp = {
-      id: newExpId,
+      id: expId,
       category: validCategory,
       vendor: finalVendorName,
       amount: parsedData.amount !== '' && parsedData.amount != null ? parsedData.amount : '',
@@ -345,7 +374,13 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
       _saved: true
     };
 
-    const nextExpenses = [...expenses, newExp];
+    let nextExpenses;
+    if (loadingId) {
+      nextExpenses = expenses.map(e => e.id === loadingId ? newExp : e);
+    } else {
+      nextExpenses = [...expenses, newExp];
+    }
+    setAiLoadingId(null);
     setExpenses(nextExpenses);
     persistExpensesToFlight(nextExpenses);
   };
@@ -521,6 +556,11 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
               return (
                 <tr key={exp.id} style={{ borderBottom: '1px solid #edf2f7' }}>
                   <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '2px' }}>
+                    {exp._aiLoading ? (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Loader2 size={18} className="animate-spin" color="#8b5cf6" />
+                      </div>
+                    ) : (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
                       <button 
                         type="button" 
@@ -546,12 +586,19 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
                         <X size={15} />
                       </button>
                     </div>
+                    )}
                   </td>
                   <td style={tdStyle}>
-                    <input type="date" value={exp.date || ''} onChange={e => handleUpdate(exp.id, 'date', e.target.value)} onFocus={e => e.target.select()} style={inputStyle} />
+                    {exp._aiLoading ? (
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: '6px' }}><Loader2 size={14} className="animate-spin" color="#8b5cf6" /></div>
+                    ) : (
+                      <input type="date" value={exp.date || ''} onChange={e => handleUpdate(exp.id, 'date', e.target.value)} onFocus={e => e.target.select()} style={inputStyle} />
+                    )}
                   </td>
                   <td style={tdStyle}>
-                    {isMobile ? (
+                    {exp._aiLoading ? (
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: '6px' }}><Loader2 size={14} className="animate-spin" color="#8b5cf6" /></div>
+                    ) : isMobile ? (
                       <MobileDropdownMenu
                         value={exp.vendor || ''}
                         onChange={val => handleUpdate(exp.id, 'vendor', val)}
@@ -573,6 +620,9 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
                     )}
                   </td>
                   <td style={tdStyle}>
+                    {exp._aiLoading ? (
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: '6px' }}><Loader2 size={14} className="animate-spin" color="#8b5cf6" /></div>
+                    ) : (
                     <CategoryCombobox 
                       value={exp.category} 
                       onChange={val => handleUpdate(exp.id, 'category', val)} 
@@ -580,9 +630,12 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
                       style={getStyle(exp, 'category', inputStyle)} 
                       isMobile={isMobile}
                     />
+                    )}
                   </td>
                   <td style={tdStyle}>
-                    {isMobile ? (
+                    {exp._aiLoading ? (
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: '6px' }}><Loader2 size={14} className="animate-spin" color="#8b5cf6" /></div>
+                    ) : isMobile ? (
                       <MobileDropdownMenu
                         value={exp.payer || ''}
                         onChange={val => handleUpdate(exp.id, 'payer', val)}
@@ -599,7 +652,9 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
                     )}
                   </td>
                   <td style={tdStyle}>
-                    {isMobile ? (
+                    {exp._aiLoading ? (
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: '6px' }}><Loader2 size={14} className="animate-spin" color="#8b5cf6" /></div>
+                    ) : isMobile ? (
                       <MobileDropdownMenu
                         value={exp.location || ''}
                         onChange={val => handleUpdate(exp.id, 'location', val)}
@@ -616,7 +671,9 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
                     )}
                   </td>
                   <td style={tdStyle}>
-                    {isMobile ? (
+                    {exp._aiLoading ? (
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: '6px' }}><Loader2 size={14} className="animate-spin" color="#8b5cf6" /></div>
+                    ) : isMobile ? (
                       <MobileDropdownMenu
                         value={exp.fuelType || ''}
                         onChange={val => handleUpdate(exp.id, 'fuelType', val)}
@@ -633,19 +690,37 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
                     )}
                   </td>
                   <td style={tdStyle}>
-                    <input type="number" step="1" value={exp.gallons || ''} onChange={e => handleUpdate(exp.id, 'gallons', e.target.value ? parseInt(e.target.value, 10) : '')} onFocus={e => e.target.select()} style={{ ...inputStyle, textAlign: 'center' }} />
+                    {exp._aiLoading ? (
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: '6px' }}><Loader2 size={14} className="animate-spin" color="#8b5cf6" /></div>
+                    ) : (
+                      <input type="number" step="1" value={exp.gallons || ''} onChange={e => handleUpdate(exp.id, 'gallons', e.target.value ? parseInt(e.target.value, 10) : '')} onFocus={e => e.target.select()} style={{ ...inputStyle, textAlign: 'center' }} />
+                    )}
                   </td>
                   <td style={tdStyle}>
-                    <input type="text" value={exp.purchaser || ''} onChange={e => handleUpdate(exp.id, 'purchaser', e.target.value)} onFocus={e => e.target.select()} placeholder="Purchaser" style={inputStyle} />
+                    {exp._aiLoading ? (
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: '6px' }}><Loader2 size={14} className="animate-spin" color="#8b5cf6" /></div>
+                    ) : (
+                      <input type="text" value={exp.purchaser || ''} onChange={e => handleUpdate(exp.id, 'purchaser', e.target.value)} onFocus={e => e.target.select()} placeholder="Purchaser" style={inputStyle} />
+                    )}
                   </td>
                   <td style={tdStyle}>
-                    <input type="number" step="0.01" value={exp.amount || ''} onChange={e => handleUpdate(exp.id, 'amount', e.target.value ? parseFloat(e.target.value) : '')} onFocus={e => e.target.select()} style={getStyle(exp, 'amount', { ...inputStyle, textAlign: 'right' })} />
+                    {exp._aiLoading ? (
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: '6px' }}><Loader2 size={14} className="animate-spin" color="#8b5cf6" /></div>
+                    ) : (
+                      <input type="number" step="0.01" value={exp.amount || ''} onChange={e => handleUpdate(exp.id, 'amount', e.target.value ? parseFloat(e.target.value) : '')} onFocus={e => e.target.select()} style={getStyle(exp, 'amount', { ...inputStyle, textAlign: 'right' })} />
+                    )}
                   </td>
                   <td style={tdStyle}>
-                    <input type="text" value={exp.description || ''} onChange={e => handleUpdate(exp.id, 'description', e.target.value)} onFocus={e => e.target.select()} placeholder="Notes" style={inputStyle} />
+                    {exp._aiLoading ? (
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: '6px' }}><Loader2 size={14} className="animate-spin" color="#8b5cf6" /></div>
+                    ) : (
+                      <input type="text" value={exp.description || ''} onChange={e => handleUpdate(exp.id, 'description', e.target.value)} onFocus={e => e.target.select()} placeholder="Notes" style={inputStyle} />
+                    )}
                   </td>
                   <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '2px' }}>
-                    {exp._dirty ? (
+                    {exp._aiLoading ? (
+                      <Loader2 size={15} className="animate-spin" color="#8b5cf6" />
+                    ) : exp._dirty ? (
                       <button 
                         type="button" 
                         onClick={() => handleSaveRow(exp.id)} 
@@ -693,7 +768,7 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
           <Plus size={16} /> Add Expense
         </button>
 
-        <AIInvoiceUploader onExpenseParsed={handleAutoFillParsedExpense} />
+        <AIInvoiceUploader onExpenseParsed={handleAutoFillParsedExpense} onProcessingStart={handleAiProcessingStart} />
         
         <input 
           type="file" 

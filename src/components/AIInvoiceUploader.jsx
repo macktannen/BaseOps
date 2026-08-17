@@ -3,7 +3,7 @@ import { Sparkles, Loader2, Key, X, AlertCircle } from 'lucide-react';
 import { parseInvoiceFile } from '../services/pdfParserService';
 import { useData } from '../contexts/DataProvider';
 
-const AIInvoiceUploader = ({ onExpenseParsed, buttonStyle = {}, compact = false }) => {
+const AIInvoiceUploader = ({ onExpenseParsed, onProcessingStart, buttonStyle = {}, compact = false }) => {
   const { gemini_api_key, updateData, userVendors } = useData();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
@@ -45,6 +45,7 @@ const AIInvoiceUploader = ({ onExpenseParsed, buttonStyle = {}, compact = false 
       return;
     }
 
+    if (onProcessingStart) onProcessingStart();
     processFileWithKey(file, key);
     e.target.value = ''; // Reset input
   };
@@ -58,6 +59,7 @@ const AIInvoiceUploader = ({ onExpenseParsed, buttonStyle = {}, compact = false 
     setShowKeyModal(false);
 
     if (pendingFile) {
+      if (onProcessingStart) onProcessingStart();
       processFileWithKey(pendingFile, cleanKey);
     }
   };
