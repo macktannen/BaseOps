@@ -563,7 +563,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const [conflictModal, setConflictModal] = useState({ open: false, pilotConflicts: [], aircraftConflicts: [] });
   const [expenses, setExpenses] = useState([]);
 
-  const { userPilots, userAircraft, userPassengers, userAccounts, userVendors, userFlights, crewSchedules, updateData } = useData();
+  const { userPilots, userAircraft, userPassengers, userAccounts, userVendors, userFlights, crewSchedules, locationUsage, updateData } = useData();
 
   const pilotsList = userPilots?.length > 0 ? userPilots : mockPilots;
   const aircraftList = userAircraft?.length > 0 ? userAircraft : mockAircrafts;
