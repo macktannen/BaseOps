@@ -909,97 +909,105 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     }
   };
 
+  const prevIsOpenRef = useRef(false);
+
   useEffect(() => {
     const currentFlightId = flight?.id ? String(flight.id) : (flight ? String(flight.flightNumber || 'new') : 'new');
-    if (prevFlightIdRef.current !== currentFlightId) {
-      setActiveView(defaultActiveView || 'Plan');
+    const isOpening = isOpen && !prevIsOpenRef.current;
+    const isFlightChanged = prevFlightIdRef.current !== currentFlightId;
+    prevIsOpenRef.current = isOpen;
+
+    if (!isOpen) return;
+
+    if (isOpening || isFlightChanged) {
       prevFlightIdRef.current = currentFlightId;
-    }
-    if (flight) {
-      setDate(flight.date ? flight.date.split('T')[0] : '');
-      setFlightNumber(flight.flightNumber || (flightsCount != null ? flightsCount + 1 : ''));
-      setTitle(flight.title || '');
-      setAccountId(flight.accountId || '');
-      setComments(flight.comments || '');
-      setOpsNotes(flight.opsNotes || '');
-      const currentFlightLog = flight.flightLog || {};
-      // Guard: don't overwrite flightLog during an active unsign operation
-      if (!suppressSyncRef.current) {
-        setFlightLog(currentFlightLog);
-        if (currentFlightLog.signature) {
-          setStatus('completed');
-        } else {
-          setStatus(normalizeStatus(flight.status || 'confirmed'));
-        }
-      }
-      setTag(flight.tag || '');
-      setExpenses(flight.expenses || []);
-      setUploads(flight.uploads || []);
-      
-      if (flight.legs && flight.legs.length > 0) {
-        const mappedLegs = flight.legs.map((l, i) => {
-          let dist = l.distance;
-          if (!dist && l.departure && l.destination) {
-             const coords1 = getLocationCoords(l.departure);
-             const coords2 = getLocationCoords(l.destination);
-             if (coords1 && coords2) {
-                const rawDist = getDistanceNM(coords1.lat, coords1.lon, coords2.lat, coords2.lon);
-                if (rawDist !== null) dist = Math.round(rawDist);
-             }
+      setActiveView(defaultActiveView || 'Plan');
+
+      if (flight) {
+        setDate(flight.date ? flight.date.split('T')[0] : initialDateStr);
+        setFlightNumber(flight.flightNumber || (flightsCount != null ? `FLT-${flightsCount + 1}` : ''));
+        setTitle(flight.title || '');
+        setAccountId(flight.accountId || '');
+        setComments(flight.comments || '');
+        setOpsNotes(flight.opsNotes || '');
+        const currentFlightLog = flight.flightLog || {};
+        if (!suppressSyncRef.current) {
+          setFlightLog(currentFlightLog);
+          if (currentFlightLog.signature) {
+            setStatus('completed');
+          } else {
+            setStatus(normalizeStatus(flight.status || 'confirmed'));
           }
-          const takeoffDate = l.date || (flight.date ? flight.date.split('T')[0] : initialDateStr);
-          const rawPilots = l.pilots && Array.isArray(l.pilots) && l.pilots.length > 0
-            ? l.pilots
-            : (l.pilotId ? [l.pilotId] : (i === 0 && flight.pilotId ? [flight.pilotId] : []));
-          return {
-            ...l,
-            duration: l.duration || 60,
-            distance: dist,
-            passengers: l.passengers || (i === 0 && flight.passengers ? flight.passengers : []),
-            pilots: rawPilots,
-            pilotId: rawPilots[0] || '',
-            date: takeoffDate,
-            arrDate: l.arrDate || takeoffDate
-          };
-        });
-        setLegs(mappedLegs);
+        }
+        setTag(flight.tag || '');
+        setExpenses(flight.expenses || []);
+        setUploads(flight.uploads || []);
+        
+        if (flight.legs && flight.legs.length > 0) {
+          const mappedLegs = flight.legs.map((l, i) => {
+            let dist = l.distance;
+            if (!dist && l.departure && l.destination) {
+               const coords1 = getLocationCoords(l.departure);
+               const coords2 = getLocationCoords(l.destination);
+               if (coords1 && coords2) {
+                  const rawDist = getDistanceNM(coords1.lat, coords1.lon, coords2.lat, coords2.lon);
+                  if (rawDist !== null) dist = Math.round(rawDist);
+               }
+            }
+            const takeoffDate = l.date || (flight.date ? flight.date.split('T')[0] : initialDateStr);
+            const rawPilots = l.pilots && Array.isArray(l.pilots) && l.pilots.length > 0
+              ? l.pilots
+              : (l.pilotId ? [l.pilotId] : (i === 0 && flight.pilotId ? [flight.pilotId] : []));
+            return {
+              ...l,
+              duration: l.duration || 60,
+              distance: dist,
+              passengers: l.passengers || (i === 0 && flight.passengers ? flight.passengers : []),
+              pilots: rawPilots,
+              pilotId: rawPilots[0] || '',
+              date: takeoffDate,
+              arrDate: l.arrDate || takeoffDate
+            };
+          });
+          setLegs(mappedLegs);
+        } else {
+          const defaultPilot = getDefaultPilotForDate(initialDateStr, crewSchedules, pilotsList);
+          const pilotsArr = defaultPilot ? [defaultPilot] : [];
+          setLegs([{ departure: null, destination: null, takeoffTime: '08:00', landTime: '09:00', duration: 60, distance: null, passengers: [], pilots: pilotsArr, pilotId: defaultPilot, date: initialDateStr, arrDate: initialDateStr }]);
+        }
+        setAircraftId(flight.aircraftId || '');
       } else {
+        setDate(initialDateStr);
+        setFlightNumber(flightsCount != null ? `FLT-${flightsCount + 1}` : `FLT-${Math.floor(Math.random() * 10000)}`);
+        setTitle('');
+        setAccountId('');
+        setComments('');
+        setOpsNotes('');
+        setStatus('on hold');
+        setTag('');
+        setFlightLog({});
+        setExpenses([]);
+        setAircraftId('');
         const defaultPilot = getDefaultPilotForDate(initialDateStr, crewSchedules, pilotsList);
+        const defaultPax = getDefaultPassengersForDate(initialDateStr, crewSchedules, passengersList);
         const pilotsArr = defaultPilot ? [defaultPilot] : [];
-        setLegs([{ departure: null, destination: null, takeoffTime: '08:00', landTime: '09:00', duration: 60, distance: null, passengers: [], pilots: pilotsArr, pilotId: defaultPilot, date: initialDateStr, arrDate: initialDateStr }]);
+        setLegs([{ 
+          departure: null, 
+          destination: null, 
+          takeoffTime: '08:00', 
+          landTime: '09:00', 
+          duration: 60, 
+          distance: null, 
+          passengers: defaultPax, 
+          pilots: pilotsArr,
+          pilotId: defaultPilot, 
+          date: initialDateStr,
+          arrDate: initialDateStr
+        }]);
       }
-      setAircraftId(flight.aircraftId || '');
-    } else {
-      setDate(initialDateStr);
-      setFlightNumber(flightsCount + 1);
-      setTitle('');
-      setAccountId('');
-      setComments('');
-      setOpsNotes('');
-      setStatus('on hold');
-      setTag('');
-      setFlightLog({});
-      setExpenses([]);
-      setAircraftId('');
-      const defaultPilot = getDefaultPilotForDate(initialDateStr, crewSchedules, pilotsList);
-      const defaultPax = getDefaultPassengersForDate(initialDateStr, crewSchedules, passengersList);
-      const pilotsArr = defaultPilot ? [defaultPilot] : [];
-      setLegs([{ 
-        departure: null, 
-        destination: null, 
-        takeoffTime: '08:00', 
-        landTime: '09:00', 
-        duration: 60, 
-        distance: null, 
-        passengers: defaultPax, 
-        pilots: pilotsArr,
-        pilotId: defaultPilot, 
-        date: initialDateStr,
-        arrDate: initialDateStr
-      }]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [flight, initialDateStr, flightsCount, defaultActiveView]);
+  }, [isOpen, flight, initialDateStr]);
 
   if (!isOpen) return null;
 
@@ -1472,23 +1480,31 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
         safeIsoDate = new Date().toISOString();
       }
 
+      const resolvedId = flight?.id || Date.now();
+      const resolvedFlightNumber = flightNumber || (flightsCount != null ? `FLT-${flightsCount + 1}` : `FLT-${Date.now().toString().slice(-4)}`);
+
       const flightPayload = {
-        id: flight ? flight.id : undefined,
-        flightNumber,
-        title,
-        accountId,
+        id: resolvedId,
+        flightNumber: resolvedFlightNumber,
+        title: title || '',
+        accountId: accountId || '',
         date: safeIsoDate,
-        aircraftId,
-        comments,
-        opsNotes,
-        status: finalStatus,
-        tag,
-        legs,
-        passengers,
+        aircraftId: aircraftId || '',
+        comments: comments || '',
+        opsNotes: opsNotes || '',
+        status: finalStatus || 'confirmed',
+        tag: tag || '',
+        legs: (legs || []).map(l => ({
+          ...l,
+          pilotId: l.pilotId || firstLeg.pilotId || '',
+          pilots: (l.pilots && l.pilots.length > 0) ? l.pilots : (l.pilotId ? [l.pilotId] : (firstLeg.pilotId ? [firstLeg.pilotId] : [])),
+          passengers: l.passengers || []
+        })),
+        passengers: passengers || [],
         pilotId: firstLeg.pilotId || '',
-        flightLog: finalLog,
-        expenses: savedExpenses,
-        uploads
+        flightLog: finalLog || {},
+        expenses: savedExpenses || [],
+        uploads: uploads || []
       };
 
       if (onSave) {

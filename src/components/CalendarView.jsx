@@ -366,46 +366,46 @@ const CalendarView = () => {
   };
 
   const handleSaveFlight = (flightData) => {
-    let currentStored = flights;
+    let currentStored = flights || [];
     let updatedFlights;
     let savedFlight = { ...flightData };
 
-    if (editingFlight || flightData.id) {
-      const targetId = flightData.id || editingFlight?.id;
-      const existing = currentStored.find(f => String(f.id) === String(targetId) || (flightData.flightNumber && String(f.flightNumber) === String(flightData.flightNumber)));
-      
-      // Preserve uploads, expenses & flightLog if existing record had them
-      if (existing) {
-        if ((!savedFlight.uploads || savedFlight.uploads.length === 0) && (existing.uploads && existing.uploads.length > 0)) {
-          savedFlight.uploads = existing.uploads;
-        }
-        if ((!savedFlight.expenses || savedFlight.expenses.length === 0) && (existing.expenses && existing.expenses.length > 0)) {
-          savedFlight.expenses = existing.expenses;
-        }
-        if (!savedFlight.flightLog && existing.flightLog) {
-          savedFlight.flightLog = existing.flightLog;
-        }
-      }
-
-      let found = false;
-      updatedFlights = currentStored.map(f => {
-        if (String(f.id) === String(targetId) || (flightData.flightNumber && String(f.flightNumber) === String(flightData.flightNumber))) {
-          found = true;
-          return { ...f, ...savedFlight };
-        }
-        return f;
-      });
-      if (!found) {
-        updatedFlights.push(savedFlight);
-      }
-      setEditingFlight(savedFlight);
-    } else {
+    if (!savedFlight.id) {
       savedFlight.id = Date.now();
+    }
+
+    const targetId = String(savedFlight.id);
+    const existing = currentStored.find(f => String(f.id) === targetId || (savedFlight.flightNumber && String(f.flightNumber) === String(savedFlight.flightNumber)));
+    
+    // Preserve uploads, expenses & flightLog if existing record had them
+    if (existing) {
+      if ((!savedFlight.uploads || savedFlight.uploads.length === 0) && (existing.uploads && existing.uploads.length > 0)) {
+        savedFlight.uploads = existing.uploads;
+      }
+      if ((!savedFlight.expenses || savedFlight.expenses.length === 0) && (existing.expenses && existing.expenses.length > 0)) {
+        savedFlight.expenses = existing.expenses;
+      }
+      if (!savedFlight.flightLog && existing.flightLog) {
+        savedFlight.flightLog = existing.flightLog;
+      }
+    }
+
+    let found = false;
+    updatedFlights = currentStored.map(f => {
+      if (String(f.id) === targetId || (savedFlight.flightNumber && String(f.flightNumber) === String(savedFlight.flightNumber))) {
+        found = true;
+        return { ...f, ...savedFlight };
+      }
+      return f;
+    });
+    if (!found) {
       updatedFlights = [...currentStored, savedFlight];
-      setEditingFlight(savedFlight);
     }
 
     updateData('userFlights', updatedFlights);
+    sessionStorage.removeItem('baseops_open_flight_id');
+    setEditingFlight(null);
+    setIsModalOpen(false);
   };
 
   const handleDeleteFlight = (flightId) => {

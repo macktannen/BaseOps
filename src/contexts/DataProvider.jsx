@@ -56,42 +56,18 @@ function getOrgDocRef() {
 }
 
 function sanitizeForFirestore(val) {
-  if (!val) return val;
+  if (val === undefined) return null;
+  if (val === null || typeof val !== 'object') return val;
   if (Array.isArray(val)) {
-    return val.map(item => {
-      if (!item || typeof item !== 'object') return item;
-      const clean = { ...item };
-      if (Array.isArray(clean.uploads)) {
-        clean.uploads = clean.uploads.map(u => {
-          if (!u || typeof u !== 'object') return u;
-          const cleanU = { ...u };
-          if (cleanU.url && typeof cleanU.url === 'string' && cleanU.url.startsWith('data:')) {
-            delete cleanU.url;
-          }
-          return cleanU;
-        });
-      }
-      if (Array.isArray(clean.expenses)) {
-        clean.expenses = clean.expenses.map(e => {
-          if (!e || typeof e !== 'object') return e;
-          const cleanE = { ...e };
-          if (Array.isArray(cleanE.receiptFiles)) {
-            cleanE.receiptFiles = cleanE.receiptFiles.map(r => {
-              if (!r || typeof r !== 'object') return r;
-              const cleanR = { ...r };
-              if (cleanR.url && typeof cleanR.url === 'string' && cleanR.url.startsWith('data:')) {
-                delete cleanR.url;
-              }
-              return cleanR;
-            });
-          }
-          return cleanE;
-        });
-      }
-      return clean;
-    });
+    return val.map(item => sanitizeForFirestore(item));
   }
-  return val;
+  const clean = {};
+  for (const [k, v] of Object.entries(val)) {
+    if (v === undefined) continue;
+    if (k === 'url' && typeof v === 'string' && v.startsWith('data:')) continue;
+    clean[k] = sanitizeForFirestore(v);
+  }
+  return clean;
 }
 
 export const DataProvider = ({ children }) => {
