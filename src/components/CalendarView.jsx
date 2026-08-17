@@ -282,9 +282,9 @@ const CalendarView = () => {
   const openModalForDate = (date) => {
     if (pendingDuplicateFlight) {
       const getNextFlightNumber = () => {
-        const allList = flights;
+        const allList = flights || [];
         if (allList.length === 0) return 1;
-        const maxNum = Math.max(0, ...allList.map(f => parseInt(f.flightNumber, 10) || 0));
+        const maxNum = Math.max(0, ...allList.map(f => parseInt(String(f.flightNumber).replace(/\D/g, ''), 10) || 0));
         return maxNum + 1;
       };
 
@@ -1147,7 +1147,7 @@ const CalendarView = () => {
             hasNext={hasNext}
             initialDate={selectedDate}
             flight={editingFlight}
-            flightsCount={flights.length === 0 ? 0 : Math.max(...flights.map(f => parseInt(f.flightNumber) || 0))}
+            flightsCount={flights.length === 0 ? 0 : Math.max(0, ...flights.map(f => parseInt(String(f.flightNumber).replace(/\D/g, ''), 10) || 0))}
           />
         );
       })()}

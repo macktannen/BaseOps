@@ -546,7 +546,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   }
 
   const [date, setDate] = useState(initialDateStr);
-  const [flightNumber, setFlightNumber] = useState(flight?.flightNumber || `FLT-${Math.floor(Math.random() * 10000)}`);
+  const [flightNumber, setFlightNumber] = useState(() => flight?.flightNumber != null ? String(flight.flightNumber).replace(/^FLT-/i, '') : (flightsCount != null ? String(flightsCount + 1) : '1'));
   const [title, setTitle] = useState('');
   const [accountId, setAccountId] = useState('');
   const [comments, setComments] = useState('');
@@ -925,7 +925,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
 
       if (flight) {
         setDate(flight.date ? flight.date.split('T')[0] : initialDateStr);
-        setFlightNumber(flight.flightNumber || (flightsCount != null ? `FLT-${flightsCount + 1}` : ''));
+        setFlightNumber(flight.flightNumber != null ? String(flight.flightNumber).replace(/^FLT-/i, '') : (flightsCount != null ? String(flightsCount + 1) : '1'));
         setTitle(flight.title || '');
         setAccountId(flight.accountId || '');
         setComments(flight.comments || '');
@@ -978,7 +978,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
         setAircraftId(flight.aircraftId || '');
       } else {
         setDate(initialDateStr);
-        setFlightNumber(flightsCount != null ? `FLT-${flightsCount + 1}` : `FLT-${Math.floor(Math.random() * 10000)}`);
+        setFlightNumber(flightsCount != null ? String(flightsCount + 1) : '1');
         setTitle('');
         setAccountId('');
         setComments('');
@@ -1481,7 +1481,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       }
 
       const resolvedId = flight?.id || Date.now();
-      const resolvedFlightNumber = flightNumber || (flightsCount != null ? `FLT-${flightsCount + 1}` : `FLT-${Date.now().toString().slice(-4)}`);
+      const resolvedFlightNumber = flightNumber ? String(flightNumber).replace(/^FLT-/i, '') : (flightsCount != null ? String(flightsCount + 1) : '1');
 
       const flightPayload = {
         id: resolvedId,

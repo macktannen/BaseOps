@@ -918,7 +918,7 @@ export default function MobileLayout({ activeTab: propActiveTab, setActiveTab: p
               handleCloseFlightModal();
               handleDuplicate(flightData);
             }}
-            flightsCount={flights.length === 0 ? 0 : Math.max(...flights.map(f => parseInt(f.flightNumber) || 0))}
+            flightsCount={flights.length === 0 ? 0 : Math.max(0, ...flights.map(f => parseInt(String(f.flightNumber).replace(/\D/g, ''), 10) || 0))}
             onSave={(updatedFlight) => {
               try {
                 const stored = [...(userFlights || [])];
