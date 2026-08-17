@@ -2,6 +2,24 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v1.0.1] - 2026-08-17
+
+### Changed
+- **Purely Numeric Mission / Flight Numbers** — Stripped the legacy `FLT-` prefix so mission numbers are clean integers (e.g. `1`, `2`, `3`, etc.), matching standard flight operations terminology where MSN / Mission # is already implied. Auto-increments sequentially.
+
+### Fixed
+- **Flight Save Reference Error (`locationUsage`)** — Destructured `locationUsage` in `EventModal.jsx` to prevent runtime reference errors when updating airport and custom LZ frequency counts during flight saves.
+- **Resilient Firestore Sanitization** — Enabled `ignoreUndefinedProperties: true` in Firestore config and updated `sanitizeForFirestore` to recursively clean all undefined fields, ensuring new flight writes are never rejected by cloud storage.
+- **Desktop Flight Modal Lifecycle** — Fixed `handleSaveFlight` in `CalendarView.jsx` to immediately close the modal and persist state to `userFlights`, and hardened the modal initialization `useEffect` so background data syncs cannot clobber in-progress form inputs.
+
+## [v1.0.0] - 2026-08-17
+
+### Added
+- **First Official Production Release of BaseOps** — Full-stack aviation operations management system supporting multi-platform desktop and mobile fleet operations, digital flight logging with atomic meter sync, AI expense management, and real-time Firestore persistence.
+
+### Fixed
+- **Comprehensive Production Code Audit & Hardening** — Completed full audit across all 52 source files. Fixed context propagation in `DataProvider.jsx`, resolved reference errors in `AuthProvider.jsx`, and restored client-side web fallbacks in `firebase.js`.
+
 ## [v0.5.3] - 2026-08-16
 
 ### Changed
