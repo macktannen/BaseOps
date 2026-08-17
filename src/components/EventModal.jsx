@@ -849,7 +849,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const handleDeleteUpload = async (upload) => {
     if (!window.confirm(`Delete "${upload.name}"?`)) return;
     try {
-      await FileStorageService.deleteFile(upload.storagePath, upload);
+      await FileStorageService.deleteFile(upload.storagePath);
       const nextUploads = uploads.filter(u => u.id !== upload.id);
       setUploads(nextUploads);
       persistUploadsToFlight(nextUploads);
@@ -860,48 +860,19 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
 
   const handleDownloadUpload = async (upload) => {
     try {
-      const url = await FileStorageService.getFileUrl(upload.storagePath, upload) || upload.url;
-      if (!url) return;
-
-      if (url.startsWith('blob:') || url.startsWith('data:')) {
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = upload.name || 'download';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        return;
-      }
-
-      try {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = upload.name || 'download';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(blobUrl);
-      } catch {
-        const a = document.createElement('a');
-        a.href = url;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        a.download = upload.name || 'download';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      }
+      await FileStorageService.downloadFile(upload.storagePath, upload, upload.name);
     } catch (err) {
       console.error('Download failed:', err);
+      const url = await FileStorageService.getFileUrl(upload.storagePath) || upload.url;
+      if (url) {
+        window.open(url, '_blank');
+      }
     }
   };
 
   const handleViewUpload = async (upload) => {
     try {
-      const url = await FileStorageService.getFileUrl(upload.storagePath, upload) || upload.url;
+      const url = await FileStorageService.getFileUrl(upload.storagePath) || upload.url;
       setViewerFile({ ...upload, url });
     } catch (err) {
       console.error('View failed:', err);

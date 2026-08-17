@@ -155,29 +155,13 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
         const loadFiles = async () => {
           const files = await Promise.all(
             exp.receiptFiles.map(async (f) => {
-              if (f.storagePath || f.localKey || f.url) {
+              if (f.storagePath || f.url) {
                 try {
-                  const url = await FileStorageService.getReceiptUrl(f.storagePath, f);
+                  const url = await FileStorageService.getReceiptUrl(f.storagePath);
                   return { ...f, url: url || f.url };
                 } catch {
                   return { ...f, url: f.url || null, error: f.url ? null : 'Failed to load receipt.' };
                 }
-              }
-              if (f.fileId) {
-                try {
-                  const localforage = (await import('localforage')).default;
-                  const db = localforage.createInstance({ name: 'HelicopterScheduler', storeName: 'receipts_store' });
-                  const fileData = await db.getItem(f.fileId);
-                  if (fileData && fileData.blob) {
-                    const blob = fileData.blob instanceof Blob ? fileData.blob : new Blob([fileData.blob]);
-                    if (flight && exp.id) {
-                      const file = new File([blob], f.name || 'receipt', { type: f.type || 'application/octet-stream' });
-                      const result = await FileStorageService.saveReceipt(flight.id, exp.id, file);
-                      return { ...f, storagePath: result.storagePath, url: result.url, size: result.size };
-                    }
-                    return { ...f, url: URL.createObjectURL(blob) };
-                  }
-                } catch { /* ignore */ }
               }
               return { ...f, url: null, error: 'File not found.' };
             })
@@ -393,7 +377,7 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
     
     if (fileToDelete) {
       try {
-        await FileStorageService.deleteReceipt(fileToDelete.storagePath, fileToDelete);
+        await FileStorageService.deleteReceipt(fileToDelete.storagePath);
       } catch (err) {
         console.error("Failed to delete receipt", err);
       }
@@ -416,45 +400,13 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
 
   const handleDownloadReceipt = async (receipt) => {
     try {
-      let url = receipt.url;
-      if (!url && receipt.storagePath) {
-        url = await FileStorageService.getReceiptUrl(receipt.storagePath, receipt);
-      }
-      if (!url) return;
-
-      if (url.startsWith('blob:') || url.startsWith('data:')) {
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = receipt.name || 'receipt';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        return;
-      }
-
-      try {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = receipt.name || 'receipt';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(blobUrl);
-      } catch {
-        const a = document.createElement('a');
-        a.href = url;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        a.download = receipt.name || 'receipt';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      }
+      await FileStorageService.downloadFile(receipt.storagePath, receipt, receipt.name || 'receipt');
     } catch (err) {
-      console.error("Download failed:", err);
+      console.error('Download receipt failed:', err);
+      const url = await FileStorageService.getReceiptUrl(receipt.storagePath) || receipt.url;
+      if (url) {
+        window.open(url, '_blank');
+      }
     }
   };
 

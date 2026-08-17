@@ -146,9 +146,9 @@ const ExpensesPage = () => {
     const loadFiles = async () => {
       const loaded = await Promise.all(
         files.map(async (f) => {
-          if (f.storagePath || f.localKey || f.url) {
+          if (f.storagePath || f.url) {
             try {
-              const url = await FileStorageService.getReceiptUrl(f.storagePath, f);
+              const url = await FileStorageService.getReceiptUrl(f.storagePath);
               return { ...f, url: url || f.url };
             } catch {
               return { ...f, url: f.url || null, error: f.url ? null : 'Failed to load' };
@@ -168,7 +168,7 @@ const ExpensesPage = () => {
     const files = viewingExpense.receiptFiles || [];
     const fileToDelete = files[fileIndex];
     if (fileToDelete) {
-      try { await FileStorageService.deleteReceipt(fileToDelete.storagePath, fileToDelete); } catch {}
+      try { await FileStorageService.deleteReceipt(fileToDelete.storagePath); } catch {}
     }
     const newFiles = files.filter((_, idx) => idx !== fileIndex);
     const updatedExpenses = expenses.map(e => {
@@ -196,7 +196,7 @@ const ExpensesPage = () => {
   const handleDownloadReceipt = async (receipt) => {
     try {
       let url = receipt.url;
-      if (!url && receipt.storagePath) url = await FileStorageService.getReceiptUrl(receipt.storagePath, receipt);
+      if (!url && receipt.storagePath) url = await FileStorageService.getReceiptUrl(receipt.storagePath);
       if (!url) return;
 
       if (url.startsWith('blob:') || url.startsWith('data:')) {
