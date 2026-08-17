@@ -544,7 +544,7 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
               <th style={{ width: '7%', minWidth: '50px', padding: '4px 2px', textAlign: 'left', fontSize: '0.68rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('fuelType')}>Fuel</th>
               <th style={{ width: '40px', padding: '4px 2px', textAlign: 'left', fontSize: '0.68rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('gallons')}>Gal</th>
               <th style={{ width: '8%', minWidth: '55px', padding: '4px 2px', textAlign: 'left', fontSize: '0.68rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('purchaser')}>Purchaser</th>
-              <th style={{ width: '60px', padding: '4px 2px', textAlign: 'right', fontSize: '0.68rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('amount')}>Amount</th>
+              <th style={{ width: '60px', padding: '4px 2px', textAlign: 'left', fontSize: '0.68rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('amount')}>Amount</th>
               <th style={{ width: '14%', minWidth: '65px', padding: '4px 2px', textAlign: 'left', fontSize: '0.68rem', color: '#718096', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleHeaderClick('description')}>Notes</th>
               <th style={{ width: '26px', padding: '4px 2px' }}></th>
             </tr>

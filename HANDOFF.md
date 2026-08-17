@@ -3,7 +3,7 @@
 - **Timestamp:** Aug 17, 2026
 - **Tool used:** opencode
 - **Branch:** main
-- **Last commit:** 4fb3abe fix(ui): add CSS spin animation for loading spinners
+- **Last commit:** 8bed870 fix(ui): import App.css to enable animate-spin animation for AI loading spinners
 
 ## Project Overview
 Helicopter Scheduler Web App (`baseops`). Manages flights, crew schedules, expenses, fleet, and documents with Firebase/Firestore backend.
@@ -12,7 +12,7 @@ Helicopter Scheduler Web App (`baseops`). Manages flights, crew schedules, expen
 1. **Cloud-only file storage**: Removed all local IndexedDB/localforage fallbacks from `FileStorageService.js`. All file uploads (flight documents and expense receipts) now go exclusively to Firebase Cloud Storage. Upload failures surface errors to the user instead of silently falling back to local storage.
 2. **Firebase Storage rules deployed**: `storage.rules` deployed to Firebase project `baseops-9f0e9` — allows read/write for authenticated users.
 3. **Cross-device receipt deletion sync**: Fixed `ExpensesTab.jsx` `handleDeleteReceipt` to call `persistExpensesToFlight()` so deletions propagate to Firestore and sync across devices via `onSnapshot`.
-4. **AI auto-fill loading indicator**: When uploading an invoice for AI parsing, a new expense row immediately appears with animated purple spinners in every field. The row populates with extracted data when parsing completes. Added `onProcessingStart` callback to `AIInvoiceUploader` and `animate-spin` CSS keyframes to `App.css`.
+4. **AI auto-fill loading indicator**: When uploading an invoice for AI parsing, a new expense row immediately appears with animated purple spinners in every field. The row populates with extracted data when parsing completes. Added `onProcessingStart` callback to `AIInvoiceUploader` and `animate-spin` CSS keyframes to `App.css`. Fixed missing `App.css` import that prevented animation from working.
 
 ## Pending Tasks
 1. **Redo layout for schedules grid** (Not started — from previous handoff)

@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v1.0.2] - 2026-08-17
+
+### Fixed
+- **CSS Animation Import** — Added missing `App.css` import to `App.jsx` so the `animate-spin` keyframes are loaded. AI invoice auto-fill spinners now rotate while parsing instead of appearing static.
+
 ## [v1.0.1] - 2026-08-17
 
 ### Changed
