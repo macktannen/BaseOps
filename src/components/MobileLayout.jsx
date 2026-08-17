@@ -919,7 +919,7 @@ export default function MobileLayout({ activeTab: propActiveTab, setActiveTab: p
               handleDuplicate(flightData);
             }}
             flightsCount={flights.length === 0 ? 0 : Math.max(0, ...flights.map(f => parseInt(String(f.flightNumber).replace(/\D/g, ''), 10) || 0))}
-            onSave={(updatedFlight) => {
+            onSave={(updatedFlight, shouldClose = false) => {
               try {
                 const stored = [...(userFlights || [])];
                 const flightToSave = { ...updatedFlight };
@@ -936,7 +936,9 @@ export default function MobileLayout({ activeTab: propActiveTab, setActiveTab: p
               } catch (e) {
                 console.error("Failed to save flight in MobileLayout:", e);
               }
-              handleCloseFlightModal();
+              if (shouldClose) {
+                handleCloseFlightModal();
+              }
             }}
             onDelete={(flightId) => {
               try {

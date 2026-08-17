@@ -365,7 +365,7 @@ const CalendarView = () => {
     setIsModalOpen(true);
   };
 
-  const handleSaveFlight = (flightData) => {
+  const handleSaveFlight = (flightData, shouldClose = false) => {
     let currentStored = flights || [];
     let updatedFlights;
     let savedFlight = { ...flightData };
@@ -403,9 +403,12 @@ const CalendarView = () => {
     }
 
     updateData('userFlights', updatedFlights);
-    sessionStorage.removeItem('baseops_open_flight_id');
-    setEditingFlight(null);
-    setIsModalOpen(false);
+    setEditingFlight(savedFlight);
+
+    if (shouldClose) {
+      sessionStorage.removeItem('baseops_open_flight_id');
+      setIsModalOpen(false);
+    }
   };
 
   const handleDeleteFlight = (flightId) => {

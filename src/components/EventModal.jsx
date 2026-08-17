@@ -1453,7 +1453,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     if (changed) setLegs(recalculateLegTimes(newLegs));
   };
 
-  const performSave = (overrideFlightLog = null, overrideStatus = null) => {
+  const performSave = (overrideFlightLog = null, overrideStatus = null, shouldClose = false) => {
     try {
       legs.forEach(leg => {
         if (leg.departure && leg.departure.id) incrementUsage(leg.departure.id);
@@ -1509,7 +1509,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       };
 
       if (onSave) {
-        onSave(flightPayload);
+        onSave(flightPayload, shouldClose);
       }
 
       setIsSaved(false);
@@ -1572,7 +1572,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       console.warn("Conflict detection bypassed:", conflictErr);
     }
 
-    performSave();
+    performSave(null, null, true);
   };
 
   
