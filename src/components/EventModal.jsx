@@ -1489,6 +1489,14 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   };
 
   const handleSubmit = () => {
+    // Check route legs
+    const invalidLegIndex = legs.findIndex(l => !l.departure || !l.destination);
+    if (invalidLegIndex !== -1) {
+      alert(`Please select both an Origin (Departure) and Destination for Leg ${invalidLegIndex + 1} before saving.`);
+      setActiveView('Plan');
+      return;
+    }
+
     const flightData = {
       id: flight ? flight.id : undefined,
       flightNumber,
@@ -1518,15 +1526,6 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     performSave();
   };
 
-  const isValidRoute = legs.every(l => l.departure !== null && l.destination !== null);
-  
-  const isValidExpenses = expenses.every(exp => {
-    const isFilled = exp.vendor || exp.category || exp.location || exp.amount || exp.description || exp.payer || exp.fuelType || exp.gallons;
-    if (!isFilled) return true;
-    return exp.vendor && exp.category && exp.location && (exp.amount !== '' && exp.amount != null);
-  });
-  
-  const canSave = isValidRoute && isValidExpenses;
   
   const formatTime = (mins) => {
     const h = Math.floor(mins / 60);
@@ -2489,7 +2488,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
 <button className="btn btn-outline" onClick={() => setShowUploads(!showUploads)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '5px 6px', fontSize: '0.7rem', textAlign: 'center', lineHeight: '1', whiteSpace: 'nowrap' }}>
                 <Paperclip size={13} /> Uploads {uploads.length > 0 && <span style={{ fontSize: '0.65rem', color: 'var(--primary-color)' }}>({uploads.length})</span>}
              </button>
-            <SaveButton onClick={handleSubmit} disabled={!canSave} triggerSave={isSaved} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '5px 6px', fontSize: '0.7rem', textAlign: 'center', lineHeight: '1', whiteSpace: 'nowrap', margin: 0 }}>
+            <SaveButton onClick={handleSubmit} triggerSave={isSaved} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '5px 6px', fontSize: '0.7rem', textAlign: 'center', lineHeight: '1', whiteSpace: 'nowrap', margin: 0 }}>
                <span style={{ fontSize: '0.8rem', lineHeight: '12px' }}>&#10003;</span> Save Flight
             </SaveButton>
          </div>

@@ -64,9 +64,10 @@ const MobileExpenses = () => {
   const [showAutoModal, setShowAutoModal] = useState(false);
 
   const { userFlights, departmentExpenses, updateData } = useData();
+  const flights = React.useMemo(() => userFlights || [], [userFlights]);
 
   const expenses = React.useMemo(() => {
-    const flightsList = userFlights || [];
+    const flightsList = flights;
     let allExpenses = [];
     flightsList.forEach(flight => {
       if (flight.expenses && flight.expenses.length > 0) {
@@ -98,7 +99,7 @@ const MobileExpenses = () => {
     
     allExpenses.sort((a, b) => new Date(b.date) - new Date(a.date));
     return allExpenses;
-  }, [userFlights, departmentExpenses]);
+  }, [flights, departmentExpenses]);
 
   const persistExpenseToFlight = (flightId, updatedExpenses) => {
     try {

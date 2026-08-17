@@ -922,11 +922,20 @@ export default function MobileLayout({ activeTab: propActiveTab, setActiveTab: p
             onSave={(updatedFlight) => {
               try {
                 const stored = [...(userFlights || [])];
-                const idx = stored.findIndex(f => f.id === updatedFlight.id);
-                if (idx !== -1) stored[idx] = updatedFlight;
-                else stored.push(updatedFlight);
+                const flightToSave = { ...updatedFlight };
+                if (!flightToSave.id) {
+                  flightToSave.id = Date.now();
+                }
+                const idx = stored.findIndex(f => String(f.id) === String(flightToSave.id) || (flightToSave.flightNumber && String(f.flightNumber) === String(flightToSave.flightNumber)));
+                if (idx !== -1) {
+                  stored[idx] = { ...stored[idx], ...flightToSave };
+                } else {
+                  stored.push(flightToSave);
+                }
                 updateData('userFlights', stored);
-              } catch {}
+              } catch (e) {
+                console.error("Failed to save flight in MobileLayout:", e);
+              }
               handleCloseFlightModal();
             }}
             onDelete={(flightId) => {
