@@ -525,7 +525,7 @@ const normalizeStatus = (s) => {
 const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate, hasPrev, hasNext, initialDate, flight, flightsCount, defaultActiveView = 'Plan' }) => {
   const isMobile = useIsMobile();
   const [isSaved, setIsSaved] = useState(false);
-  const [headerCollapsed, setHeaderCollapsed] = useState(isMobile);
+  const [headerCollapsed, setHeaderCollapsed] = useState(false);
   
   let initialDateStr = '';
   if (initialDate instanceof Date) {
@@ -922,6 +922,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     if (isOpening || isFlightChanged) {
       prevFlightIdRef.current = currentFlightId;
       setActiveView(defaultActiveView || 'Plan');
+      setHeaderCollapsed(false);
 
       if (flight) {
         setDate(flight.date ? flight.date.split('T')[0] : initialDateStr);
