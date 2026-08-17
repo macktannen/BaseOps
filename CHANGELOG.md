@@ -2,6 +2,12 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v1.0.4] - 2026-08-17
+
+### Fixed
+- **Aircraft hours double-counting on lock toggle** — Made `updateGlobalAircraft` in `FlightLogTab.jsx` idempotent. If aircraft hours already match the expected after-values (committed by `handleSignFlight`), the update is skipped to prevent duplicate hour commits when toggling lock.
+- **Sync guard timeout too short** — Increased `suppressSyncRef` timeout from 3s to 10s in `EventModal.jsx` to prevent stale Firestore snapshots from overwriting local state during sign/clear operations on slow connections.
+
 ## [v1.0.3] - 2026-08-17
 
 ### Fixed

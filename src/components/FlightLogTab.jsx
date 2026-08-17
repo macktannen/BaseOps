@@ -184,6 +184,16 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
         const ac = { ...storedAircraft[acIndex] };
         const dual = ac.dualEngine || isTwin;
 
+        // Idempotent guard: if hours already match expected after-values, skip update
+        // This prevents double-counting when handleSignFlight already committed hours
+        if (multiplier > 0) {
+          const expectedTotalHours = (Math.round((parseFloat(flightBefore || 0) + changeFlight) * 10) / 10).toFixed(1);
+          const expectedEngine1 = (Math.round((parseFloat(engine1Before || 0) + changeEngine1Hours) * 10) / 10).toFixed(1);
+          const alreadyCommitted = parseFloat(ac.totalHours) === parseFloat(expectedTotalHours)
+            && parseFloat(ac.engine1Hours || ac.engineHours || 0) === parseFloat(expectedEngine1);
+          if (alreadyCommitted) return;
+        }
+
         // Idempotent assignment using exact baseline Before + Change figures
         if (multiplier > 0) {
           // Signing / Locking: set to exact After values

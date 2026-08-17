@@ -691,7 +691,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     performSave(signedLog, 'completed');
 
     // STEP 6: Release sync guard
-    setTimeout(() => { suppressSyncRef.current = false; }, 3000);
+    setTimeout(() => { suppressSyncRef.current = false; }, 10000);
   };
 
   // ── CLEAR SIGNATURE (single atomic operation) ──
@@ -752,7 +752,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     performSave(unsignedLog, 'confirmed');
 
     // STEP 6: Release the sync guard after Firestore echo settles
-    setTimeout(() => { suppressSyncRef.current = false; }, 3000);
+    setTimeout(() => { suppressSyncRef.current = false; }, 10000);
   };
 
   const persistFlightLogToFlight = (nextFlightLog) => {
