@@ -553,68 +553,33 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .flight-leg-row .flight-path-col {
-    width: 100px !important;
-    min-width: 100px !important;
-    font-size: 0.75rem;
-  }
-
-  .flight-leg-row .leg-departure-col,
-  .flight-leg-row .leg-arrival-col {
-    padding: 8px !important;
-  }
-}
-
-@media (max-width: 1400px) {
-  .flight-leg-row .leg-number-col {
-    width: 30px !important;
-    min-width: 30px !important;
-  }
-
-  .flight-leg-row .flight-path-col {
-    width: 80px !important;
-    min-width: 80px !important;
-    font-size: 0.7rem;
+    width: 120px !important;
+    min-width: 110px !important;
+    flex-shrink: 0 !important;
   }
 
   .flight-leg-row .leg-departure-col,
   .flight-leg-row .leg-arrival-col {
     padding: 6px !important;
   }
-
-  .flight-leg-row .leg-departure-col input,
-  .flight-leg-row .leg-arrival-col input,
-  .flight-leg-row .leg-departure-col select,
-  .flight-leg-row .leg-arrival-col select {
-    font-size: 0.8rem !important;
-    padding: 4px 6px !important;
-  }
 }
 
 @media (max-width: 1300px) {
   .flight-leg-row .leg-number-col {
-    width: 25px !important;
-    min-width: 25px !important;
-    font-size: 0.7rem;
+    width: 30px !important;
+    min-width: 30px !important;
   }
 
   .flight-leg-row .flight-path-col {
-    width: 60px !important;
-    min-width: 60px !important;
-    font-size: 0.65rem;
-    padding: 4px !important;
+    width: 115px !important;
+    min-width: 105px !important;
+    flex-shrink: 0 !important;
+    padding: 4px 2px !important;
   }
 
   .flight-leg-row .leg-departure-col,
   .flight-leg-row .leg-arrival-col {
-    padding: 4px !important;
-  }
-
-  .flight-leg-row .leg-departure-col input,
-  .flight-leg-row .leg-arrival-col input,
-  .flight-leg-row .leg-departure-col select,
-  .flight-leg-row .leg-arrival-col select {
-    font-size: 0.75rem !important;
-    padding: 3px 5px !important;
+    padding: 4px 6px !important;
   }
 }
 

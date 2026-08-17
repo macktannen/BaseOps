@@ -410,14 +410,14 @@ const DurationPicker = ({ value, onChange, color, style }) => {
   const currentValue = value || '0.0';
 
   return (
-    <div ref={wrapRef} style={{ position: 'relative', display: 'inline-block' }}>
+    <div ref={wrapRef} style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(0,0,0,0.04)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 700, color: color || 'var(--text-main)', padding: '2px 4px', minWidth: '48px', justifyContent: 'center', fontSize: 'inherit', ...style }}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', background: 'rgba(0,0,0,0.04)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 700, color: color || 'var(--text-main)', padding: '2px 3px', minWidth: '36px', justifyContent: 'center', fontSize: 'inherit', lineHeight: 1, ...style }}
       >
         {currentValue}
-        <ChevronDown size={12} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
+        <ChevronDown size={11} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
       </button>
       <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', zIndex: 3000, marginTop: '4px', backgroundColor: 'white', border: '1px solid var(--border-color)', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', minWidth: '100px', display: open ? 'block' : 'none' }}>
         <div style={{ padding: '6px', borderBottom: '1px solid var(--border-color)' }}>
@@ -2098,28 +2098,28 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                         if (layoverMin < 0) layoverMin += 24 * 60;
                       }
                       return (
-                        <div className="flight-path-col" style={{ width: '130px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 4px' }}>
-                          <div style={{ backgroundColor: '#f7f8fa', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '10px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', width: '100%' }}>
-                            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>{leg.distance != null ? leg.distance : (leg.departure?.id && leg.destination?.id && leg.departure.id === leg.destination.id ? 0 : '?')} <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>NM</span></div>
+                        <div className="flight-path-col" style={{ width: '125px', minWidth: '110px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '6px 4px', boxSizing: 'border-box' }}>
+                          <div style={{ backgroundColor: '#f7f8fa', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', width: '100%', boxSizing: 'border-box' }}>
+                            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>{leg.distance != null ? leg.distance : (leg.departure?.id && leg.destination?.id && leg.departure.id === leg.destination.id ? 0 : '?')} <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>NM</span></div>
                             <div style={{ width: '60%', borderTop: '1px solid var(--border-color)' }}></div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '2px', whiteSpace: 'nowrap' }}>
                               {isMobile ? (
                                 <MobileScrollPicker
                                   value={leg.duration ? parseFloat((leg.duration / 60).toFixed(1)).toFixed(1) : '0.0'}
                                   items={DURATION_ITEMS}
                                   onChange={(val) => handleUpdateLeg(index, 'duration', val)}
                                   color="#dd6b20"
-                                  style={{ fontSize: '1.4rem' }}
+                                  style={{ fontSize: '1.2rem' }}
                                 />
                               ) : (
                                 <DurationPicker
                                   value={leg.duration ? parseFloat((leg.duration / 60).toFixed(1)).toFixed(1) : '0.0'}
                                   onChange={(val) => handleUpdateLeg(index, 'duration', val)}
                                   color="#dd6b20"
-                                  style={{ fontSize: '1.4rem' }}
+                                  style={{ fontSize: '1.2rem' }}
                                 />
                               )}
-                              <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#dd6b20' }}>HR</span>
+                              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#dd6b20' }}>HR</span>
                             </div>
                             {layoverMin !== null && (
                               <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '3px' }}>
