@@ -1,34 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useData } from '../contexts/DataProvider';
 import { Search, Plus, Trash2, Users, Briefcase, HeartPulse, UserCheck } from 'lucide-react';
 import SaveButton from './SaveButton';
 
 const CrewList = () => {
-  const [crewMembers, setCrewMembers] = useState([]);
+  const { data, updateData } = useData();
+  const { userPassengers = [], crewSchedules = {} } = data;
+
   const [search, setSearch] = useState('');
   const [selectedCrew, setSelectedCrew] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [saved, setSaved] = useState(false);
 
-  const loadData = () => {
-    let storedPassengers = [];
-    try {
-      storedPassengers = JSON.parse(localStorage.getItem('userPassengers')) || [];
-    } catch (e) {
-      console.error(e);
-      storedPassengers = [];
-    }
-
-    // Filter only personnel marked with isCrew: true
-    const crewOnly = storedPassengers.filter(p => p.isCrew);
+  const crewMembers = useMemo(() => {
+    const crewOnly = userPassengers.filter(p => p.isCrew);
     crewOnly.sort((a, b) => a.name.localeCompare(b.name));
-    setCrewMembers(crewOnly);
-  };
+    return crewOnly;
+  }, [userPassengers]);
 
   useEffect(() => {
-    loadData();
-    window.addEventListener('storage', loadData);
-    return () => window.removeEventListener('storage', loadData);
-  }, []);
+    if (selectedCrew?.id) {
+      const updatedSel = crewMembers.find(c => c.id === selectedCrew.id);
+      if (updatedSel) {
+        setSelectedCrew(updatedSel);
+      }
+    }
+  }, [crewMembers, selectedCrew?.id]);
 
   const filteredCrew = crewMembers.filter(c => 
     c.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -65,24 +62,22 @@ const CrewList = () => {
     if (!editForm) return;
     if (!window.confirm(`Are you sure you want to delete ${editForm.name}?`)) return;
     try {
-      const storedPassengers = JSON.parse(localStorage.getItem('userPassengers') || '[]');
-      const updated = storedPassengers.filter(p => p.id !== editForm.originalId && p.id !== editForm.id);
-      localStorage.setItem('userPassengers', JSON.stringify(updated));
+      const updated = userPassengers.filter(p => p.id !== editForm.originalId && p.id !== editForm.id);
+      updateData('userPassengers', updated);
 
       const targetId = editForm.originalId || editForm.id;
-      const schedules = JSON.parse(localStorage.getItem('crewSchedules') || '{}');
       let changed = false;
-      Object.keys(schedules).forEach(k => {
+      const newSchedules = { ...crewSchedules };
+      Object.keys(newSchedules).forEach(k => {
         if (k.startsWith(`${targetId}_`) || k.startsWith(`${editForm.name}_`)) {
-          delete schedules[k];
+          delete newSchedules[k];
           changed = true;
         }
       });
       if (changed) {
-        localStorage.setItem('crewSchedules', JSON.stringify(schedules));
+        updateData('crewSchedules', newSchedules);
       }
 
-      loadData();
       setSelectedCrew(null);
       setEditForm(null);
     } catch {
@@ -95,7 +90,7 @@ const CrewList = () => {
     if (!editForm) return;
 
     try {
-      const storedPassengers = JSON.parse(localStorage.getItem('userPassengers') || '[]');
+      const storedPassengers = [...userPassengers];
       
       const itemToSave = { ...editForm };
       const originalId = itemToSave.originalId || itemToSave.id;
@@ -110,9 +105,8 @@ const CrewList = () => {
         storedPassengers.push(itemToSave);
       }
 
-      localStorage.setItem('userPassengers', JSON.stringify(storedPassengers));
+      updateData('userPassengers', storedPassengers);
       
-      loadData();
       if (itemToSave.isCrew) {
         setSelectedCrew(itemToSave);
         setEditForm({ ...itemToSave, originalId: itemToSave.id });
@@ -122,6 +116,7 @@ const CrewList = () => {
         setEditForm(null);
       }
       setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
     } catch (e) {
       console.error(e);
     }

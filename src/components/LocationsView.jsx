@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useData } from '../contexts/DataProvider';
 import { Search, MapPin, Map as MapIcon, Plus, Trash2, Loader } from 'lucide-react';
 import SaveButton from './SaveButton';
 import airportsData from '../data/airports.json';
@@ -54,7 +55,9 @@ const MapCenterer = ({ coords }) => {
 };
 
 const LocationsView = () => {
-  const [locations, setLocations] = useState([]);
+  const { data, updateData } = useData();
+  const { userCustomZones = [], locationUsage = {} } = data;
+
   const [search, setSearch] = useState('');
   const [selectedLoc, setSelectedLoc] = useState(null);
   const [editForm, setEditForm] = useState(null);
@@ -68,15 +71,9 @@ const LocationsView = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const dropdownRef = useRef(null);
 
-  const loadData = () => {
-    let usageData = {};
-    let storedCustomZones = [];
-    try {
-      usageData = JSON.parse(localStorage.getItem('locationUsage') || '{}');
-      storedCustomZones = JSON.parse(localStorage.getItem('userCustomZones') || '[]');
-    } catch (e) {
-      console.error(e);
-    }
+  const locations = useMemo(() => {
+    const usageData = locationUsage || {};
+    const storedCustomZones = userCustomZones || [];
 
     const usedAirports = airportsData
       .filter(ap => usageData[ap.id] > 0)
@@ -112,12 +109,8 @@ const LocationsView = () => {
     });
 
     combined.sort((a, b) => b.usageCount - a.usageCount);
-    setLocations(combined);
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
+    return combined;
+  }, [userCustomZones, locationUsage]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -232,10 +225,8 @@ const LocationsView = () => {
     if (!editForm || !editForm.isCustom) return;
     if (!window.confirm(`Are you sure you want to delete ${editForm.title || editForm.id}?`)) return;
     try {
-      const storedCustomZones = JSON.parse(localStorage.getItem('userCustomZones') || '[]');
-      const updatedZones = storedCustomZones.filter(z => z.id !== editForm.id);
-      localStorage.setItem('userCustomZones', JSON.stringify(updatedZones));
-      loadData();
+      const updatedZones = userCustomZones.filter(z => z.id !== editForm.id);
+      updateData('userCustomZones', updatedZones);
       setSelectedLoc(null);
       setEditForm(null);
     } catch {}
@@ -246,7 +237,7 @@ const LocationsView = () => {
     if (!editForm) return;
 
     try {
-      const storedCustomZones = JSON.parse(localStorage.getItem('userCustomZones') || '[]');
+      const storedCustomZones = [...userCustomZones];
       const existingIndex = storedCustomZones.findIndex(z => z.id === editForm.id);
       
       // Rebuild the unified address string for legacy compatibility in EventModal/Calendar
@@ -271,11 +262,11 @@ const LocationsView = () => {
         storedCustomZones.push(zoneToSave);
       }
 
-      localStorage.setItem('userCustomZones', JSON.stringify(storedCustomZones));
+      updateData('userCustomZones', storedCustomZones);
       
-      loadData();
       setSelectedLoc(zoneToSave);
       setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
     } catch (e) {
       console.error(e);
     }
@@ -576,7 +567,7 @@ const LocationsView = () => {
                 
                 {!editForm.isCustom && (() => {
                   try {
-                    const storedZones = JSON.parse(localStorage.getItem('userCustomZones') || '[]');
+                    const storedZones = userCustomZones || [];
                     const hasOverride = storedZones.some(z => z.id === editForm.id);
                     if (hasOverride) {
                       return (
@@ -587,8 +578,7 @@ const LocationsView = () => {
                           onClick={() => {
                             if (window.confirm(`Are you sure you want to remove all custom notes and revert ${editForm.id} back to its official database condition?`)) {
                               const updatedZones = storedZones.filter(z => z.id !== editForm.id);
-                              localStorage.setItem('userCustomZones', JSON.stringify(updatedZones));
-                              loadData();
+                              updateData('userCustomZones', updatedZones);
                               setSelectedLoc(null);
                               setEditForm(null);
                             }

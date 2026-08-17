@@ -1,9 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
+import { useData } from '../contexts/DataProvider';
 import SaveButton from './SaveButton';
 import { Plus, X, Pencil, Trash2, Users, GripVertical, Search } from 'lucide-react';
 
 const ContactsView = () => {
-  const [contacts, setContacts] = useState([]);
+  const { data, updateData } = useData();
+  const { globalContacts = [] } = data;
+
+  const contacts = globalContacts.map(c => ({
+    ...c,
+    groups: c.groups || (c.group ? [c.group] : [])
+  }));
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -20,24 +28,6 @@ const ContactsView = () => {
   // Drag and drop refs
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
-
-  useEffect(() => {
-    try {
-      const storedContacts = JSON.parse(localStorage.getItem('globalContacts'));
-      if (storedContacts && storedContacts.length > 0) {
-        // Migrate old `group` string to `groups` array if necessary
-        const migrated = storedContacts.map(c => ({
-          ...c,
-          groups: c.groups || (c.group ? [c.group] : [])
-        }));
-        setContacts(migrated);
-      } else {
-        setContacts([]);
-      }
-    } catch {
-      setContacts([]);
-    }
-  }, []);
 
   const handleSave = (e) => {
     e.preventDefault();
@@ -60,8 +50,7 @@ const ContactsView = () => {
       updatedContacts = [...contacts, newContact];
     }
 
-    setContacts(updatedContacts);
-    localStorage.setItem('globalContacts', JSON.stringify(updatedContacts));
+    updateData('globalContacts', updatedContacts);
     closeModal();
     setSaved(prev => !prev);
   };
@@ -69,8 +58,7 @@ const ContactsView = () => {
   const handleDelete = (id) => {
     if (window.confirm('Are you sure you want to delete this contact?')) {
       const updatedContacts = contacts.filter(c => c.id !== id);
-      setContacts(updatedContacts);
-      localStorage.setItem('globalContacts', JSON.stringify(updatedContacts));
+      updateData('globalContacts', updatedContacts);
     }
   };
 
@@ -111,8 +99,7 @@ const ContactsView = () => {
     _contacts.splice(dragOverItem.current, 0, draggedItemContent);
     dragItem.current = null;
     dragOverItem.current = null;
-    setContacts(_contacts);
-    localStorage.setItem('globalContacts', JSON.stringify(_contacts));
+    updateData('globalContacts', _contacts);
   };
 
   const filteredContacts = contacts.filter(c => {

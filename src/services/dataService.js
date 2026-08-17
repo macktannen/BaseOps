@@ -1,7 +1,7 @@
 import { db } from '../firebase';
 import {
-  collection, doc, getDoc, setDoc, updateDoc, deleteDoc,
-  getDocs, writeBatch, onSnapshot, query, orderBy
+  collection, doc, getDoc, setDoc, deleteDoc,
+  getDocs, writeBatch, onSnapshot
 } from 'firebase/firestore';
 
 const COLLECTIONS = {
@@ -78,18 +78,18 @@ export async function deleteUserDataBatch(userId, collectionName, docIds) {
   await batch.commit();
 }
 
-export function subscribeToCollection(userId, collectionName, callback) {
+export function subscribeToCollection(userId, collectionName, callback, onError = null) {
   return onSnapshot(getUserCollection(userId, collectionName), (snap) => {
     const items = [];
     snap.forEach(d => items.push({ id: d.id, ...d.data() }));
     callback(items);
-  });
+  }, onError || ((_err) => { /* default: silently handle */ }));
 }
 
-export function subscribeToField(userId, collectionName, docId, callback) {
+export function subscribeToField(userId, collectionName, docId, callback, onError = null) {
   return onSnapshot(getUserDoc(userId, collectionName, docId), (d) => {
     callback(d.exists() ? d.data() : null);
-  });
+  }, onError || ((_err) => { /* default: silently handle */ }));
 }
 
 export { COLLECTIONS };

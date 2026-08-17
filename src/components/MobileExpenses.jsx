@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Calendar, FileText, Check, X, Plus, Sparkles, Loader2, Pencil } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, Calendar, FileText, Check, X, Plus, Sparkles, Loader2 } from 'lucide-react';
 import MobileDropdownMenu from './MobileDropdownMenu';
 import AIInvoiceUploader from './AIInvoiceUploader';
 import { FileStorageService } from '../services/FileStorageService';
+import { useData } from '../contexts/DataProvider';
 
 const CATEGORIES = [
   'Catering', 'Cleaning / Detailing', 'Crew Meal', 'Customs / Border Fees',
@@ -48,10 +49,8 @@ const labelStyle = {
 };
 
 const MobileExpenses = () => {
-  const [expenses, setExpenses] = useState([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'paid' | 'unpaid' | 'net15'
-  const [flights, setFlights] = useState([]);
 
   const [showManualModal, setShowManualModal] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
@@ -64,73 +63,48 @@ const MobileExpenses = () => {
 
   const [showAutoModal, setShowAutoModal] = useState(false);
 
-  const loadFlightsData = () => {
-    try {
-      const stored = JSON.parse(localStorage.getItem('userFlights') || '[]');
-      setFlights(stored);
-    } catch { setFlights([]); }
-  };
+  const { userFlights, departmentExpenses, updateData } = useData();
 
-  const loadExpensesData = () => {
-    try {
-      const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
-      let allExpenses = [];
-      storedFlights.forEach(flight => {
-        if (flight.expenses && flight.expenses.length > 0) {
-          flight.expenses.forEach(exp => {
-            allExpenses.push({
-              ...exp,
-              flightId: flight.id,
-              flightNumber: flight.flightNumber || 'Unknown',
-              flightTitle: flight.title || 'Untitled',
-              flightDate: flight.date || exp.date,
-              isPaid: exp.isPaid || false
-            });
+  const expenses = React.useMemo(() => {
+    const flightsList = userFlights || [];
+    let allExpenses = [];
+    flightsList.forEach(flight => {
+      if (flight.expenses && flight.expenses.length > 0) {
+        flight.expenses.forEach(exp => {
+          allExpenses.push({
+            ...exp,
+            flightId: flight.id,
+            flightNumber: flight.flightNumber || 'Unknown',
+            flightTitle: flight.title || 'Untitled',
+            flightDate: flight.date || exp.date,
+            isPaid: exp.isPaid || false
           });
-        }
+        });
+      }
+    });
+    
+    const deptExpenses = departmentExpenses || [];
+    deptExpenses.forEach(exp => {
+      allExpenses.push({
+        ...exp,
+        flightId: '__DEPARTMENT__',
+        flightNumber: 'Department',
+        flightTitle: 'Department Expense',
+        flightDate: exp.date,
+        isPaid: exp.isPaid || false,
+        isDepartment: true
       });
-      try {
-        const storedDeptExpenses = JSON.parse(localStorage.getItem('departmentExpenses') || '[]');
-        if (storedDeptExpenses.length > 0) {
-          storedDeptExpenses.forEach(exp => {
-            allExpenses.push({
-              ...exp,
-              flightId: '__DEPARTMENT__',
-              flightNumber: 'Department',
-              flightTitle: 'Department Expense',
-              flightDate: exp.date,
-              isPaid: exp.isPaid || false,
-              isDepartment: true
-            });
-          });
-        }
-      } catch {}
-      allExpenses.sort((a, b) => new Date(b.date) - new Date(a.date));
-      setExpenses(allExpenses);
-    } catch(e) {
-      console.error(e);
-      setExpenses([]);
-    }
-  };
-
-  useEffect(() => {
-    loadExpensesData();
-    loadFlightsData();
-    const handleStorage = () => { loadExpensesData(); loadFlightsData(); };
-    window.addEventListener('storage', handleStorage);
-    window.addEventListener('firestore-sync', handleStorage);
-    return () => {
-      window.removeEventListener('storage', handleStorage);
-      window.removeEventListener('firestore-sync', handleStorage);
-    };
-  }, []);
+    });
+    
+    allExpenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+    return allExpenses;
+  }, [userFlights, departmentExpenses]);
 
   const persistExpenseToFlight = (flightId, updatedExpenses) => {
     try {
-      const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
+      const storedFlights = [...flights];
       const updated = storedFlights.map(f => String(f.id) === String(flightId) ? { ...f, expenses: updatedExpenses } : f);
-      localStorage.setItem('userFlights', JSON.stringify(updated));
-      window.dispatchEvent(new Event('storage'));
+      updateData('userFlights', updated);
     } catch (e) { console.error('Failed to persist expense', e); }
   };
 
@@ -173,7 +147,6 @@ const MobileExpenses = () => {
     setManualSaving(true);
     try {
       const flightId = manualForm.flightId || null;
-      const matchedFlight = flightId ? flights.find(f => String(f.id) === String(flightId)) : null;
 
       const expData = {
         vendor: manualForm.vendor.trim(),
@@ -196,28 +169,24 @@ const MobileExpenses = () => {
         // Remove from old flight or department
         const oldFlightId = editingExpense.flightId;
         if (oldFlightId && oldFlightId !== '__DEPARTMENT__') {
-          const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
-          const oldFlight = storedFlights.find(f => String(f.id) === String(oldFlightId));
+          const oldFlight = flights.find(f => String(f.id) === String(oldFlightId));
           if (oldFlight) {
             const oldExpenses = (oldFlight.expenses || []).filter(e => e.id !== editingExpense.id);
             persistExpenseToFlight(oldFlightId, oldExpenses);
           }
         } else if (editingExpense.isDepartment) {
-          const deptExpenses = JSON.parse(localStorage.getItem('departmentExpenses') || '[]');
-          localStorage.setItem('departmentExpenses', JSON.stringify(deptExpenses.filter(e => e.id !== editingExpense.id)));
-          window.dispatchEvent(new Event('storage'));
+          const deptExpenses = departmentExpenses || [];
+          updateData('departmentExpenses', deptExpenses.filter(e => e.id !== editingExpense.id));
         }
 
         // Add to new location
         if (flightId) {
-          const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
-          const targetFlight = storedFlights.find(f => String(f.id) === String(flightId));
+          const targetFlight = flights.find(f => String(f.id) === String(flightId));
           const currentExpenses = targetFlight?.expenses || [];
           persistExpenseToFlight(flightId, [...currentExpenses, updatedExp]);
         } else {
-          const deptExpenses = JSON.parse(localStorage.getItem('departmentExpenses') || '[]');
-          localStorage.setItem('departmentExpenses', JSON.stringify([...deptExpenses, { ...updatedExp, isDepartment: true }]));
-          window.dispatchEvent(new Event('storage'));
+          const deptExpenses = departmentExpenses || [];
+          updateData('departmentExpenses', [...deptExpenses, { ...updatedExp, isDepartment: true }]);
         }
       } else {
         // CREATE
@@ -230,14 +199,12 @@ const MobileExpenses = () => {
         };
 
         if (flightId) {
-          const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
-          const targetFlight = storedFlights.find(f => String(f.id) === String(flightId));
+          const targetFlight = flights.find(f => String(f.id) === String(flightId));
           const currentExpenses = targetFlight?.expenses || [];
           persistExpenseToFlight(flightId, [...currentExpenses, newExp]);
         } else {
-          const deptExpenses = JSON.parse(localStorage.getItem('departmentExpenses') || '[]');
-          localStorage.setItem('departmentExpenses', JSON.stringify([...deptExpenses, { ...newExp, isDepartment: true }]));
-          window.dispatchEvent(new Event('storage'));
+          const deptExpenses = departmentExpenses || [];
+          updateData('departmentExpenses', [...deptExpenses, { ...newExp, isDepartment: true }]);
         }
       }
 
@@ -291,16 +258,13 @@ const MobileExpenses = () => {
     newExp.hasReceipt = receiptCount > 0;
 
     if (flightId) {
-      const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
-      const targetFlight = storedFlights.find(f => String(f.id) === String(flightId));
+      const targetFlight = flights.find(f => String(f.id) === String(flightId));
       persistExpenseToFlight(flightId, [...(targetFlight?.expenses || []), newExp]);
     } else {
-      const deptExpenses = JSON.parse(localStorage.getItem('departmentExpenses') || '[]');
-      localStorage.setItem('departmentExpenses', JSON.stringify([...deptExpenses, { ...newExp, isDepartment: true }]));
-      window.dispatchEvent(new Event('storage'));
+      const deptExpenses = departmentExpenses || [];
+      updateData('departmentExpenses', [...deptExpenses, { ...newExp, isDepartment: true }]);
     }
     setShowAutoModal(false);
-    loadExpensesData();
   };
 
   const selectedFlightForForm = flights.find(f => String(f.id) === String(manualForm.flightId));

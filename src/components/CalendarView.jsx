@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useData } from '../contexts/DataProvider';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, addDays, startOfMonth, endOfMonth, isSameMonth, isSameDay, parseISO, differenceInCalendarDays } from 'date-fns';
 import { ChevronLeft, ChevronRight, ChevronDown, Plus, GripVertical, Moon, Filter, RotateCcw, MessageSquare, Helicopter, X } from 'lucide-react';
-import { mockFlights, mockPilots, mockAccounts, mockCustomZones } from '../data';
 import airportsData from '../data/airports.json';
 import EventModal from './EventModal';
 import ConflictWarningModal from './ConflictWarningModal';
 import { detectConflicts } from '../services/schedulingConflicts';
 import { authService } from '../services/authService';
-import { setPersonStatusForDate, removePersonStatusForDate, getPersonStatusForDate } from '../services/scheduleService';
+import { setPersonStatusForDate } from '../services/scheduleService';
 
 const LEGEND = {
   'Off Duty': '#ef4444', 
@@ -97,9 +97,8 @@ const CustomStatusDropdown = ({ value, onChange }) => {
   );
 };
 
-const getDefaultPilotForDate = (dateStr) => {
+const getDefaultPilotForDate = (dateStr, schedules = {}) => {
   try {
-    const schedules = JSON.parse(localStorage.getItem('crewSchedules') || '{}');
     for (const [key, status] of Object.entries(schedules)) {
       if (key.endsWith(`_${dateStr}`) && status === 'On Duty') {
         return key.split('_')[0];
@@ -126,20 +125,7 @@ const DEFAULT_VIEW_SETTINGS = {
   pilotFilter: []
 };
 
-const loadViewSettings = () => {
-  try {
-    const stored = localStorage.getItem('calendarViewSettings');
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return {
-        ...DEFAULT_VIEW_SETTINGS,
-        ...parsed,
-        fields: { ...DEFAULT_VIEW_SETTINGS.fields, ...(parsed.fields || {}) }
-      };
-    }
-  } catch { /* ignore */ }
-  return DEFAULT_VIEW_SETTINGS;
-};
+
 
 const CheckItem = ({ label, checked, onChange, disabled = false }) => (
   <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1, padding: '3px 0', userSelect: 'none' }}>
@@ -151,14 +137,19 @@ const CheckItem = ({ label, checked, onChange, disabled = false }) => (
 const viewSectionHeader = { fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', margin: '8px 0 6px 0' };
 
 const CalendarView = () => {
+  const { data, updateData } = useData();
+  const { 
+    userFlights: flights = [], 
+    userPilots: pilotsList = [], 
+    userPassengers: passengersList = [], 
+    userAccounts: accountsList = [], 
+    crewSchedules = {}, 
+    calendarNotes = {},
+    calendarViewSettings: viewSettingsData
+  } = data;
+  const viewSettings = { ...DEFAULT_VIEW_SETTINGS, ...(viewSettingsData || {}), fields: { ...DEFAULT_VIEW_SETTINGS.fields, ...(viewSettingsData?.fields || {}) } };
+
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [flights, setFlights] = useState(() => {
-    try {
-      const stored = localStorage.getItem('userFlights');
-      if (stored) return JSON.parse(stored);
-    } catch {}
-    return mockFlights;
-  });
   const [isModalOpen, setIsModalOpen] = useState(() => {
     return !!sessionStorage.getItem('baseops_open_flight_id');
   });
@@ -166,24 +157,11 @@ const CalendarView = () => {
   const [editingFlight, setEditingFlight] = useState(() => {
     const openId = sessionStorage.getItem('baseops_open_flight_id');
     if (!openId) return null;
-    try {
-      const stored = JSON.parse(localStorage.getItem('userFlights') || '[]');
-      return stored.find(f => String(f.id) === String(openId)) || null;
-    } catch { return null; }
+    return flights.find(f => String(f.id) === String(openId)) || null;
   });
-  const [pilotsList, setPilotsList] = useState([]);
-  const [passengersList, setPassengersList] = useState([]);
-  const [accountsList, setAccountsList] = useState([]);
   const [, setDraggableFlightId] = useState(null);
   const [pendingDuplicateFlight, setPendingDuplicateFlight] = useState(null);
-  const [crewSchedules, setCrewSchedules] = useState({});
-  const [viewSettings, setViewSettings] = useState(loadViewSettings);
   const [showViewPanel, setShowViewPanel] = useState(false);
-  const [calendarNotes, setCalendarNotes] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('calendarNotes') || '{}');
-    } catch { return {}; }
-  });
   const [noteModal, setNoteModal] = useState({ open: false, date: null, dateEnd: null, title: '', content: '', editId: null });
   const [dropConflictModal, setDropConflictModal] = useState({ open: false, pilotConflicts: [], aircraftConflicts: [], pendingFlight: null });
   const [cellModalOpen, setCellModalOpen] = useState(null); // { personId, dateStr, status }
@@ -191,12 +169,8 @@ const CalendarView = () => {
   const handleCellStatusClick = (personId, dateStr, status) => {
     try {
       const allPersonnel = [...(pilotsList || []), ...(passengersList || [])];
-      const stored = JSON.parse(localStorage.getItem('crewSchedules') || '{}');
-      const updated = setPersonStatusForDate(stored, personId, dateStr, status, allPersonnel);
-      setCrewSchedules(updated);
-      localStorage.setItem('crewSchedules', JSON.stringify(updated));
-      window.dispatchEvent(new Event('storage'));
-      window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'crewSchedules' } }));
+      const updated = setPersonStatusForDate(crewSchedules, personId, dateStr, status, allPersonnel);
+      updateData('crewSchedules', updated);
     } catch (err) {
       console.error('Error saving crew schedule:', err);
     }
@@ -210,31 +184,23 @@ const CalendarView = () => {
   };
 
   const updateViewSettings = (patch) => {
-    setViewSettings(prev => {
-      const next = { ...prev, ...patch, fields: { ...prev.fields, ...(patch.fields || {}) } };
-      try { localStorage.setItem('calendarViewSettings', JSON.stringify(next)); } catch { /* ignore */ }
-      return next;
-    });
+    const next = { ...viewSettings, ...patch, fields: { ...viewSettings.fields, ...(patch.fields || {}) } };
+    updateData('calendarViewSettings', next);
   };
 
   const toggleInViewArray = (key, value) => {
-    setViewSettings(prev => {
-      const arr = prev[key] || [];
-      const nextArr = arr.includes(value) ? arr.filter(v => v !== value) : [...arr, value];
-      const next = { ...prev, [key]: nextArr };
-      try { localStorage.setItem('calendarViewSettings', JSON.stringify(next)); } catch { /* ignore */ }
-      return next;
-    });
+    const arr = viewSettings[key] || [];
+    const nextArr = arr.includes(value) ? arr.filter(v => v !== value) : [...arr, value];
+    const next = { ...viewSettings, [key]: nextArr };
+    updateData('calendarViewSettings', next);
   };
 
   const resetViewSettings = () => {
-    setViewSettings(DEFAULT_VIEW_SETTINGS);
-    try { localStorage.setItem('calendarViewSettings', JSON.stringify(DEFAULT_VIEW_SETTINGS)); } catch { /* ignore */ }
+    updateData('calendarViewSettings', DEFAULT_VIEW_SETTINGS);
   };
 
   const saveNotes = (notes) => {
-    setCalendarNotes(notes);
-    try { localStorage.setItem('calendarNotes', JSON.stringify(notes)); } catch {}
+    updateData('calendarNotes', notes);
   };
 
   const openNoteModal = (date, existingNote = null) => {
@@ -299,69 +265,7 @@ const CalendarView = () => {
 
   const closeNoteModal = () => setNoteModal({ open: false, date: null, dateEnd: null, title: '', content: '', editId: null });
 
-  React.useEffect(() => {
-    try {
-      const storedPilots = JSON.parse(localStorage.getItem('userPilots'));
-      if (storedPilots && storedPilots.length > 0) {
-        setPilotsList(storedPilots);
-      } else {
-        setPilotsList(mockPilots);
-      }
-    } catch {
-      setPilotsList(mockPilots);
-    }
 
-    try {
-      const storedPax = JSON.parse(localStorage.getItem('userPassengers'));
-      if (storedPax && storedPax.length > 0) {
-        setPassengersList(storedPax);
-      }
-    } catch {
-      setPassengersList([]);
-    }
-
-    try {
-      const storedScheds = JSON.parse(localStorage.getItem('crewSchedules') || '{}');
-      setCrewSchedules(storedScheds);
-    } catch {}
-
-    try {
-      const storedAccounts = JSON.parse(localStorage.getItem('userAccounts'));
-      if (storedAccounts && storedAccounts.length > 0) setAccountsList(storedAccounts);
-      else setAccountsList(mockAccounts);
-    } catch { setAccountsList(mockAccounts); }
-  }, []);
-
-  // Listen for storage events and firestore sync to refresh flights and crew schedules
-  useEffect(() => {
-    const handleStorageSync = () => {
-      try {
-        const storedFlights = localStorage.getItem('userFlights');
-        if (storedFlights) setFlights(JSON.parse(storedFlights));
-      } catch { /* ignore parse errors */ }
-
-      try {
-        const storedScheds = localStorage.getItem('crewSchedules');
-        if (storedScheds) setCrewSchedules(JSON.parse(storedScheds));
-      } catch { /* ignore parse errors */ }
-
-      try {
-        const storedPilots = localStorage.getItem('userPilots');
-        if (storedPilots) setPilotsList(JSON.parse(storedPilots));
-      } catch { /* ignore */ }
-
-      try {
-        const storedPax = localStorage.getItem('userPassengers');
-        if (storedPax) setPassengersList(JSON.parse(storedPax));
-      } catch { /* ignore */ }
-    };
-    window.addEventListener('storage', handleStorageSync);
-    window.addEventListener('firestore-sync', handleStorageSync);
-    return () => {
-      window.removeEventListener('storage', handleStorageSync);
-      window.removeEventListener('firestore-sync', handleStorageSync);
-    };
-  }, []);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(monthStart);
@@ -378,9 +282,7 @@ const CalendarView = () => {
   const openModalForDate = (date) => {
     if (pendingDuplicateFlight) {
       const getNextFlightNumber = () => {
-        let currentStored = [];
-        try { currentStored = JSON.parse(localStorage.getItem('userFlights') || '[]'); } catch {}
-        const allList = currentStored.length > 0 ? currentStored : flights;
+        const allList = flights;
         if (allList.length === 0) return 1;
         const maxNum = Math.max(0, ...allList.map(f => parseInt(f.flightNumber, 10) || 0));
         return maxNum + 1;
@@ -442,14 +344,9 @@ const CalendarView = () => {
         flightNumber: newFlightNumber
       };
       
-      let currentStored = [];
-      try { currentStored = JSON.parse(localStorage.getItem('userFlights') || '[]'); } catch {}
-      const base = currentStored.length > 0 ? currentStored : flights;
-      const updatedFlights = [...base, flightData];
+      const updatedFlights = [...flights, flightData];
       
-      setFlights(updatedFlights);
-      localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
-      window.dispatchEvent(new Event('storage'));
+      updateData('userFlights', updatedFlights);
       setPendingDuplicateFlight(null);
       return;
     }
@@ -469,14 +366,7 @@ const CalendarView = () => {
   };
 
   const handleSaveFlight = (flightData) => {
-    let currentStored = [];
-    try {
-      currentStored = JSON.parse(localStorage.getItem('userFlights') || '[]');
-    } catch {}
-    if (!Array.isArray(currentStored) || currentStored.length === 0) {
-      currentStored = flights;
-    }
-
+    let currentStored = flights;
     let updatedFlights;
     let savedFlight = { ...flightData };
 
@@ -515,18 +405,11 @@ const CalendarView = () => {
       setEditingFlight(savedFlight);
     }
 
-    setFlights(updatedFlights);
-    localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
-    window.dispatchEvent(new Event('storage'));
-    window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'userFlights' } }));
+    updateData('userFlights', updatedFlights);
   };
 
   const handleDeleteFlight = (flightId) => {
-    let currentStored = [];
-    try {
-      currentStored = JSON.parse(localStorage.getItem('userFlights') || '[]');
-    } catch {}
-    const base = currentStored.length > 0 ? currentStored : flights;
+    const base = flights;
     const targetFlight = base.find(f => String(f.id) === String(flightId));
     
     // Check admin authorization if flight is signed
@@ -540,10 +423,7 @@ const CalendarView = () => {
     }
 
     const updatedFlights = base.filter(f => String(f.id) !== String(flightId));
-    setFlights(updatedFlights);
-    localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
-    window.dispatchEvent(new Event('storage'));
-    window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'userFlights' } }));
+    updateData('userFlights', updatedFlights);
     setIsModalOpen(false);
   };
 
@@ -684,7 +564,7 @@ const CalendarView = () => {
                 ...l,
                 date: newDepDate,
                 arrDate: newArrDate,
-                pilotId: l.pilotId || (l.pilots && l.pilots.length > 0 ? l.pilots[0] : getDefaultPilotForDate(newDepDate))
+                pilotId: l.pilotId || (l.pilots && l.pilots.length > 0 ? l.pilots[0] : getDefaultPilotForDate(newDepDate, crewSchedules))
               };
            }
 
@@ -705,9 +585,7 @@ const CalendarView = () => {
         }
 
         const updatedFlights = flights.map(f => f.id === id ? updatedFlight : f);
-        setFlights(updatedFlights);
-        localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
-        window.dispatchEvent(new Event('storage'));
+        updateData('userFlights', updatedFlights);
       }
     }
   };
@@ -716,18 +594,12 @@ const CalendarView = () => {
     if (!dropConflictModal.pendingFlight) return;
     const pf = dropConflictModal.pendingFlight;
     const updatedFlights = flights.map(f => f.id === pf.id ? pf : f);
-    setFlights(updatedFlights);
-    localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
-    window.dispatchEvent(new Event('storage'));
+    updateData('userFlights', updatedFlights);
     setDropConflictModal({ open: false, pilotConflicts: [], aircraftConflicts: [], pendingFlight: null });
   };
 
   const getStoredCustomZones = () => {
-    try {
-      return JSON.parse(localStorage.getItem('userCustomZones') || '[]');
-    } catch {
-      return [];
-    }
+    return data.userCustomZones || [];
   };
 
   const getAircraftColor = (aircraftId) => {

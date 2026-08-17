@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useData } from '../contexts/DataProvider';
 
 
 import { Search, Plus, Trash2, Helicopter, Wrench, ChevronDown, ChevronUp, History } from 'lucide-react';
@@ -16,70 +17,51 @@ const AircraftList = () => {
   const canAddDeleteAircraft = isAdmin;
   const canEditOps = permCan(currentUser, 'editOperationalData');
 
-  const [aircraft, setAircraft] = useState([]);
-  const [flights, setFlights] = useState([]);
-  const [saved, setSaved] = useState(false);
+  const { data, updateData } = useData();
+  const { userAircraft = [], userFlights: flights = [] } = data;
 
+  const [saved, setSaved] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedAircraft, setSelectedAircraft] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [auditExpanded, setAuditExpanded] = useState(false);
 
-  const selectedAircraftId = selectedAircraft?.id;
-  const loadData = useCallback(() => {
-    let storedAircraft = [];
-    try {
-      storedAircraft = JSON.parse(localStorage.getItem('userAircraft'));
-      if (!storedAircraft) {
-        // First load: seed with mock aircraft
-        storedAircraft = [...mockAircrafts].map(a => ({
-          ...a,
-          baseLocation: 'KVPZ',
-          totalHours: a.totalHours || 1250,
-          engine1Hours: a.engine1Hours || a.engineHours || a.totalHours || 1250,
-          engine2Hours: a.engine2Hours || 0,
-          engine1Cycles: a.engine1Cycles || a.engineCycles || 450,
-          engine2Cycles: a.engine2Cycles || 0,
-          dualEngine: a.dualEngine || false,
-          maxCruiseSpeed: 120,
-          lastInspection: '2025-10-01',
-          nextInspection: '2026-10-01',
-          notes: ''
-        }));
-        localStorage.setItem('userAircraft', JSON.stringify(storedAircraft));
-      }
-    } catch (e) {
-      console.error(e);
-      storedAircraft = [];
+  useEffect(() => {
+    if (userAircraft.length === 0) {
+      const seed = [...mockAircrafts].map(a => ({
+        ...a,
+        baseLocation: 'KVPZ',
+        totalHours: a.totalHours || 1250,
+        engine1Hours: a.engine1Hours || a.engineHours || a.totalHours || 1250,
+        engine2Hours: a.engine2Hours || 0,
+        engine1Cycles: a.engine1Cycles || a.engineCycles || 450,
+        engine2Cycles: a.engine2Cycles || 0,
+        dualEngine: a.dualEngine || false,
+        maxCruiseSpeed: 120,
+        lastInspection: '2025-10-01',
+        nextInspection: '2026-10-01',
+        notes: ''
+      }));
+      updateData('userAircraft', seed);
     }
+  }, [userAircraft.length, updateData]);
 
-    // Sort by tail number
-    storedAircraft.sort((a, b) => a.id.localeCompare(b.id));
-    setAircraft(storedAircraft);
-
-    if (selectedAircraftId) {
-      const updatedSel = storedAircraft.find(a => a.id === selectedAircraftId);
-      if (updatedSel) {
-        setSelectedAircraft(updatedSel);
-        setEditForm(prev => prev ? { ...updatedSel, originalId: updatedSel.id } : null);
-      }
-    }
-    
-    try {
-      setFlights(JSON.parse(localStorage.getItem('userFlights') || '[]'));
-    } catch {}
-  }, [selectedAircraftId]);
+  const aircraft = useMemo(() => {
+    const list = [...userAircraft];
+    list.sort((a, b) => a.id.localeCompare(b.id));
+    return list;
+  }, [userAircraft]);
 
   useEffect(() => {
-    loadData();
-    const handleStorage = () => loadData();
-    window.addEventListener('storage', handleStorage);
-    window.addEventListener('firestore-sync', handleStorage);
-    return () => {
-      window.removeEventListener('storage', handleStorage);
-      window.removeEventListener('firestore-sync', handleStorage);
-    };
-  }, [loadData]);
+    if (selectedAircraft?.id) {
+      const updatedSel = aircraft.find(a => a.id === selectedAircraft.id);
+      if (updatedSel) {
+        setSelectedAircraft(updatedSel);
+        // Only update edit form if we aren't actively editing to prevent wiping user input.
+        // Wait, normally we only setEditForm on select. If it updates in the background, we might want to sync it.
+      }
+    }
+  }, [aircraft, selectedAircraft?.id]);
 
   const filteredAircraft = aircraft.filter(a => 
     a.id.toLowerCase().includes(search.toLowerCase()) || 
@@ -139,13 +121,11 @@ const AircraftList = () => {
     const updated = { ...editForm, auditLog: updatedAudit };
     setEditForm(updated);
     try {
-      const stored = JSON.parse(localStorage.getItem('userAircraft') || '[]');
+      const stored = [...userAircraft];
       const idx = stored.findIndex(a => a.id === updated.id);
       if (idx >= 0) {
         stored[idx] = updated;
-        localStorage.setItem('userAircraft', JSON.stringify(stored));
-        window.dispatchEvent(new Event('storage'));
-        window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'userAircraft' } }));
+        updateData('userAircraft', stored);
       }
     } catch(err) { console.error(err); }
   };
@@ -177,10 +157,8 @@ const AircraftList = () => {
     if (!editForm) return;
     if (!window.confirm(`Are you sure you want to delete ${editForm.id}?`)) return;
     try {
-      const storedAircraft = JSON.parse(localStorage.getItem('userAircraft') || '[]');
-      const updatedAircraft = storedAircraft.filter(a => a.id !== editForm.originalId && a.id !== editForm.id);
-      localStorage.setItem('userAircraft', JSON.stringify(updatedAircraft));
-      loadData();
+      const updatedAircraft = userAircraft.filter(a => a.id !== editForm.originalId && a.id !== editForm.id);
+      updateData('userAircraft', updatedAircraft);
       setSelectedAircraft(null);
       setEditForm(null);
     } catch {
@@ -193,7 +171,7 @@ const AircraftList = () => {
     if (!editForm) return;
 
     try {
-      const storedAircraft = JSON.parse(localStorage.getItem('userAircraft') || '[]');
+      const storedAircraft = [...userAircraft];
       
       const acToSave = { ...editForm };
       const originalId = acToSave.originalId || acToSave.id;
@@ -242,9 +220,8 @@ const AircraftList = () => {
         storedAircraft.push(acToSave);
       }
 
-      localStorage.setItem('userAircraft', JSON.stringify(storedAircraft));
+      updateData('userAircraft', storedAircraft);
       
-      loadData();
       setSelectedAircraft(acToSave);
       setEditForm({ ...acToSave, originalId: acToSave.id });
       setSaved(prev => !prev);

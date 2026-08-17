@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, Filter, Settings, Settings2, Helicopter, X, GripVertical, Moon } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { useData } from '../contexts/DataProvider';
+import { ChevronLeft, ChevronRight, ChevronDown, Settings, Settings2, Helicopter, X, GripVertical, Moon } from 'lucide-react';
 import { startOfWeek, addDays, format, subWeeks, addWeeks } from 'date-fns';
 import airportsData from '../data/airports.json';
 import { mockCustomZones } from '../data';
@@ -7,7 +8,7 @@ import { getColorForKey, getAccountColor, TAG_COLORS } from '../services/gridCol
 import EventModal from './EventModal';
 import useIsMobile from '../hooks/useIsMobile';
 import MobileDropdownMenu from './MobileDropdownMenu';
-import { getPersonStatusForDate, setPersonStatusForDate, removePersonStatusForDate } from '../services/scheduleService';
+import { getPersonStatusForDate, setPersonStatusForDate } from '../services/scheduleService';
 
 const LEGEND = {
   'Off Duty': '#ef4444', 
@@ -100,23 +101,53 @@ const CustomStatusDropdown = ({ value, onChange }) => {
 const CrewSchedule = () => {
   const isMobile = useIsMobile();
   const [currentWeek, setCurrentWeek] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
-  const [personnel, setPersonnel] = useState([]);
-  const [flights, setFlights] = useState([]);
-  const [schedules, setSchedules] = useState({});
+  const { data, updateData } = useData();
+  const { 
+    userPilots, 
+    userPassengers, 
+    crewOrder, 
+    userFlights: flights = [], 
+    crewSchedules: schedules = {}, 
+    userAccounts: accountsList = [],
+    calendarViewSettings = {},
+    userCustomZones = []
+  } = data;
+  
+  const colorBy = calendarViewSettings?.schedulesGridColorBy || 'tag';
+
+  const personnel = useMemo(() => {
+    const pilots = userPilots || [];
+    const pax = userPassengers || [];
+    const crewPax = pax.filter(p => p.isCrew);
+    const passengerPax = pax.filter(p => !p.isCrew);
+    const allPersonnel = [...pilots.map(p => ({ ...p, type: 'pilot' })),
+                         ...crewPax.map(p => ({ ...p, type: 'crew' })),
+                         ...passengerPax.map(p => ({ ...p, type: 'pax' }))];
+    
+    if (crewOrder && crewOrder.length > 0) {
+      allPersonnel.sort((a, b) => {
+         const idxA = crewOrder.indexOf(a.id);
+         const idxB = crewOrder.indexOf(b.id);
+         if (idxA === -1 && idxB === -1) return 0;
+         if (idxA === -1) return 1;
+         if (idxB === -1) return -1;
+         return idxA - idxB;
+      });
+    }
+    return allPersonnel;
+  }, [userPilots, userPassengers, crewOrder]);
+
   const [activeFilter, setActiveFilter] = useState('All'); // 'All', 'Pilots', 'Crew', 'Passengers'
-  const filterRef = useRef(null);
   const [generatorOpen, setGeneratorOpen] = useState(false);
   const [cellModalOpen, setCellModalOpen] = useState(null); // { personId, dateStr, status, x, y }
   const [activeDuplicateStatus, setActiveDuplicateStatus] = useState(null);
   const [draggedPersonId, setDraggedPersonId] = useState(null);
-  const [accountsList, setAccountsList] = useState([]);
   
   // Flight Modal state
   const [selectedFlight, setSelectedFlight] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Grid color settings
-  const [colorBy, setColorBy] = useState(() => localStorage.getItem('schedulesGridColorBy') || 'tag');
   const [colorSettingsOpen, setColorSettingsOpen] = useState(false);
   
   const [genPilotId, setGenPilotId] = useState('');
@@ -125,53 +156,8 @@ const CrewSchedule = () => {
   const [genStartDate, setGenStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [everyOtherWeek, setEveryOtherWeek] = useState(false);
 
-  // Removed filterRef and handleClickOutside as we're using segmented buttons now
-
-  useEffect(() => {
-    const pilots = JSON.parse(localStorage.getItem('userPilots') || '[]');
-    const pax = JSON.parse(localStorage.getItem('userPassengers') || '[]');
-    const crewPax = pax.filter(p => p.isCrew);
-    const passengerPax = pax.filter(p => !p.isCrew);
-    const allPersonnel = [...pilots.map(p => ({ ...p, type: 'pilot' })),
-                         ...crewPax.map(p => ({ ...p, type: 'crew' })),
-                         ...passengerPax.map(p => ({ ...p, type: 'pax' }))];
-    
-    const savedOrder = JSON.parse(localStorage.getItem('crewOrder') || '[]');
-    if (savedOrder.length > 0) {
-      allPersonnel.sort((a, b) => {
-         const idxA = savedOrder.indexOf(a.id);
-         const idxB = savedOrder.indexOf(b.id);
-         if (idxA === -1 && idxB === -1) return 0;
-         if (idxA === -1) return 1;
-         if (idxB === -1) return -1;
-         return idxA - idxB;
-      });
-    }
-    setPersonnel(allPersonnel);
-    
-    setFlights(JSON.parse(localStorage.getItem('userFlights') || '[]'));
-    setSchedules(JSON.parse(localStorage.getItem('crewSchedules') || '{}'));
-    try {
-      setAccountsList(JSON.parse(localStorage.getItem('userAccounts') || '[]'));
-    } catch {}
-
-    const handleStorage = () => {
-      setFlights(JSON.parse(localStorage.getItem('userFlights') || '[]'));
-      setSchedules(JSON.parse(localStorage.getItem('crewSchedules') || '{}'));
-    };
-    window.addEventListener('storage', handleStorage);
-    window.addEventListener('firestore-sync', handleStorage);
-    return () => {
-      window.removeEventListener('storage', handleStorage);
-      window.removeEventListener('firestore-sync', handleStorage);
-    };
-  }, []);
-
   const saveSchedules = (newSched) => {
-    setSchedules(newSched);
-    localStorage.setItem('crewSchedules', JSON.stringify(newSched));
-    window.dispatchEvent(new Event('storage'));
-    window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'crewSchedules' } }));
+    updateData('crewSchedules', newSched);
   };
 
   const handleDropPerson = (targetPersonId) => {
@@ -186,19 +172,14 @@ const CrewSchedule = () => {
     const [draggedItem] = newPersonnel.splice(draggedIdx, 1);
     newPersonnel.splice(targetIdx, 0, draggedItem);
     
-    setPersonnel(newPersonnel);
-    localStorage.setItem('crewOrder', JSON.stringify(newPersonnel.map(p => p.id)));
+    updateData('crewOrder', newPersonnel.map(p => p.id));
     setDraggedPersonId(null);
   };
 
   const handleCellClick = (personId, dateStr, status) => {
     try {
-      const stored = JSON.parse(localStorage.getItem('crewSchedules') || '{}');
-      const updated = setPersonStatusForDate(stored, personId, dateStr, status, personnel);
-      setSchedules(updated);
-      localStorage.setItem('crewSchedules', JSON.stringify(updated));
-      window.dispatchEvent(new Event('storage'));
-      window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'crewSchedules' } }));
+      const updated = setPersonStatusForDate(schedules, personId, dateStr, status, personnel);
+      updateData('crewSchedules', updated);
     } catch (err) {
       console.error('Failed to update crew schedule:', err);
     }
@@ -283,8 +264,7 @@ const CrewSchedule = () => {
       const ap = airportsData.find(a => a.id === loc.id);
       return ap ? ap.id : loc.id;
     } else {
-      let storedZones = [];
-      try { storedZones = JSON.parse(localStorage.getItem('userCustomZones') || '[]'); } catch {}
+      let storedZones = userCustomZones || [];
       const cz = [...mockCustomZones, ...storedZones].find(c => c.id === loc.id);
       return cz ? (cz.id || cz.title) : loc.id;
     }
@@ -327,8 +307,7 @@ const CrewSchedule = () => {
   };
 
   const changeColorBy = (mode) => {
-    setColorBy(mode);
-    localStorage.setItem('schedulesGridColorBy', mode);
+    updateData('schedulesGridColorBy', mode);
   };
 
   return (
@@ -895,7 +874,7 @@ const CrewSchedule = () => {
           flight={selectedFlight}
           onSave={(updatedFlight) => {
             try {
-              const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
+              const storedFlights = [...(flights || [])];
               const idx = storedFlights.findIndex(f => f.id === updatedFlight.id);
               let newFlights;
               if (idx >= 0) {
@@ -903,9 +882,7 @@ const CrewSchedule = () => {
               } else {
                 newFlights = [...storedFlights, updatedFlight];
               }
-              localStorage.setItem('userFlights', JSON.stringify(newFlights));
-              setFlights(newFlights);
-              window.dispatchEvent(new Event('storage'));
+              updateData('userFlights', newFlights);
             } catch(e) {
               console.error(e);
             }
@@ -914,11 +891,9 @@ const CrewSchedule = () => {
           }}
           onDelete={(flightId) => {
             try {
-              const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
+              const storedFlights = [...(flights || [])];
               const newFlights = storedFlights.filter(f => f.id !== flightId);
-              localStorage.setItem('userFlights', JSON.stringify(newFlights));
-              setFlights(newFlights);
-              window.dispatchEvent(new Event('storage'));
+              updateData('userFlights', newFlights);
             } catch(e) {
               console.error(e);
             }

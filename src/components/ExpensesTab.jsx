@@ -4,6 +4,7 @@ import { FileStorageService } from '../services/FileStorageService';
 import AIInvoiceUploader from './AIInvoiceUploader';
 import useIsMobile from '../hooks/useIsMobile';
 import MobileDropdownMenu from './MobileDropdownMenu';
+import { useData } from '../contexts/DataProvider';
 
 const ALL_CATEGORIES = [
   'Catering', 'Cleaning / Detailing', 'Crew Meal', 'Customs / Border Fees', 
@@ -88,10 +89,12 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
   const [loadedReceipts, setLoadedReceipts] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
+  const { userFlights, userVendors, updateData } = useData();
+
   const persistExpensesToFlight = (updatedExpenses) => {
     if (!flight && (!updatedExpenses || updatedExpenses.length === 0)) return;
     try {
-      const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
+      const storedFlights = [...(userFlights || [])];
       const targetId = flight?.id ? String(flight.id) : null;
       const targetFlightNumber = flight?.flightNumber ? String(flight.flightNumber) : null;
 
@@ -114,10 +117,9 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
         });
       }
 
-      localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
-      window.dispatchEvent(new Event('storage'));
+      updateData('userFlights', updatedFlights);
     } catch (e) {
-      console.error("Failed to persist expenses to localStorage", e);
+      console.error("Failed to persist expenses", e);
     }
   };
 
@@ -198,14 +200,11 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
   const expenseFrequencies = useMemo(() => {
     const freqs = { vendor: {}, category: {}, payer: {}, fuelType: {} };
     let allStoredExpenses = [];
-    try {
-      const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
-      storedFlights.forEach(f => {
-        if (f.expenses && Array.isArray(f.expenses)) {
-          allStoredExpenses.push(...f.expenses);
-        }
-      });
-    } catch {}
+    (userFlights || []).forEach(f => {
+      if (f.expenses && Array.isArray(f.expenses)) {
+        allStoredExpenses.push(...f.expenses);
+      }
+    });
     
     const combined = [...allStoredExpenses, ...(expenses || [])];
     combined.forEach(e => {
@@ -215,7 +214,7 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
       if (e.fuelType) freqs.fuelType[e.fuelType] = (freqs.fuelType[e.fuelType] || 0) + 1;
     });
     return freqs;
-  }, [expenses]);
+  }, [expenses, userFlights]);
 
   const sortByUsageThenAlpha = (items, freqMap, getName = (item) => item) => {
     return [...items].sort((a, b) => {
@@ -285,14 +284,7 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
     let finalVendorName = parsedData.vendor || '';
     if (parsedData.vendor && parsedData.vendor.trim()) {
       try {
-        const rawStored = localStorage.getItem('userVendors');
-        let currentVendors = [];
-        if (rawStored !== null) {
-          currentVendors = JSON.parse(rawStored);
-        } else {
-          const { mockVendors } = await import('../data');
-          currentVendors = mockVendors;
-        }
+        let currentVendors = userVendors || vendorsList || [];
 
         const rawVendorInput = parsedData.vendor.trim().toLowerCase();
         const matchedVendorId = (parsedData.matchedVendorId || '').toLowerCase();
@@ -324,8 +316,7 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
             poc: parsedData.vendorPoc || ''
           };
           const updatedVendorsList = [...currentVendors, newVendorObj];
-          localStorage.setItem('userVendors', JSON.stringify(updatedVendorsList));
-          window.dispatchEvent(new Event('storage'));
+          updateData('userVendors', updatedVendorsList);
           finalVendorName = newVendorObj.vendorId || cleanName;
         }
       } catch(e) { console.warn('Vendor matching/creation error:', e); }
@@ -522,11 +513,6 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
 
   const isRowFilled = (exp) => {
     return exp.vendor || exp.category || exp.location || exp.amount || exp.description || exp.payer || exp.fuelType || exp.gallons;
-  };
-
-  const isRowValid = (exp) => {
-    if (!isRowFilled(exp)) return true;
-    return exp.vendor && exp.category && exp.location && (exp.amount !== '' && exp.amount != null);
   };
 
   const getStyle = (exp, field, baseStyle = inputStyle) => {

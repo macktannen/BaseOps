@@ -9,7 +9,6 @@ import {
   EmailAuthProvider,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, getDocs, collection, deleteDoc } from 'firebase/firestore';
-import { setUserId } from './dataStore';
 
 const USERS_COLLECTION = 'users';
 
@@ -79,7 +78,6 @@ export const authService = {
     const cred = await signInWithEmailAndPassword(auth, email, password);
     const uid = cred.user.uid;
     const profile = await ensureUserProfile(cred.user);
-    setUserId(uid);
     return buildSessionUser(uid, profile);
   },
 
@@ -88,7 +86,6 @@ export const authService = {
     const uid = cred.user.uid;
     await fbUpdateProfile(cred.user, { displayName: name });
     const profile = await ensureUserProfile(cred.user, name);
-    setUserId(uid);
     return buildSessionUser(uid, profile);
   },
 
@@ -113,7 +110,6 @@ export const authService = {
 
   logout: async () => {
     await signOut(auth);
-    setUserId(null);
   },
 
   getCurrentUser: () => {
@@ -121,7 +117,7 @@ export const authService = {
     if (!fbUser) return null;
     const cached = localStorage.getItem('baseOpsCurrentUser');
     if (cached) {
-      try { return JSON.parse(cached); } catch {}
+      try { return JSON.parse(cached); } catch { localStorage.removeItem('baseOpsCurrentUser'); }
     }
     return {
       id: fbUser.uid,
@@ -174,9 +170,5 @@ export const authService = {
     await reauthenticateWithCredential(fbUser, credential);
     await fbUpdatePassword(fbUser, newPassword);
     return true;
-  },
-
-  saveUsers: async (users) => {
-    console.warn('saveUsers called — use individual update methods instead');
   },
 };

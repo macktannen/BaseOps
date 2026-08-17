@@ -19,14 +19,6 @@ function sanitizeFileName(name) {
   return `${Date.now()}_${(name || 'file').replace(/[^a-zA-Z0-9._-]/g, '_')}`;
 }
 
-async function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
 
 export const FileStorageService = {
   // ── Flight Documents ──────────────────────────────────────
@@ -41,6 +33,7 @@ export const FileStorageService = {
     const storagePath = `flights/${flightId || 'general'}/${safeName}`;
     let cloudUrl = null;
     let isCloud = false;
+    let savedSomewhere = false;
 
     // 1. Try uploading to Firebase Storage
     if (storage) {
@@ -49,6 +42,7 @@ export const FileStorageService = {
         await uploadBytes(fileRef, file);
         cloudUrl = await getDownloadURL(fileRef);
         isCloud = true;
+        savedSomewhere = true;
       } catch (cloudErr) {
         console.warn('Firebase Storage upload failed or not configured, using local storage fallback:', cloudErr);
       }
@@ -66,9 +60,12 @@ export const FileStorageService = {
         cloudUrl,
         uploadedAt: new Date().toISOString()
       });
+      savedSomewhere = true;
     } catch (dbErr) {
       console.warn('Failed to cache file in local IndexedDB:', dbErr);
     }
+
+    if (!savedSomewhere) throw new Error('Failed to save file — both cloud and local storage failed.');
 
     return {
       id: safeName,
@@ -209,6 +206,7 @@ export const FileStorageService = {
     const path = `receipts/${flightId || 'general'}/${expenseId}/${safeName}`;
     let cloudUrl = null;
     let isCloud = false;
+    let savedSomewhere = false;
 
     // 1. Try Firebase Storage
     if (storage) {
@@ -219,6 +217,7 @@ export const FileStorageService = {
         await uploadBytes(fileRef, blob);
         cloudUrl = await getDownloadURL(fileRef);
         isCloud = true;
+        savedSomewhere = true;
       } catch (cloudErr) {
         console.warn('Firebase Storage receipt upload failed, using local storage fallback:', cloudErr);
       }
@@ -237,9 +236,12 @@ export const FileStorageService = {
         cloudUrl,
         uploadedAt: new Date().toISOString()
       });
+      savedSomewhere = true;
     } catch (dbErr) {
       console.warn('Failed to cache receipt in local IndexedDB:', dbErr);
     }
+
+    if (!savedSomewhere) throw new Error('Failed to save file — both cloud and local storage failed.');
 
     return {
       id: safeName,
@@ -362,6 +364,7 @@ export const FileStorageService = {
   // ── Migration helper: move legacy IndexedDB receipts to Cloud/Unified ────
 
   async migrateIndexedDBReceipts(flights) {
+    if (!Array.isArray(flights)) return 0;
     let migratedCount = 0;
     try {
       const legacyDb = localforage.createInstance({ name: 'HelicopterScheduler', storeName: 'receipts_store' });

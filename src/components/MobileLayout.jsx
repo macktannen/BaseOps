@@ -5,8 +5,6 @@ import Logo from './Logo';
 import packageJson from '../../package.json';
 import { useAuth } from '../contexts/useAuth';
 import { can as permCan } from '../services/permissionService';
-import { initDataSync } from '../services/dataSyncService';
-import SyncStatusIndicator from './SyncStatusIndicator';
 import { startOfMonth, endOfMonth, eachDayOfInterval, format, addMonths, subMonths, isSameDay, getDay } from 'date-fns';
 
 import MobileCrew from './MobileCrew';
@@ -16,6 +14,7 @@ import MobileFleet from './MobileFleet';
 import MobileExpenses from './MobileExpenses';
 import MobileAccounts from './MobileAccounts';
 import { mockFlights } from '../data';
+import { useData } from '../contexts/DataProvider';
 
 const APP_VERSION = `v${packageJson.version}`;
 
@@ -36,20 +35,7 @@ const DEFAULT_VIEW_SETTINGS = {
   pilotFilter: []
 };
 
-const loadViewSettings = () => {
-  try {
-    const stored = localStorage.getItem('calendarViewSettings');
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return {
-        ...DEFAULT_VIEW_SETTINGS,
-        ...parsed,
-        fields: { ...DEFAULT_VIEW_SETTINGS.fields, ...(parsed.fields || {}) }
-      };
-    }
-  } catch { /* ignore */ }
-  return DEFAULT_VIEW_SETTINGS;
-};
+
 
 const TAB_TITLES = {
   calendar: 'Flights',
@@ -79,10 +65,34 @@ export default function MobileLayout({ activeTab: propActiveTab, setActiveTab: p
 
   const [selectedDay, setSelectedDay] = useState(new Date());
   const [miniCalMonth, setMiniCalMonth] = useState(new Date());
-  const [flights, setFlights] = useState([]);
-  const [schedules, setSchedules] = useState({});
-  const [crewList, setCrewList] = useState([]);
-  const [accountsList, setAccountsList] = useState([]);
+  
+  const { 
+    userFlights, 
+    crewSchedules, 
+    userPilots, 
+    userPassengers, 
+    userAccounts,
+    calendarViewSettings,
+    calendarNotes,
+    updateData
+  } = useData();
+
+  const flights = (userFlights && userFlights.length > 0) ? userFlights : mockFlights;
+  const schedules = crewSchedules || {};
+  const crewList = useMemo(() => {
+    const crewPax = (userPassengers || []).filter(p => p.isCrew);
+    const passengerPax = (userPassengers || []).filter(p => !p.isCrew);
+    return [
+      ...(userPilots || []).map(p => ({ ...p, type: 'pilot' })),
+      ...crewPax.map(p => ({ ...p, type: 'crew' })),
+      ...passengerPax.map(p => ({ ...p, type: 'pax' }))
+    ];
+  }, [userPilots, userPassengers]);
+  const accountsList = userAccounts || [];
+  
+  const viewSettings = useMemo(() => calendarViewSettings || {}, [calendarViewSettings]);
+  const currentCalendarNotes = calendarNotes || {};
+
   const [isModalOpen, setIsModalOpen] = useState(() => {
     return !!sessionStorage.getItem('baseops_open_flight_id');
   });
@@ -90,25 +100,16 @@ export default function MobileLayout({ activeTab: propActiveTab, setActiveTab: p
     const openId = sessionStorage.getItem('baseops_open_flight_id');
     if (!openId) return null;
     try {
-      const stored = JSON.parse(localStorage.getItem('userFlights') || '[]');
+      const stored = userFlights || [];
       return stored.find(f => String(f.id) === String(openId)) || null;
     } catch { return null; }
   });
   const [duplicateFlightData, setDuplicateFlightData] = useState(null);
   const [duplicateDate, setDuplicateDate] = useState('');
-  const [viewSettings, setViewSettings] = useState(loadViewSettings);
   const [showViewModal, setShowViewModal] = useState(false);
-  const [calendarNotes, setCalendarNotes] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('calendarNotes') || '{}'); } catch { return {}; }
-  });
   const [noteModal, setNoteModal] = useState({ open: false, date: null, dateEnd: null, title: '', content: '', editId: null });
 
-  useEffect(() => {
-    const cleanup = initDataSync(() => {
-      window.dispatchEvent(new Event('storage'));
-    });
-    return cleanup;
-  }, []);
+
 
   useEffect(() => {
     document.body.classList.add('is-mobile-layout');
@@ -132,44 +133,6 @@ export default function MobileLayout({ activeTab: propActiveTab, setActiveTab: p
     setIsModalOpen(false);
     setEditingFlight(null);
   };
-
-  const loadData = () => {
-    try {
-      const stored = localStorage.getItem('userFlights');
-      if (stored) {
-        setFlights(JSON.parse(stored));
-      } else {
-        setFlights(mockFlights);
-      }
-    } catch { setFlights(mockFlights); }
-
-    try {
-      setSchedules(JSON.parse(localStorage.getItem('crewSchedules') || '{}'));
-    } catch {}
-
-    try {
-      const pilots = JSON.parse(localStorage.getItem('userPilots') || '[]');
-      const pax = JSON.parse(localStorage.getItem('userPassengers') || '[]');
-      const crewPax = pax.filter(p => p.isCrew);
-      const passengerPax = pax.filter(p => !p.isCrew);
-      setCrewList([
-        ...pilots.map(p => ({ ...p, type: 'pilot' })),
-        ...crewPax.map(p => ({ ...p, type: 'crew' })),
-        ...passengerPax.map(p => ({ ...p, type: 'pax' }))
-      ]);
-    } catch {}
-
-    try {
-      const accs = JSON.parse(localStorage.getItem('userAccounts') || '[]');
-      setAccountsList(accs);
-    } catch {}
-  };
-
-  useEffect(() => {
-    loadData();
-    window.addEventListener('storage', loadData);
-    return () => window.removeEventListener('storage', loadData);
-  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -210,10 +173,9 @@ export default function MobileLayout({ activeTab: propActiveTab, setActiveTab: p
       legs: newLegs
     };
     try {
-      const stored = JSON.parse(localStorage.getItem('userFlights') || '[]');
+      const stored = [...(userFlights || [])];
       stored.push(newFlight);
-      localStorage.setItem('userFlights', JSON.stringify(stored));
-      window.dispatchEvent(new Event('storage'));
+      updateData('userFlights', stored);
     } catch {}
     setDuplicateFlightData(null);
     setDuplicateDate('');
@@ -245,7 +207,7 @@ export default function MobileLayout({ activeTab: propActiveTab, setActiveTab: p
     const start = new Date(noteModal.date + 'T00:00:00');
     const end = new Date((noteModal.dateEnd || noteModal.date) + 'T00:00:00');
     const endDt = end < start ? start : end;
-    const next = { ...calendarNotes };
+    const next = { ...currentCalendarNotes };
 
     if (noteModal.editId) {
       for (const [d, notes] of Object.entries(next)) {
@@ -256,52 +218,46 @@ export default function MobileLayout({ activeTab: propActiveTab, setActiveTab: p
           break;
         }
       }
-      const dateStr = noteModal.date;
-      const existing = next[dateStr] || [];
-      next[dateStr] = [...existing, { id: noteModal.editId, title, content }];
-    } else {
-      let current = new Date(start);
-      while (current <= endDt) {
-        const dateStr = format(current, 'yyyy-MM-dd');
+    }
+
+    let current = new Date(start);
+    while (current <= endDt) {
+      const dateStr = format(current, 'yyyy-MM-dd');
+      if (noteModal.editId) {
+        const existing = next[dateStr] || [];
+        next[dateStr] = [...existing, { id: noteModal.editId, title, content }];
+        current.setDate(current.getDate() + 1);
+      } else {
         const existing = next[dateStr] || [];
         next[dateStr] = [...existing, { id: `note_${Date.now()}_${dateStr}`, title, content }];
         current.setDate(current.getDate() + 1);
       }
     }
 
-    setCalendarNotes(next);
-    try { localStorage.setItem('calendarNotes', JSON.stringify(next)); } catch {}
+    updateData('calendarNotes', next);
     closeNoteModal();
   };
 
   const deleteNote = (dateStr, noteId) => {
-    const next = { ...calendarNotes };
+    const next = { ...currentCalendarNotes };
     next[dateStr] = (next[dateStr] || []).filter(n => n.id !== noteId);
-    setCalendarNotes(next);
-    try { localStorage.setItem('calendarNotes', JSON.stringify(next)); } catch {}
+    updateData('calendarNotes', next);
   };
 
   const updateViewSettings = (patch) => {
-    setViewSettings(prev => {
-      const next = { ...prev, ...patch, fields: { ...prev.fields, ...(patch.fields || {}) } };
-      try { localStorage.setItem('calendarViewSettings', JSON.stringify(next)); } catch { /* ignore */ }
-      return next;
-    });
+    const next = { ...viewSettings, ...patch, fields: { ...viewSettings.fields, ...(patch.fields || {}) } };
+    updateData('calendarViewSettings', next);
   };
 
   const toggleInViewArray = (key, value) => {
-    setViewSettings(prev => {
-      const arr = prev[key] || [];
-      const nextArr = arr.includes(value) ? arr.filter(v => v !== value) : [...arr, value];
-      const next = { ...prev, [key]: nextArr };
-      try { localStorage.setItem('calendarViewSettings', JSON.stringify(next)); } catch { /* ignore */ }
-      return next;
-    });
+    const arr = viewSettings[key] || [];
+    const nextArr = arr.includes(value) ? arr.filter(v => v !== value) : [...arr, value];
+    const next = { ...viewSettings, [key]: nextArr };
+    updateData('calendarViewSettings', next);
   };
 
   const resetViewSettings = () => {
-    setViewSettings(DEFAULT_VIEW_SETTINGS);
-    try { localStorage.setItem('calendarViewSettings', JSON.stringify(DEFAULT_VIEW_SETTINGS)); } catch { /* ignore */ }
+    updateData('calendarViewSettings', DEFAULT_VIEW_SETTINGS);
   };
 
   const getFlightPilotIds = (flight) => {
@@ -371,6 +327,7 @@ export default function MobileLayout({ activeTab: propActiveTab, setActiveTab: p
       }
     });
     return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flights, viewSettings]);
 
   const selectedDateStr = selectedDay ? format(selectedDay, 'yyyy-MM-dd') : null;
@@ -819,7 +776,6 @@ export default function MobileLayout({ activeTab: propActiveTab, setActiveTab: p
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <SyncStatusIndicator />
           <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>{APP_VERSION}</span>
           <div
             onClick={() => setActiveTab('settings')}
@@ -965,21 +921,19 @@ export default function MobileLayout({ activeTab: propActiveTab, setActiveTab: p
             flightsCount={flights.length === 0 ? 0 : Math.max(...flights.map(f => parseInt(f.flightNumber) || 0))}
             onSave={(updatedFlight) => {
               try {
-                const stored = JSON.parse(localStorage.getItem('userFlights') || '[]');
+                const stored = [...(userFlights || [])];
                 const idx = stored.findIndex(f => f.id === updatedFlight.id);
                 if (idx !== -1) stored[idx] = updatedFlight;
                 else stored.push(updatedFlight);
-                localStorage.setItem('userFlights', JSON.stringify(stored));
-                window.dispatchEvent(new Event('storage'));
+                updateData('userFlights', stored);
               } catch {}
               handleCloseFlightModal();
             }}
             onDelete={(flightId) => {
               try {
-                const stored = JSON.parse(localStorage.getItem('userFlights') || '[]');
+                const stored = [...(userFlights || [])];
                 const updated = stored.filter(f => f.id !== flightId);
-                localStorage.setItem('userFlights', JSON.stringify(updated));
-                window.dispatchEvent(new Event('storage'));
+                updateData('userFlights', updated);
               } catch {}
               handleCloseFlightModal();
             }}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/useAuth';
+import { useData } from '../contexts/DataProvider';
 import { authService } from '../services/authService';
 import { ROLES, ROLE_LABELS, ROLE_COLORS, getUserRoles } from '../services/permissionService';
 import useIsMobile from '../hooks/useIsMobile';
@@ -52,6 +53,7 @@ const RoleCheckboxGroup = ({ value = [], onChange, disabled = false }) => (
 
 const SettingsView = () => {
   const { currentUser, isAdmin, updateProfile } = useAuth();
+  const { updateData, gemini_api_key } = useData();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('account');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -79,7 +81,6 @@ const SettingsView = () => {
   const [editUserEmail, setEditUserEmail] = useState('');
   const [editUserPassword, setEditUserPassword] = useState('');
   const [editUserRoles, setEditUserRoles] = useState([]);
-  const [editUserMsg, setEditUserMsg] = useState('');
 
   useEffect(() => {
     if (isAdmin && activeTab === 'users') {
@@ -190,7 +191,7 @@ const SettingsView = () => {
 
   const handleResetAirportHistory = () => {
     if (window.confirm('Are you sure you want to clear your airport search history?')) {
-      localStorage.removeItem('locationUsage');
+      updateData('locationUsage', {});
       alert('Airport search history cleared!');
     }
   };
@@ -198,14 +199,14 @@ const SettingsView = () => {
   const currentUserRoles = getUserRoles(currentUser);
   const isViewOnly = currentUserRoles.length === 1 && currentUserRoles[0] === 'view_only';
 
-  const [geminiKey, setGeminiKey] = useState(localStorage.getItem('gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || '');
+  const [geminiKey, setGeminiKey] = useState(gemini_api_key || import.meta.env.VITE_GEMINI_API_KEY || '');
   const [aiMsg, setAiMsg] = useState('');
   const [testingKey, setTestingKey] = useState(false);
 
   const handleSaveGeminiKey = (e) => {
     e.preventDefault();
     const cleanKey = geminiKey.trim();
-    localStorage.setItem('gemini_api_key', cleanKey);
+    updateData('gemini_api_key', cleanKey);
     setAiMsg({ type: 'success', text: 'Gemini API Key saved to browser storage!' });
   };
 
@@ -647,9 +648,7 @@ const SettingsView = () => {
                 className="btn"
                 onClick={() => {
                   if (window.confirm('⚠️ Are you sure you want to delete ALL flights from the database? This cannot be undone.')) {
-                    localStorage.setItem('userFlights', JSON.stringify([]));
-                    window.dispatchEvent(new Event('storage'));
-                    window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'userFlights' } }));
+                    updateData('userFlights', []);
                     alert('All flight records cleared!');
                   }
                 }}
@@ -674,10 +673,8 @@ const SettingsView = () => {
                       'userAccounts', 'userVendors', 'userPassengers', 'globalContacts'
                     ];
                     keysToClear.forEach(k => {
-                      localStorage.setItem(k, JSON.stringify([]));
-                      window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: k } }));
+                      updateData(k, []);
                     });
-                    window.dispatchEvent(new Event('storage'));
                     alert('Database successfully reset!');
                   }
                 }}

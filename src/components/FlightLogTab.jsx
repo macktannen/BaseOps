@@ -3,10 +3,12 @@ import { Lock, Unlock, PenTool, Trash2, ChevronDown, ChevronUp, History } from '
 import { authService } from '../services/authService';
 import useIsMobile from '../hooks/useIsMobile';
 import MobileDropdownMenu from './MobileDropdownMenu';
+import { useData } from '../contexts/DataProvider';
 
 const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign, onClearSignature, aircraftId, aircraftList, pilotsList }) => {
   const isMobile = useIsMobile();
   const [auditExpanded, setAuditExpanded] = useState(false);
+  const { userAircraft, updateData } = useData();
 
   const defaultLegsActuals = legs.map(() => ({
     flightHrs: '', blockHrs: '', hobbs: '', engineCycles: '', engine1Cycles: '', engine2Cycles: '', engine1Hrs: '', engine2Hrs: '', landings: '', landingType: '', fuelPurchased: ''
@@ -47,23 +49,14 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
 
   // Load and listen to aircraft baseline data in real time (WITHOUT modifying log state)
   useEffect(() => {
-    const loadAc = () => {
-      if (aircraftId) {
-        try {
-          const storedAircraft = JSON.parse(localStorage.getItem('userAircraft') || '[]');
-          const ac = storedAircraft.find(a => a.id === aircraftId) || aircraftList?.find(a => a.id === aircraftId);
-          if (ac) setAircraft(ac);
-        } catch(e) { console.error(e); }
-      }
-    };
-    loadAc();
-    window.addEventListener('storage', loadAc);
-    window.addEventListener('firestore-sync', loadAc);
-    return () => {
-      window.removeEventListener('storage', loadAc);
-      window.removeEventListener('firestore-sync', loadAc);
-    };
-  }, [aircraftId, aircraftList]);
+    if (aircraftId) {
+      try {
+        const storedAircraft = userAircraft || [];
+        const ac = storedAircraft.find(a => a.id === aircraftId) || aircraftList?.find(a => a.id === aircraftId);
+        if (ac) setAircraft(ac);
+      } catch(e) { console.error(e); }
+    }
+  }, [aircraftId, aircraftList, userAircraft]);
 
   const isTwin = aircraft?.dualEngine || log.aircraftTotals?.dualEngine || false;
 
@@ -185,7 +178,7 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
   const updateGlobalAircraft = (multiplier = 1) => {
     if (!aircraftId) return;
     try {
-      const storedAircraft = JSON.parse(localStorage.getItem('userAircraft') || '[]');
+      const storedAircraft = [...(userAircraft || [])];
       const acIndex = storedAircraft.findIndex(a => a.id === aircraftId);
       if (acIndex >= 0) {
         const ac = { ...storedAircraft[acIndex] };
@@ -238,12 +231,8 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
         }
 
         storedAircraft[acIndex] = ac;
-        localStorage.setItem('userAircraft', JSON.stringify(storedAircraft));
+        updateData('userAircraft', storedAircraft);
         setAircraft(ac);
-        // Use keyed custom events only — plain Event('storage') has no key/detail and
-        // triggers EventModal's handleRemoteSync, overwriting flightLog with stale data.
-        window.dispatchEvent(new CustomEvent('storage', { detail: { key: 'userAircraft' } }));
-        window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'userAircraft' } }));
       }
     } catch(e) { console.error("Failed to update aircraft totals", e); }
   };

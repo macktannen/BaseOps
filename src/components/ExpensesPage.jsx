@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useData } from '../contexts/DataProvider';
 import { DollarSign, Search, Calendar, FileText, Building, Plus, Trash2, Edit2, Check, X, BarChart3, Paperclip, Download, CheckSquare, Clock } from 'lucide-react';
 import { mockVendors, mockAccounts } from '../data';
 import EventModal from './EventModal';
@@ -33,11 +34,13 @@ const getCategoryColor = (category) => {
 const DEPARTMENT_ID = '__DEPARTMENT__';
 
 const ExpensesPage = () => {
+  const { data, updateData } = useData();
+  const { userFlights = [], departmentExpenses = [], userVendors = [], userAccounts = [] } = data;
+
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('overview');
   
   // Expenses State
-  const [expenses, setExpenses] = useState([]);
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
   
@@ -46,8 +49,7 @@ const ExpensesPage = () => {
     const openId = sessionStorage.getItem('baseops_open_flight_id');
     if (!openId) return null;
     try {
-      const stored = JSON.parse(localStorage.getItem('userFlights') || '[]');
-      return stored.find(f => String(f.id) === String(openId)) || null;
+      return userFlights.find(f => String(f.id) === String(openId)) || null;
     } catch { return null; }
   });
   const [isModalOpen, setIsModalOpen] = useState(() => {
@@ -60,7 +62,7 @@ const ExpensesPage = () => {
 
   // Manual Expense Modal State
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
-  const [flightsList, setFlightsList] = useState([]);
+  const flightsList = userFlights;
   const emptyManualForm = {
     flightId: '',
     date: new Date().toISOString().split('T')[0],
@@ -91,87 +93,45 @@ const ExpensesPage = () => {
     });
   };
   // Vendors State
-  const [vendors, setVendors] = useState([]);
-  const [accounts, setAccounts] = useState([]);
+  const vendors = userVendors.length > 0 ? userVendors : mockVendors;
+  const accounts = userAccounts.length > 0 ? userAccounts : mockAccounts;
   const [editingVendorId, setEditingVendorId] = useState(null);
   const [editForm, setEditForm] = useState({ vendorId: '', name: '', category: '', address: '', phone: '', email: '', poc: '' });
 
-  const loadExpensesData = () => {
-    try {
-      const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
-      setFlightsList(storedFlights);
-      let allExpenses = [];
-      storedFlights.forEach(flight => {
-        if (flight.expenses && flight.expenses.length > 0) {
-          flight.expenses.forEach(exp => {
-            allExpenses.push({
-              ...exp,
-              flightId: flight.id,
-              flightNumber: flight.flightNumber || 'Unknown',
-              flightTitle: flight.title || 'Untitled',
-              flightDate: flight.date || exp.date,
-              flightAircraft: flight.aircraftId || '',
-              flightAccount: flight.accountId || '',
-              isPaid: exp.isPaid || false
-            });
-          });
-        }
-      });
-      try {
-        const deptExpenses = JSON.parse(localStorage.getItem('departmentExpenses') || '[]');
-        deptExpenses.forEach(exp => {
+  const expenses = useMemo(() => {
+    let allExpenses = [];
+    userFlights.forEach(flight => {
+      if (flight.expenses && flight.expenses.length > 0) {
+        flight.expenses.forEach(exp => {
           allExpenses.push({
             ...exp,
-            flightId: DEPARTMENT_ID,
-            flightNumber: 'Department',
-            flightTitle: '',
-            flightDate: exp.date,
-            flightAircraft: '',
-            flightAccount: '',
-            isDepartment: true,
+            flightId: flight.id,
+            flightNumber: flight.flightNumber || 'Unknown',
+            flightTitle: flight.title || 'Untitled',
+            flightDate: flight.date || exp.date,
+            flightAircraft: flight.aircraftId || '',
+            flightAccount: flight.accountId || '',
             isPaid: exp.isPaid || false
           });
         });
-      } catch { /* ignore */ }
-      allExpenses.sort((a, b) => new Date(b.date) - new Date(a.date));
-      setExpenses(allExpenses);
-    } catch (e) { console.error("Error loading expenses", e); }
-  };
-
-  useEffect(() => {
-    loadExpensesData();
-
-    // Load Vendors
-    try {
-      const storedVendors = JSON.parse(localStorage.getItem('userVendors'));
-      if (storedVendors && storedVendors.length > 0) setVendors(storedVendors);
-      else setVendors(mockVendors);
-    } catch { setVendors(mockVendors); }
-
-    // Load Accounts
-    try {
-      const storedAccounts = JSON.parse(localStorage.getItem('userAccounts'));
-      if (storedAccounts && storedAccounts.length > 0) setAccounts(storedAccounts);
-      else setAccounts(mockAccounts);
-    } catch { setAccounts(mockAccounts); }
-  }, []);
-
-  // Listen for storage and firestore-sync events to refresh expenses when saves or cloud sync occurs
-  useEffect(() => {
-    const handleStorageSync = () => {
-      loadExpensesData();
-      try {
-        const storedVendors = JSON.parse(localStorage.getItem('userVendors'));
-        if (storedVendors && storedVendors.length > 0) setVendors(storedVendors);
-      } catch { /* ignore */ }
-    };
-    window.addEventListener('storage', handleStorageSync);
-    window.addEventListener('firestore-sync', handleStorageSync);
-    return () => {
-      window.removeEventListener('storage', handleStorageSync);
-      window.removeEventListener('firestore-sync', handleStorageSync);
-    };
-  }, []);
+      }
+    });
+    departmentExpenses.forEach(exp => {
+      allExpenses.push({
+        ...exp,
+        flightId: DEPARTMENT_ID,
+        flightNumber: 'Department',
+        flightTitle: '',
+        flightDate: exp.date,
+        flightAircraft: '',
+        flightAccount: '',
+        isDepartment: true,
+        isPaid: exp.isPaid || false
+      });
+    });
+    allExpenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+    return allExpenses;
+  }, [userFlights, departmentExpenses]);
 
   useEffect(() => {
     if (!viewingExpense) {
@@ -219,13 +179,13 @@ const ExpensesPage = () => {
     });
     setExpenses(updatedExpenses);
     try {
-      const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
+      const storedFlights = [...userFlights];
       const flightIdx = storedFlights.findIndex(f => String(f.id) === String(viewingExpense.flightId));
       if (flightIdx >= 0) {
         const expIdx = storedFlights[flightIdx].expenses.findIndex(e => e.id === viewingExpense.id);
         if (expIdx >= 0) {
           storedFlights[flightIdx].expenses[expIdx] = { ...storedFlights[flightIdx].expenses[expIdx], receiptFiles: newFiles, receiptCount: newFiles.length, hasReceipt: newFiles.length > 0 };
-          localStorage.setItem('userFlights', JSON.stringify(storedFlights));
+          updateData('userFlights', storedFlights);
         }
       }
     } catch {}
@@ -279,8 +239,7 @@ const ExpensesPage = () => {
       return;
     }
     try {
-      const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
-      const flight = storedFlights.find(f => String(f.id) === String(exp.flightId));
+      const flight = userFlights.find(f => String(f.id) === String(exp.flightId));
       if (flight) {
         sessionStorage.setItem('baseops_open_flight_id', String(flight.id));
         setSelectedFlight(flight);
@@ -293,8 +252,7 @@ const ExpensesPage = () => {
 
   const handleSaveFlight = (flightData) => {
     try {
-      const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
-      const updatedFlights = storedFlights.map(f => {
+      const updatedFlights = userFlights.map(f => {
         if (String(f.id) === String(flightData.id) || (flightData.flightNumber && String(f.flightNumber) === String(flightData.flightNumber))) {
           return {
             ...f,
@@ -304,16 +262,14 @@ const ExpensesPage = () => {
         }
         return f;
       });
-      localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
-      loadExpensesData();
+      updateData('userFlights', updatedFlights);
     } catch (e) {
       console.error(e);
     }
   };
 
   const saveVendors = (newVendors) => {
-    setVendors(newVendors);
-    localStorage.setItem('userVendors', JSON.stringify(newVendors));
+    updateData('userVendors', newVendors);
   };
 
   const handleAddVendor = () => {
@@ -331,38 +287,34 @@ const ExpensesPage = () => {
 
   const remapVendorInExpenses = (oldKey, newKey) => {
     try {
-      const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
       let flightsChanged = false;
-      storedFlights.forEach(flight => {
+      const storedFlights = userFlights.map(flight => {
         if (flight.expenses && flight.expenses.length > 0) {
-          flight.expenses.forEach(exp => {
+          const newExp = flight.expenses.map(exp => {
             if ((exp.vendor || '').trim() === oldKey) {
-              exp.vendor = newKey;
               flightsChanged = true;
+              return { ...exp, vendor: newKey };
             }
+            return exp;
           });
+          return { ...flight, expenses: newExp };
         }
+        return flight;
       });
       if (flightsChanged) {
-        localStorage.setItem('userFlights', JSON.stringify(storedFlights));
+        updateData('userFlights', storedFlights);
       }
 
-      let deptExpenses = [];
-      try { deptExpenses = JSON.parse(localStorage.getItem('departmentExpenses') || '[]'); } catch { deptExpenses = []; }
       let deptChanged = false;
-      deptExpenses.forEach(exp => {
+      const newDeptExp = departmentExpenses.map(exp => {
         if ((exp.vendor || '').trim() === oldKey) {
-          exp.vendor = newKey;
           deptChanged = true;
+          return { ...exp, vendor: newKey };
         }
+        return exp;
       });
       if (deptChanged) {
-        localStorage.setItem('departmentExpenses', JSON.stringify(deptExpenses));
-      }
-
-      if (flightsChanged || deptChanged) {
-        window.dispatchEvent(new Event('storage'));
-        loadExpensesData();
+        updateData('departmentExpenses', newDeptExp);
       }
     } catch (err) {
       console.error('Failed to remap vendor in expenses:', err);
@@ -384,9 +336,6 @@ const ExpensesPage = () => {
 
     if (oldKey && newKey && oldKey !== newKey) {
       remapVendorInExpenses(oldKey, newKey);
-    } else {
-      window.dispatchEvent(new Event('storage'));
-      loadExpensesData();
     }
 
     setEditingVendorId(null);
@@ -423,7 +372,6 @@ const ExpensesPage = () => {
     return diffDays > 15;
   });
   const net15Count = net15Expenses.length;
-  const net15Amount = net15Expenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
 
   // Table rows filtered by selected status card
   const filteredExpenses = baseExpenses.filter(e => {
@@ -462,25 +410,24 @@ const ExpensesPage = () => {
   }, [filteredExpenses, sortConfig]);
 
   const handleTogglePaid = (expId, flightId, newPaidStatus) => {
-    setExpenses(prev => prev.map(e => (e.id === expId && e.flightId === flightId) ? { ...e, isPaid: newPaidStatus } : e));
     try {
       if (flightId === DEPARTMENT_ID) {
-        const deptExpenses = JSON.parse(localStorage.getItem('departmentExpenses') || '[]');
+        const deptExpenses = [...departmentExpenses];
         const deptIndex = deptExpenses.findIndex(e => e.id === expId);
         if (deptIndex >= 0) {
-          deptExpenses[deptIndex].isPaid = newPaidStatus;
-          localStorage.setItem('departmentExpenses', JSON.stringify(deptExpenses));
+          deptExpenses[deptIndex] = { ...deptExpenses[deptIndex], isPaid: newPaidStatus };
+          updateData('departmentExpenses', deptExpenses);
         }
         return;
       }
-      const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
+      const storedFlights = [...userFlights];
       const flightIndex = storedFlights.findIndex(f => f.id === flightId);
       if (flightIndex >= 0) {
         const flight = storedFlights[flightIndex];
         const expIndex = flight.expenses.findIndex(e => e.id === expId);
         if (expIndex >= 0) {
-          flight.expenses[expIndex].isPaid = newPaidStatus;
-          localStorage.setItem('userFlights', JSON.stringify(storedFlights));
+          flight.expenses[expIndex] = { ...flight.expenses[expIndex], isPaid: newPaidStatus };
+          updateData('userFlights', storedFlights);
         }
       }
     } catch (err) {
@@ -498,7 +445,7 @@ const ExpensesPage = () => {
 
   const handleGlobalAutoFillParsedExpense = async (parsedData) => {
     try {
-      const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
+      const storedFlights = [...userFlights];
       if (storedFlights.length === 0) {
         alert(`Parsed Expense: ${parsedData.vendor} - $${parsedData.amount}\n(No flights found to attach expense to. Please create a flight first).`);
         return;
@@ -519,15 +466,11 @@ const ExpensesPage = () => {
         validGallons = parsedData.gallons != null && parsedData.gallons !== '' ? parsedData.gallons : '';
       }
 
-      // Intelligent Vendor Matching & Creation
       let finalVendorName = parsedData.vendor || '';
       if (parsedData.vendor && parsedData.vendor.trim()) {
         try {
-          const rawStored = localStorage.getItem('userVendors');
-          let currentVendors = [];
-          if (rawStored !== null) {
-            currentVendors = JSON.parse(rawStored);
-          } else {
+          let currentVendors = [...userVendors];
+          if (currentVendors.length === 0) {
             const { mockVendors } = await import('../data');
             currentVendors = mockVendors;
           }
@@ -567,8 +510,7 @@ const ExpensesPage = () => {
             };
 
             const updatedVendorsList = [...currentVendors, newVendorObj];
-            localStorage.setItem('userVendors', JSON.stringify(updatedVendorsList));
-            window.dispatchEvent(new Event('storage'));
+            updateData('userVendors', updatedVendorsList);
             finalVendorName = newVendorObj.vendorId || cleanName;
           }
         } catch(e) { console.warn('Vendor creation error:', e); }
@@ -611,9 +553,7 @@ const ExpensesPage = () => {
       if (!targetFlight.expenses) targetFlight.expenses = [];
       targetFlight.expenses.unshift(newExp);
 
-      localStorage.setItem('userFlights', JSON.stringify(storedFlights));
-      window.dispatchEvent(new Event('storage'));
-      loadExpensesData();
+      updateData('userFlights', storedFlights);
 
       alert(`✨ Successfully parsed invoice!\nAdded ${parsedData.amount ? '$' + parsedData.amount : 'expense'} (${parsedData.vendor || 'Unknown'}) to Flight #${targetFlight.flightNumber || targetFlight.id}.`);
     } catch(err) {
@@ -654,9 +594,8 @@ const ExpensesPage = () => {
       const isDepartment = !manualForm.flightId;
 
       let targetFlight = null;
-      let storedFlights = [];
+      let storedFlights = [...userFlights];
       if (!isDepartment) {
-        storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
         targetFlight = storedFlights.find(f => String(f.id) === String(manualForm.flightId));
         if (!targetFlight) {
           alert('Selected flight could not be found.');
@@ -675,11 +614,8 @@ const ExpensesPage = () => {
       let finalVendorName = manualForm.vendor || '';
       if (manualForm.vendor && manualForm.vendor.trim()) {
         try {
-          const rawStored = localStorage.getItem('userVendors');
-          let currentVendors = [];
-          if (rawStored !== null) {
-            currentVendors = JSON.parse(rawStored);
-          } else {
+          let currentVendors = [...userVendors];
+          if (currentVendors.length === 0) {
             const { mockVendors } = await import('../data');
             currentVendors = mockVendors;
           }
@@ -707,16 +643,14 @@ const ExpensesPage = () => {
               poc: ''
             };
             const updatedVendorsList = [...currentVendors, newVendorObj];
-            localStorage.setItem('userVendors', JSON.stringify(updatedVendorsList));
-            window.dispatchEvent(new Event('storage'));
+            updateData('userVendors', updatedVendorsList);
             finalVendorName = newVendorObj.vendorId || cleanName;
           }
         } catch (e) { console.warn('Vendor creation error:', e); }
       }
 
       const isEditing = editingDeptExpenseId != null;
-      let deptExpenses = [];
-      try { deptExpenses = JSON.parse(localStorage.getItem('departmentExpenses') || '[]'); } catch { deptExpenses = []; }
+      let deptExpenses = [...departmentExpenses];
 
       const formAmount = manualForm.amount !== '' && manualForm.amount != null ? manualForm.amount : '';
 
@@ -742,14 +676,14 @@ const ExpensesPage = () => {
 
         if (isDepartment) {
           const updatedDept = deptExpenses.map(e => e.id === editingDeptExpenseId ? { ...e, ...updatedFields } : e);
-          localStorage.setItem('departmentExpenses', JSON.stringify(updatedDept));
+          updateData('departmentExpenses', updatedDept);
         } else {
           const remainingDept = deptExpenses.filter(e => e.id !== editingDeptExpenseId);
-          localStorage.setItem('departmentExpenses', JSON.stringify(remainingDept));
+          updateData('departmentExpenses', remainingDept);
           const movedExp = { ...existing, ...updatedFields };
           if (!targetFlight.expenses) targetFlight.expenses = [];
           targetFlight.expenses.unshift(movedExp);
-          localStorage.setItem('userFlights', JSON.stringify(storedFlights));
+          updateData('userFlights', storedFlights);
         }
       } else {
         const newExp = {
@@ -772,16 +706,13 @@ const ExpensesPage = () => {
 
         if (isDepartment) {
           deptExpenses.unshift(newExp);
-          localStorage.setItem('departmentExpenses', JSON.stringify(deptExpenses));
+          updateData('departmentExpenses', deptExpenses);
         } else {
           if (!targetFlight.expenses) targetFlight.expenses = [];
           targetFlight.expenses.unshift(newExp);
-          localStorage.setItem('userFlights', JSON.stringify(storedFlights));
+          updateData('userFlights', storedFlights);
         }
       }
-
-      window.dispatchEvent(new Event('storage'));
-      loadExpensesData();
 
       setIsManualModalOpen(false);
       setEditingDeptExpenseId(null);
@@ -795,12 +726,8 @@ const ExpensesPage = () => {
     if (editingDeptExpenseId == null) return;
     if (!window.confirm('Delete this department expense? This cannot be undone.')) return;
     try {
-      let deptExpenses = [];
-      try { deptExpenses = JSON.parse(localStorage.getItem('departmentExpenses') || '[]'); } catch { deptExpenses = []; }
-      const remaining = deptExpenses.filter(e => e.id !== editingDeptExpenseId);
-      localStorage.setItem('departmentExpenses', JSON.stringify(remaining));
-      window.dispatchEvent(new Event('storage'));
-      loadExpensesData();
+      const remaining = departmentExpenses.filter(e => e.id !== editingDeptExpenseId);
+      updateData('departmentExpenses', remaining);
       setIsManualModalOpen(false);
       setEditingDeptExpenseId(null);
       setManualForm(emptyManualForm);
@@ -1330,12 +1257,11 @@ const ExpensesPage = () => {
           onDelete={(flightId) => {
             try {
               sessionStorage.removeItem('baseops_open_flight_id');
-              const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
+              const storedFlights = [...(userFlights || [])];
               const updatedFlights = storedFlights.filter(f => f.id !== flightId);
-              localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
+              updateData('userFlights', updatedFlights);
               setIsModalOpen(false);
               setSelectedFlight(null);
-              loadExpensesData();
             } catch (e) { console.error(e); }
           }}
           flight={selectedFlight}

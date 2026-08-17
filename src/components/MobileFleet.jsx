@@ -4,6 +4,7 @@ import { Helicopter, Wrench, Trash2, Save, X, ChevronRight, ChevronDown, Chevron
 import { authService } from '../services/authService';
 import { can as permCan } from '../services/permissionService';
 import SaveButton from './SaveButton';
+import { useData } from '../contexts/DataProvider';
 
 const MobileFleet = () => {
   const currentUser = authService.getCurrentUser();
@@ -13,46 +14,40 @@ const MobileFleet = () => {
   const canEditProfile = permCan(currentUser, 'editAircraftProfile');
   const canAddDeleteAircraft = isAdmin;
   const canEditOps = permCan(currentUser, 'editOperationalData');
-
+  const [selectedId, setSelectedId] = useState(null);
   const [aircraft, setAircraft] = useState([]);
   const [flights, setFlights] = useState([]);
-  const [selectedId, setSelectedId] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [auditExpanded, setAuditExpanded] = useState(false);
   const [saved, setSaved] = useState(false);
   const [view, setView] = useState('landing');
+  
+  const { userAircraft, userFlights, updateData } = useData();
 
   const loadData = useCallback(() => {
-    let storedAircraft = [];
-    try {
-      storedAircraft = JSON.parse(localStorage.getItem('userAircraft'));
-      if (!storedAircraft) {
-        storedAircraft = [...mockAircrafts].map(a => ({
-          ...a,
-          baseLocation: 'KVPZ',
-          totalHours: a.totalHours || 1250,
-          engine1Hours: a.engine1Hours || a.engineHours || a.totalHours || 1250,
-          engine2Hours: a.engine2Hours || 0,
-          engine1Cycles: a.engine1Cycles || a.engineCycles || 450,
-          engine2Cycles: a.engine2Cycles || 0,
-          dualEngine: a.dualEngine || false,
-          maxCruiseSpeed: 120,
-          lastInspection: '2025-10-01',
-          nextInspection: '2026-10-01',
-          notes: ''
-        }));
-        localStorage.setItem('userAircraft', JSON.stringify(storedAircraft));
-      }
-    } catch (e) {
-      storedAircraft = [];
+    let storedAircraft = userAircraft || [];
+    
+    if (storedAircraft.length === 0) {
+      storedAircraft = [...mockAircrafts].map(a => ({
+        ...a,
+        baseLocation: 'KVPZ',
+        totalHours: a.totalHours || 1250,
+        engine1Hours: a.engine1Hours || a.engineHours || a.totalHours || 1250,
+        engine2Hours: a.engine2Hours || 0,
+        engine1Cycles: a.engine1Cycles || a.engineCycles || 450,
+        engine2Cycles: a.engine2Cycles || 0,
+        dualEngine: a.dualEngine || false,
+        maxCruiseSpeed: 120,
+        lastInspection: '2025-10-01',
+        nextInspection: '2026-10-01',
+        notes: ''
+      }));
+      updateData('userAircraft', storedAircraft);
     }
 
     storedAircraft.sort((a, b) => a.id.localeCompare(b.id));
     setAircraft(storedAircraft);
-
-    try {
-      setFlights(JSON.parse(localStorage.getItem('userFlights') || '[]'));
-    } catch {}
+    setFlights(userFlights || []);
 
     if (view === 'detail' && selectedId) {
       const updatedSel = storedAircraft.find(a => a.id === selectedId);
@@ -64,18 +59,11 @@ const MobileFleet = () => {
         setView('landing');
       }
     }
-  }, [selectedId, view]);
+  }, [selectedId, view, userAircraft, userFlights, updateData]);
 
   useEffect(() => {
     loadData();
-    const handleStorage = () => loadData();
-    window.addEventListener('storage', handleStorage);
-    window.addEventListener('firestore-sync', handleStorage);
-    return () => {
-      window.removeEventListener('storage', handleStorage);
-      window.removeEventListener('firestore-sync', handleStorage);
-    };
-  }, [loadData]);
+  }, [userAircraft, userFlights, loadData]);
 
   const getTodayFlights = (ac) => {
     if (!ac) return [];
@@ -128,13 +116,12 @@ const MobileFleet = () => {
     if (!editForm) return;
     if (!window.confirm(`Are you sure you want to delete ${editForm.id}?`)) return;
     try {
-      const storedAircraft = JSON.parse(localStorage.getItem('userAircraft') || '[]');
+      const storedAircraft = [...(userAircraft || [])];
       const updatedAircraft = storedAircraft.filter(a => a.id !== editForm.originalId && a.id !== editForm.id);
-      localStorage.setItem('userAircraft', JSON.stringify(updatedAircraft));
+      updateData('userAircraft', updatedAircraft);
       setSelectedId(null);
       setEditForm(null);
       setView('landing');
-      loadData();
     } catch {
       alert('Failed to delete aircraft.');
     }
@@ -145,13 +132,11 @@ const MobileFleet = () => {
     const updated = { ...editForm, auditLog: updatedAudit };
     setEditForm(updated);
     try {
-      const stored = JSON.parse(localStorage.getItem('userAircraft') || '[]');
+      const stored = [...(userAircraft || [])];
       const idx = stored.findIndex(a => a.id === updated.id);
       if (idx >= 0) {
         stored[idx] = updated;
-        localStorage.setItem('userAircraft', JSON.stringify(stored));
-        window.dispatchEvent(new Event('storage'));
-        window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'userAircraft' } }));
+        updateData('userAircraft', stored);
       }
     } catch(err) { console.error(err); }
   };
@@ -161,13 +146,11 @@ const MobileFleet = () => {
     if (!editForm) return;
 
     try {
-      const storedAircraft = JSON.parse(localStorage.getItem('userAircraft') || '[]');
+      const storedAircraft = [...(userAircraft || [])];
       const acToSave = { ...editForm };
-      const originalId = acToSave.originalId || acToSave.id;
-      delete acToSave.isNew;
-      delete acToSave.originalId;
-
-      const existingIndex = storedAircraft.findIndex(a => a.id === originalId);
+      
+      const existingIndex = storedAircraft.findIndex(a => a.id === acToSave.originalId);
+      
       const oldAc = existingIndex >= 0 ? storedAircraft[existingIndex] : {};
       
       const metrics = [
@@ -203,18 +186,20 @@ const MobileFleet = () => {
          acToSave.auditLog.push(`Aircraft created by Admin (${currentUser?.name || 'Unknown'}) on ${new Date().toLocaleString()}`);
       }
 
+      delete acToSave.isNew;
+      delete acToSave.originalId;
+
       if (existingIndex >= 0) {
         storedAircraft[existingIndex] = acToSave;
       } else {
         storedAircraft.push(acToSave);
       }
 
-      localStorage.setItem('userAircraft', JSON.stringify(storedAircraft));
+      updateData('userAircraft', storedAircraft);
       
       setSelectedId(acToSave.id);
       setEditForm({ ...acToSave, originalId: acToSave.id });
       setSaved(prev => !prev);
-      window.dispatchEvent(new Event('storage'));
     } catch {
       console.error('Failed to save aircraft.');
     }

@@ -1,51 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, User, Helicopter } from 'lucide-react';
-import { mockPilots } from '../data';
 import { getColorForKey, getAccountColor, TAG_COLORS } from '../services/gridColors';
+import { useData } from '../contexts/DataProvider';
 
 const MobileCrew = () => {
-  const [crew, setCrew] = useState([]);
+  const { userPilots, userPassengers, crewSchedules, userFlights, userAccounts, calendarViewSettings } = useData();
   const [selectedId, setSelectedId] = useState('');
   const [activeFilter, setActiveFilter] = useState('pilot'); // 'pilot', 'crew', 'pax'
   const [currentWeek, setCurrentWeek] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
-  const [schedules, setSchedules] = useState({});
-  const [flights, setFlights] = useState([]);
-  const [colorBy, _setColorBy] = useState(() => localStorage.getItem('schedulesGridColorBy') || 'tag');
-  const [accountsList, setAccountsList] = useState([]);
+
+  const crew = React.useMemo(() => {
+    const pilots = userPilots || [];
+    const pax = userPassengers || [];
+    const crewPax = pax.filter(p => p.isCrew);
+    const passengerPax = pax.filter(p => !p.isCrew);
+    
+    return [
+      ...pilots.map(p => ({ ...p, type: 'pilot' })),
+      ...crewPax.map(p => ({ ...p, type: 'crew' })),
+      ...passengerPax.map(p => ({ ...p, type: 'pax' }))
+    ];
+  }, [userPilots, userPassengers]);
+
+  const schedules = crewSchedules || {};
+  const flights = userFlights || [];
+  const accountsList = userAccounts || [];
+  const colorBy = calendarViewSettings?.schedulesGridColorBy || 'tag';
 
   useEffect(() => {
-    try {
-      const pilots = JSON.parse(localStorage.getItem('userPilots') || '[]');
-      const pax = JSON.parse(localStorage.getItem('userPassengers') || '[]');
-      const crewPax = pax.filter(p => p.isCrew);
-      const passengerPax = pax.filter(p => !p.isCrew);
-      
-      const allPersonnel = [
-        ...pilots.map(p => ({ ...p, type: 'pilot' })),
-        ...crewPax.map(p => ({ ...p, type: 'crew' })),
-        ...passengerPax.map(p => ({ ...p, type: 'pax' }))
-      ];
-      setCrew(allPersonnel);
-      
-      const filtered = allPersonnel.filter(p => p.type === 'pilot');
+    if (crew.length > 0 && !selectedId) {
+      const filtered = crew.filter(p => p.type === 'pilot');
       if (filtered.length > 0) setSelectedId(filtered[0].id);
-    } catch {
-      setCrew([]);
     }
-
-    try {
-      setSchedules(JSON.parse(localStorage.getItem('crewSchedules') || '{}'));
-    } catch {}
-
-    try {
-      setFlights(JSON.parse(localStorage.getItem('userFlights') || '[]'));
-    } catch {}
-
-    try {
-      setAccountsList(JSON.parse(localStorage.getItem('userAccounts') || '[]'));
-    } catch {}
-  }, []);
+  }, [crew, selectedId]);
 
   const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(currentWeek, i));
 

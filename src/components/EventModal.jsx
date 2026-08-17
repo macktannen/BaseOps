@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Trash2, MapPin, Plus, GripVertical, Helicopter, BookOpen, Clock, ChevronLeft, ChevronRight, ChevronDown, Upload, FileText, Download, Paperclip, Eye, Image, File } from 'lucide-react';
+import { X, Trash2, MapPin, Plus, GripVertical, BookOpen, Clock, ChevronLeft, ChevronRight, ChevronDown, Upload, FileText, Download, Paperclip, Eye, Image, File } from 'lucide-react';
 import { mockPilots, mockCustomZones, mockAccounts, mockAircrafts, mockVendors } from '../data';
 import airportsData from '../data/airports.json';
 import tzlookup from 'tz-lookup';
@@ -13,52 +13,36 @@ import { FileStorageService } from '../services/FileStorageService';
 import { authService } from '../services/authService';
 import useIsMobile from '../hooks/useIsMobile';
 import MobileDropdownMenu from './MobileDropdownMenu';
+import { useData } from '../contexts/DataProvider';
 
-const getDefaultPilotForDate = (dateStr) => {
-  if (!dateStr) return '';
-  try {
-    const schedules = JSON.parse(localStorage.getItem('crewSchedules') || '{}');
-    let storedPilots = [];
-    try {
-      storedPilots = JSON.parse(localStorage.getItem('userPilots') || '[]');
-    } catch {}
-    const allPilots = storedPilots.length > 0 ? storedPilots : mockPilots;
+const getDefaultPilotForDate = (dateStr, schedules, storedPilots) => {
+  if (!dateStr || !schedules) return '';
+  const allPilots = storedPilots?.length > 0 ? storedPilots : mockPilots;
 
-    // Find any key that ends with _dateStr and status === 'On Duty'
-    for (const [key, status] of Object.entries(schedules)) {
-      if (key.endsWith(`_${dateStr}`) && (status === 'On Duty' || status === 'Duty/Training')) {
-        const rawPersonId = key.substring(0, key.lastIndexOf(`_${dateStr}`));
-        // Check if rawPersonId is in pilots list
-        const matchedPilot = allPilots.find(p => p.id === rawPersonId || p.name === rawPersonId);
-        if (matchedPilot) return matchedPilot.id;
-      }
+  for (const [key, status] of Object.entries(schedules)) {
+    if (key.endsWith(`_${dateStr}`) && (status === 'On Duty' || status === 'Duty/Training')) {
+      const rawPersonId = key.substring(0, key.lastIndexOf(`_${dateStr}`));
+      const matchedPilot = allPilots.find(p => p.id === rawPersonId || p.name === rawPersonId);
+      if (matchedPilot) return matchedPilot.id;
     }
-  } catch {}
+  }
   return '';
 };
 
-const getDefaultPassengersForDate = (dateStr) => {
-  if (!dateStr) return [];
-  try {
-    const schedules = JSON.parse(localStorage.getItem('crewSchedules') || '{}');
-    let storedPax = [];
-    try {
-      storedPax = JSON.parse(localStorage.getItem('userPassengers') || '[]');
-    } catch {}
-    
-    const onDutyPax = [];
-    for (const [key, status] of Object.entries(schedules)) {
-      if (key.endsWith(`_${dateStr}`) && (status === 'On Duty' || status === 'Duty/Training')) {
-        const rawPersonId = key.substring(0, key.lastIndexOf(`_${dateStr}`));
-        const matchedPax = storedPax.find(p => p.id === rawPersonId || p.name === rawPersonId);
-        if (matchedPax) {
-          onDutyPax.push(matchedPax.id);
-        }
+const getDefaultPassengersForDate = (dateStr, schedules, storedPax) => {
+  if (!dateStr || !schedules || !storedPax) return [];
+  
+  const onDutyPax = [];
+  for (const [key, status] of Object.entries(schedules)) {
+    if (key.endsWith(`_${dateStr}`) && (status === 'On Duty' || status === 'Duty/Training')) {
+      const rawPersonId = key.substring(0, key.lastIndexOf(`_${dateStr}`));
+      const matchedPax = storedPax.find(p => p.id === rawPersonId || p.name === rawPersonId);
+      if (matchedPax) {
+        onDutyPax.push(matchedPax.id);
       }
     }
-    return onDutyPax;
-  } catch {}
-  return [];
+  }
+  return onDutyPax;
 };
 
 // --- CUSTOM ZONE CREATION MODAL ---
@@ -191,25 +175,13 @@ const LocationSelect = ({ value, onChange, label, placeholder }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
   
-  // Fetch user-created zones from local storage to act as our persistent database
-  const getStoredCustomZones = () => {
-    try {
-      return JSON.parse(localStorage.getItem('userCustomZones') || '[]');
-    } catch {
-      return [];
-    }
-  };
+  const { userCustomZones, locationUsage, updateData } = useData();
 
   const getUsageCount = (id) => {
-    try {
-      const usageData = JSON.parse(localStorage.getItem('locationUsage') || '{}');
-      return usageData[id] || 0;
-    } catch {
-      return 0;
-    }
+    return locationUsage?.[id] || 0;
   };
 
-  const storedZones = getStoredCustomZones();
+  const storedZones = userCustomZones || [];
 
   const allLocations = [
     ...mockCustomZones.map(cz => {
@@ -267,14 +239,12 @@ const LocationSelect = ({ value, onChange, label, placeholder }) => {
   }, [search]);
 
   const handleSaveCustomZone = (newZone) => {
-    // Save to local storage database
-    const currentZones = getStoredCustomZones();
-    localStorage.setItem('userCustomZones', JSON.stringify([...currentZones, newZone]));
+    const currentZones = storedZones;
+    updateData('userCustomZones', [...currentZones, newZone]);
     
-    // Auto increment usage so it shows up in recents
-    const usageData = JSON.parse(localStorage.getItem('locationUsage') || '{}');
-    usageData[newZone.id] = (usageData[newZone.id] || 0) + 1;
-    localStorage.setItem('locationUsage', JSON.stringify(usageData));
+    const currentUsage = { ...(locationUsage || {}) };
+    currentUsage[newZone.id] = (currentUsage[newZone.id] || 0) + 1;
+    updateData('locationUsage', currentUsage);
 
     // Select it
     onChange({ type: 'custom', id: newZone.id });
@@ -593,16 +563,19 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const [conflictModal, setConflictModal] = useState({ open: false, pilotConflicts: [], aircraftConflicts: [] });
   const [expenses, setExpenses] = useState([]);
 
+  const { userPilots, userAircraft, userPassengers, userAccounts, userVendors, userFlights, crewSchedules, updateData } = useData();
+
+  const pilotsList = userPilots?.length > 0 ? userPilots : mockPilots;
+  const aircraftList = userAircraft?.length > 0 ? userAircraft : mockAircrafts;
+  const passengersList = userPassengers || [];
+  const accountsList = userAccounts?.length > 0 ? userAccounts : mockAccounts;
+  const vendorsList = userVendors?.length > 0 ? userVendors : mockVendors;
+
   const [legs, setLegs] = useState([
-    { departure: null, destination: null, takeoffTime: '08:00', landTime: '09:00', duration: 60, passengers: [], pilotId: getDefaultPilotForDate(initialDateStr), date: initialDateStr }
+    { departure: null, destination: null, takeoffTime: '08:00', landTime: '09:00', duration: 60, passengers: [], pilotId: getDefaultPilotForDate(initialDateStr, crewSchedules, pilotsList), date: initialDateStr }
   ]);
 
   const [aircraftId, setAircraftId] = useState('');
-  const [pilotsList, setPilotsList] = useState([]);
-  const [aircraftList, setAircraftList] = useState([]);
-  const [passengersList, setPassengersList] = useState([]);
-  const [accountsList, setAccountsList] = useState([]);
-  const [vendorsList, setVendorsList] = useState([]);
   const [showUploads, setShowUploads] = useState(false);
   const [uploads, setUploads] = useState(flight?.uploads || []);
   const [uploading, setUploading] = useState(false);
@@ -619,24 +592,10 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     'audio/mpeg': true, 'audio/wav': true,
   };
 
-  const GIS_TYPES = {
-    'application/vnd.google-earth.kml+xml': true,
-    'application/vnd.google-earth.kmz': true,
-    'application/geo+json': true,
-    'application/json': true,
-    'application/gpx+xml': true,
-  };
-
   const isViewable = (file) => {
     if (file.type && VIEWABLE_TYPES[file.type]) return true;
     const ext = (file.name || '').split('.').pop()?.toLowerCase();
     return ['png','jpg','jpeg','gif','webp','svg','heic','heif','pdf','txt','csv','html','json','geojson','xml','mp4','webm','mov','mp3','wav'].includes(ext);
-  };
-
-  const isGIS = (file) => {
-    if (file.type && GIS_TYPES[file.type]) return true;
-    const ext = (file.name || '').split('.').pop()?.toLowerCase();
-    return ['kml','kmz','geojson','gpx','shp','shx','dbf','prj'].includes(ext);
   };
 
   const getFileIcon = (file) => {
@@ -647,69 +606,19 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     return <File size={14} color="var(--primary-color)" />;
   };
 
+  // Sync open flight with global data changes automatically
   useEffect(() => {
-    try {
-      const storedPilots = JSON.parse(localStorage.getItem('userPilots'));
-      if (storedPilots && storedPilots.length > 0) setPilotsList(storedPilots);
-      else setPilotsList(mockPilots);
-    } catch { setPilotsList(mockPilots); }
-
-    try {
-      const storedAircraft = JSON.parse(localStorage.getItem('userAircraft'));
-      if (storedAircraft && storedAircraft.length > 0) setAircraftList(storedAircraft);
-      else setAircraftList(mockAircrafts);
-    } catch { setAircraftList(mockAircrafts); }
-
-    try {
-      const storedPax = JSON.parse(localStorage.getItem('userPassengers'));
-      if (storedPax && storedPax.length > 0) setPassengersList(storedPax);
-    } catch {}
-
-    try {
-      const storedAccounts = JSON.parse(localStorage.getItem('userAccounts'));
-      if (storedAccounts && storedAccounts.length > 0) setAccountsList(storedAccounts);
-      else setAccountsList(mockAccounts);
-    } catch { setAccountsList(mockAccounts); }
-
-    try {
-      const storedVendors = JSON.parse(localStorage.getItem('userVendors'));
-      if (storedVendors && storedVendors.length > 0) setVendorsList(storedVendors);
-      else setVendorsList(mockVendors);
-    } catch { setVendorsList(mockVendors); }
-  }, []);
-
-  // Listen for real-time cloud and cross-tab sync to update open flight modal immediately
-  useEffect(() => {
-    const handleRemoteSync = (e) => {
-      // Filter out storage/firestore events for unrelated keys (e.g. userAircraft)
-      if (e?.detail?.key && e.detail.key !== 'userFlights') return;
-      if (e?.key && e.key !== 'userFlights') return;
-      // Block plain Event('storage') with no key/detail — those are aircraft updates from FlightLogTab
-      if (!e?.detail?.key && !e?.key) return;
-      if (!flight || !flight.id) return;
-      // Guard: skip sync overwrites during an active unsign/clear-signature operation
-      if (suppressSyncRef.current) return;
-
-      try {
-        const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
-        const updatedFlight = storedFlights.find(f => String(f.id) === String(flight.id) || (flight.flightNumber && String(f.flightNumber) === String(flight.flightNumber)));
-        if (updatedFlight) {
-          if (updatedFlight.expenses) setExpenses(updatedFlight.expenses);
-          if (updatedFlight.uploads) setUploads(updatedFlight.uploads);
-          if (updatedFlight.flightLog) setFlightLog(updatedFlight.flightLog);
-          if (updatedFlight.status) setStatus(normalizeStatus(updatedFlight.status));
-        }
-      } catch (err) {
-        console.error('Remote sync update failed in modal:', err);
-      }
-    };
-    window.addEventListener('storage', handleRemoteSync);
-    window.addEventListener('firestore-sync', handleRemoteSync);
-    return () => {
-      window.removeEventListener('storage', handleRemoteSync);
-      window.removeEventListener('firestore-sync', handleRemoteSync);
-    };
-  }, [flight]);
+    if (!flight || !flight.id) return;
+    if (suppressSyncRef.current) return;
+    
+    const updatedFlight = (userFlights || []).find(f => String(f.id) === String(flight.id) || (flight.flightNumber && String(f.flightNumber) === String(flight.flightNumber)));
+    if (updatedFlight) {
+      if (updatedFlight.expenses) setExpenses(updatedFlight.expenses);
+      if (updatedFlight.uploads) setUploads(updatedFlight.uploads);
+      if (updatedFlight.flightLog) setFlightLog(updatedFlight.flightLog);
+      if (updatedFlight.status) setStatus(normalizeStatus(updatedFlight.status));
+    }
+  }, [flight, userFlights]);
 
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
@@ -718,7 +627,6 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const currentUser = authService.getCurrentUser() || { name: 'Admin', role: 'admin' };
   const isAdmin = currentUser?.role === 'admin';
   const isFlightSigned = !!(flightLog?.signature);
-  const canDeleteFlight = !isFlightSigned || isAdmin;
 
   // ── ATOMIC SIGN FLIGHT LOG ──
   const handleSignFlight = (logData, snapshottedTotals) => {
@@ -729,7 +637,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
 
     // STEP 2: Update aircraft record in single atomic commit
     try {
-      const storedAircraft = JSON.parse(localStorage.getItem('userAircraft') || '[]');
+      const storedAircraft = [...(userAircraft || [])];
       const acIndex = storedAircraft.findIndex(a => a.id === aircraftId);
       if (acIndex >= 0) {
         const ac = { ...storedAircraft[acIndex] };
@@ -753,9 +661,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
         ac.auditLog.push(`Signed flight #${flightNumber || ''} by ${currentUser?.name || 'Pilot'} on ${new Date().toLocaleString()}: +${snapshottedTotals.changeFlight}h`);
         
         storedAircraft[acIndex] = ac;
-        localStorage.setItem('userAircraft', JSON.stringify(storedAircraft));
-        window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'userAircraft' } }));
-        window.dispatchEvent(new CustomEvent('storage', { detail: { key: 'userAircraft' } }));
+        updateData('userAircraft', storedAircraft);
       }
     } catch (err) {
       console.error('Failed to update aircraft on sign:', err);
@@ -799,7 +705,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     const totals = flightLog.aircraftTotals;
     if (aircraftId && totals) {
       try {
-        const storedAircraft = JSON.parse(localStorage.getItem('userAircraft') || '[]');
+        const storedAircraft = [...(userAircraft || [])];
         const acIndex = storedAircraft.findIndex(a => a.id === aircraftId);
         if (acIndex >= 0) {
           const ac = { ...storedAircraft[acIndex] };
@@ -821,9 +727,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
           if (!ac.auditLog) ac.auditLog = [];
           ac.auditLog.push(`Signature cleared & meters reverted by ${currentUser?.name || 'Admin'} on ${new Date().toLocaleString()}`);
           storedAircraft[acIndex] = ac;
-          localStorage.setItem('userAircraft', JSON.stringify(storedAircraft));
-          window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'userAircraft' } }));
-          window.dispatchEvent(new CustomEvent('storage', { detail: { key: 'userAircraft' } }));
+          updateData('userAircraft', storedAircraft);
         }
       } catch (e) { console.error('Failed to revert aircraft totals:', e); }
     }
@@ -854,7 +758,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const persistFlightLogToFlight = (nextFlightLog) => {
     if (!flight) return;
     try {
-      const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
+      const storedFlights = [...(userFlights || [])];
       const targetId = flight?.id ? String(flight.id) : null;
       const targetFlightNumber = flight?.flightNumber ? String(flight.flightNumber) : null;
 
@@ -885,10 +789,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
         });
       }
 
-      localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
-      // Use keyed custom event so handleRemoteSync can correctly identify this as a userFlights update
-      window.dispatchEvent(new CustomEvent('storage', { detail: { key: 'userFlights' } }));
-      window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'userFlights' } }));
+      updateData('userFlights', updatedFlights);
     } catch (e) {
       console.error('Failed to persist flightLog to flight:', e);
     }
@@ -897,7 +798,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const persistUploadsToFlight = (nextUploads) => {
     if (!flight && (!nextUploads || nextUploads.length === 0)) return;
     try {
-      const storedFlights = JSON.parse(localStorage.getItem('userFlights') || '[]');
+      const storedFlights = [...(userFlights || [])];
       const targetId = flight?.id ? String(flight.id) : null;
       const targetFlightNumber = flight?.flightNumber ? String(flight.flightNumber) : null;
 
@@ -920,8 +821,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
         });
       }
 
-      localStorage.setItem('userFlights', JSON.stringify(updatedFlights));
-      window.dispatchEvent(new Event('storage'));
+      updateData('userFlights', updatedFlights);
     } catch (e) {
       console.error('Failed to persist uploads to flight:', e);
     }
@@ -1064,7 +964,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
         });
         setLegs(mappedLegs);
       } else {
-        const defaultPilot = getDefaultPilotForDate(initialDateStr);
+        const defaultPilot = getDefaultPilotForDate(initialDateStr, crewSchedules, pilotsList);
         const pilotsArr = defaultPilot ? [defaultPilot] : [];
         setLegs([{ departure: null, destination: null, takeoffTime: '08:00', landTime: '09:00', duration: 60, distance: null, passengers: [], pilots: pilotsArr, pilotId: defaultPilot, date: initialDateStr, arrDate: initialDateStr }]);
       }
@@ -1081,8 +981,8 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       setFlightLog({});
       setExpenses([]);
       setAircraftId('');
-      const defaultPilot = getDefaultPilotForDate(initialDateStr);
-      const defaultPax = getDefaultPassengersForDate(initialDateStr);
+      const defaultPilot = getDefaultPilotForDate(initialDateStr, crewSchedules, pilotsList);
+      const defaultPax = getDefaultPassengersForDate(initialDateStr, crewSchedules, passengersList);
       const pilotsArr = defaultPilot ? [defaultPilot] : [];
       setLegs([{ 
         departure: null, 
@@ -1098,6 +998,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
         arrDate: initialDateStr
       }]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flight, initialDateStr, flightsCount, defaultActiveView]);
 
   if (!isOpen) return null;
@@ -1199,8 +1100,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       const ap = airportsData.find(a => a.id === locationVal.id);
       return ap ? { lat: ap.lat, lon: ap.lon } : null;
     } else {
-      let storedZones = [];
-      try { storedZones = JSON.parse(localStorage.getItem('userCustomZones') || '[]'); } catch {}
+      const storedZones = userCustomZones || [];
       const cz = [...mockCustomZones, ...storedZones].find(c => c.id === locationVal.id);
       if (!cz) return null;
       if (cz.lat && cz.lon) return { lat: parseFloat(cz.lat), lon: parseFloat(cz.lon) };
@@ -1439,17 +1339,12 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
 
   const incrementUsage = (locationId) => {
     if (!locationId) return;
-    try {
-      const usageData = JSON.parse(localStorage.getItem('locationUsage') || '{}');
-      usageData[locationId] = (usageData[locationId] || 0) + 1;
-      localStorage.setItem('locationUsage', JSON.stringify(usageData));
-    } catch {}
+    const usageData = { ...(locationUsage || {}) };
+    usageData[locationId] = (usageData[locationId] || 0) + 1;
+    updateData('locationUsage', usageData);
   };
 
-  const allFlights = (() => {
-    try { return JSON.parse(localStorage.getItem('userFlights') || '[]'); }
-    catch { return []; }
-  })();
+  const allFlights = userFlights || [];
 
   const handleAircraftChange = (newAcId) => {
     if (newAcId === aircraftId) return;
@@ -1476,7 +1371,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
 
       // 1. Revert committed meter hours from old aircraft
       try {
-        const storedAircraft = JSON.parse(localStorage.getItem('userAircraft') || '[]');
+        const storedAircraft = [...(userAircraft || [])];
         const oldAcIndex = storedAircraft.findIndex(a => a.id === aircraftId);
         if (oldAcIndex >= 0 && flightLog?.aircraftTotals) {
           const ac = { ...storedAircraft[oldAcIndex] };
@@ -1501,9 +1396,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
             `Flight log unsigned & meters reverted due to aircraft change to ${newAcId || 'unassigned'} by Admin (${currentUser?.name || 'Admin'}) on ${new Date().toLocaleString()}`
           );
           storedAircraft[oldAcIndex] = ac;
-          localStorage.setItem('userAircraft', JSON.stringify(storedAircraft));
-          window.dispatchEvent(new Event('storage'));
-          window.dispatchEvent(new CustomEvent('firestore-sync', { detail: { key: 'userAircraft' } }));
+          updateData('userAircraft', storedAircraft);
         }
       } catch (e) {
         console.error("Failed to revert old aircraft hours:", e);
@@ -1647,8 +1540,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       const ap = airportsData.find(a => a.id === locVal.id);
       return ap ? { display: ap.id, city: `${ap.municipality || ap.name}, ${ap.state}`, name: ap.name } : { display: locVal.id, city: '' };
     } else {
-      let storedZones = [];
-      try { storedZones = JSON.parse(localStorage.getItem('userCustomZones') || '[]'); } catch {}
+      const storedZones = userCustomZones || [];
       const cz = [...mockCustomZones, ...storedZones].find(c => c.id === locVal.id);
       if (!cz) return { display: locVal.id, city: '' };
       return { display: cz.title, city: cz.address || 'Custom LZ', name: cz.title };

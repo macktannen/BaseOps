@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useData } from '../contexts/DataProvider';
 import { Plus, X, Pencil, Trash2, Building, GripVertical } from 'lucide-react';
 
 import { mockAccounts } from '../data';
 import { getAccountColor } from '../services/gridColors';
 
 const AccountsView = () => {
-  const [accounts, setAccounts] = useState([]);
-  const [globalContacts, setGlobalContacts] = useState([]);
+  const { data, updateData } = useData();
+  const { userAccounts = [], globalContacts = [] } = data;
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
   const [name, setName] = useState('');
@@ -17,26 +19,14 @@ const AccountsView = () => {
   const dragOverItem = useRef(null);
 
   useEffect(() => {
-    try {
-      const storedContacts = JSON.parse(localStorage.getItem('globalContacts')) || [];
-      setGlobalContacts(storedContacts);
-
-      const storedAccounts = JSON.parse(localStorage.getItem('userAccounts'));
-      if (storedAccounts && storedAccounts.length > 0) {
-        // Migrate old contacts array to contactIds if needed
-        const migratedAccounts = storedAccounts.map(a => ({
-          ...a,
-          contactIds: a.contactIds || []
-        }));
-        setAccounts(migratedAccounts);
-      } else {
-        setAccounts(mockAccounts.map(a => ({ ...a, contactIds: [] })));
-        localStorage.setItem('userAccounts', JSON.stringify(mockAccounts));
-      }
-    } catch {
-      setAccounts(mockAccounts.map(a => ({ ...a, contactIds: [] })));
+    if (userAccounts.length === 0) {
+      const seed = mockAccounts.map(a => ({ ...a, contactIds: [] }));
+      updateData('userAccounts', seed);
     }
-  }, []);
+  }, [userAccounts.length, updateData]);
+
+  // Ensure accounts have contactIds array initialized
+  const accounts = userAccounts.map(a => ({ ...a, contactIds: a.contactIds || [] }));
 
   const handleSave = (e) => {
     e.preventDefault();
@@ -56,8 +46,7 @@ const AccountsView = () => {
       updatedAccounts = [...accounts, newAccount];
     }
 
-    setAccounts(updatedAccounts);
-    localStorage.setItem('userAccounts', JSON.stringify(updatedAccounts));
+    updateData('userAccounts', updatedAccounts);
     setSaved(prev => !prev);
     closeModal();
   };
@@ -65,8 +54,7 @@ const AccountsView = () => {
   const handleDelete = (id) => {
     if (window.confirm('Are you sure you want to delete this account?')) {
       const updatedAccounts = accounts.filter(a => a.id !== id);
-      setAccounts(updatedAccounts);
-      localStorage.setItem('userAccounts', JSON.stringify(updatedAccounts));
+      updateData('userAccounts', updatedAccounts);
     }
   };
 
@@ -97,8 +85,7 @@ const AccountsView = () => {
     _accounts.splice(dragOverItem.current, 0, draggedItemContent);
     dragItem.current = null;
     dragOverItem.current = null;
-    setAccounts(_accounts);
-    localStorage.setItem('userAccounts', JSON.stringify(_accounts));
+    updateData('userAccounts', _accounts);
   };
 
   return (

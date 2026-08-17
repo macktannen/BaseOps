@@ -60,8 +60,8 @@ export async function fileToBase64Image(file) {
 /**
  * Parses an invoice/receipt file using Google Gemini Vision API and returns structured JSON
  */
-export async function parseInvoiceFile(file, customApiKey = null) {
-  const apiKey = customApiKey || import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('gemini_api_key');
+export async function parseInvoiceFile(file, customApiKey = null, existingVendors = null) {
+  const apiKey = customApiKey || import.meta.env.VITE_GEMINI_API_KEY;
   
   if (!apiKey) {
     throw new Error("Gemini API key is required. Please set VITE_GEMINI_API_KEY in your environment or enter it in Settings.");
@@ -69,17 +69,12 @@ export async function parseInvoiceFile(file, customApiKey = null) {
 
   const { base64, mimeType } = await fileToBase64Image(file);
 
-  // Retrieve existing vendors from localStorage or mockVendors to pass to AI prompt for matching
-  let existingVendors = [];
-  try {
-    const rawStored = localStorage.getItem('userVendors');
-    if (rawStored !== null) {
-      existingVendors = JSON.parse(rawStored);
-    } else {
+  if (!existingVendors || existingVendors.length === 0) {
+    try {
       const { mockVendors } = await import('../data');
       existingVendors = mockVendors;
-    }
-  } catch {}
+    } catch {}
+  }
 
   const vendorListContext = existingVendors.map(v => 
     `- [ID: ${v.vendorId || v.id}] Name: "${v.name}" | Category: "${v.category || ''}" | Address: "${v.address || ''}"`

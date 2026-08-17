@@ -1,36 +1,15 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Search, Building, User, Mail, Phone, ChevronRight, ChevronDown } from 'lucide-react';
 import { mockAccounts } from '../data';
 import { getAccountColor } from '../services/gridColors';
+import { useData } from '../contexts/DataProvider';
 
 const MobileAccounts = ({ mode = 'all' }) => {
-  const [contacts, setContacts] = useState([]);
-  const [accounts, setAccounts] = useState([]);
+  const { userAccounts, globalContacts } = useData();
+  const contacts = useMemo(() => globalContacts || [], [globalContacts]);
+  const accounts = useMemo(() => userAccounts && userAccounts.length > 0 ? userAccounts.map(a => ({ ...a, contactIds: a.contactIds || [] })) : mockAccounts.map(a => ({ ...a, contactIds: [] })), [userAccounts]);
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState(null);
-
-  const loadData = () => {
-    try {
-      const storedContacts = JSON.parse(localStorage.getItem('globalContacts') || '[]');
-      setContacts(storedContacts);
-
-      const storedAccounts = JSON.parse(localStorage.getItem('userAccounts'));
-      if (storedAccounts && storedAccounts.length > 0) {
-        setAccounts(storedAccounts.map(a => ({ ...a, contactIds: a.contactIds || [] })));
-      } else {
-        setAccounts(mockAccounts.map(a => ({ ...a, contactIds: [] })));
-      }
-    } catch {
-      setContacts([]);
-      setAccounts(mockAccounts.map(a => ({ ...a, contactIds: [] })));
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-    window.addEventListener('storage', loadData);
-    return () => window.removeEventListener('storage', loadData);
-  }, []);
 
   const combinedList = useMemo(() => {
     const list = [];

@@ -1,23 +1,25 @@
 import React, { useState } from 'react';
 import { Sparkles, Loader2, Key, X, AlertCircle } from 'lucide-react';
 import { parseInvoiceFile } from '../services/pdfParserService';
+import { useData } from '../contexts/DataProvider';
 
 const AIInvoiceUploader = ({ onExpenseParsed, buttonStyle = {}, compact = false }) => {
+  const { gemini_api_key, updateData, userVendors } = useData();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
   const [showKeyModal, setShowKeyModal] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState(localStorage.getItem('gemini_api_key') || '');
+  const [apiKeyInput, setApiKeyInput] = useState(gemini_api_key || '');
   const [pendingFile, setPendingFile] = useState(null);
 
   const getActiveApiKey = () => {
-    return import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('gemini_api_key');
+    return import.meta.env.VITE_GEMINI_API_KEY || gemini_api_key;
   };
 
   const processFileWithKey = async (file, apiKey) => {
     setIsProcessing(true);
     setError(null);
     try {
-      const parsedData = await parseInvoiceFile(file, apiKey);
+      const parsedData = await parseInvoiceFile(file, apiKey, userVendors);
       // Attach the original file so the expense handler can auto-upload it as a receipt
       parsedData._originalFile = file;
       if (onExpenseParsed) {
@@ -52,7 +54,7 @@ const AIInvoiceUploader = ({ onExpenseParsed, buttonStyle = {}, compact = false 
     if (!apiKeyInput.trim()) return;
 
     const cleanKey = apiKeyInput.trim();
-    localStorage.setItem('gemini_api_key', cleanKey);
+    updateData('gemini_api_key', cleanKey);
     setShowKeyModal(false);
 
     if (pendingFile) {

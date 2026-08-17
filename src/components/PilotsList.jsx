@@ -1,52 +1,45 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Search, User, Plus, Trash2, Users as UsersIcon, Helicopter } from 'lucide-react';
 import SaveButton from './SaveButton';
 import { mockPilots } from '../data';
+import { useData } from '../contexts/DataProvider';
 
 const PilotsList = () => {
-  const [pilots, setPilots] = useState([]);
-  const [search, setSearch] = useState('');
-  const [selectedPilot, setSelectedPilot] = useState(null);
-  const [editForm, setEditForm] = useState(null);
-  const [saved, setSaved] = useState(false);
+  const { userPilots, crewSchedules, userFlights, updateData } = useData();
 
-  const [schedules, setSchedules] = useState({});
-  const [flights, setFlights] = useState([]);
-
-  const loadData = () => {
-    let storedPilots = [];
-    try {
-      storedPilots = JSON.parse(localStorage.getItem('userPilots'));
-      if (!storedPilots) {
-        // First load: seed with mock pilots
-        storedPilots = [...mockPilots].map(p => ({
-          ...p,
-          email: `${p.name.split(' ')[0].toLowerCase()}@example.com`,
-          phone: '(555) 123-4567',
-          medicalExpiration: '2027-01-01',
-          certifications: 'CPL, IR',
-          notes: ''
-        }));
-        localStorage.setItem('userPilots', JSON.stringify(storedPilots));
-      }
-    } catch (e) {
-      console.error(e);
-      storedPilots = [];
+  const pilots = React.useMemo(() => {
+    let storedPilots = userPilots || [];
+    if (storedPilots.length === 0) {
+      storedPilots = [...mockPilots].map(p => ({
+        ...p,
+        email: `${p.name.split(' ')[0].toLowerCase()}@example.com`,
+        phone: '(555) 123-4567',
+        medicalExpiration: '2027-01-01',
+        certifications: 'CPL, IR',
+        notes: ''
+      }));
     }
+    const cloned = [...storedPilots];
+    cloned.sort((a, b) => a.name.localeCompare(b.name));
+    return cloned;
+  }, [userPilots]);
 
-    // Sort by name
-    storedPilots.sort((a, b) => a.name.localeCompare(b.name));
-    setPilots(storedPilots);
-
-    try {
-      setSchedules(JSON.parse(localStorage.getItem('crewSchedules') || '{}'));
-      setFlights(JSON.parse(localStorage.getItem('userFlights') || '[]'));
-    } catch {}
-  };
+  const schedules = crewSchedules || {};
+  const flights = userFlights || [];
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (userPilots && userPilots.length === 0) {
+      const mockData = [...mockPilots].map(p => ({
+        ...p,
+        email: `${p.name.split(' ')[0].toLowerCase()}@example.com`,
+        phone: '(555) 123-4567',
+        medicalExpiration: '2027-01-01',
+        certifications: 'CPL, IR',
+        notes: ''
+      }));
+      updateData('userPilots', mockData);
+    }
+  }, [userPilots, updateData]);
 
   const getTodayPilotStatus = (pilot) => {
     if (!pilot) return { dutyStatus: 'Off Duty', flightText: null, fullLabel: 'Off Duty' };
@@ -181,11 +174,11 @@ const PilotsList = () => {
     if (!editForm) return;
     if (!window.confirm(`Are you sure you want to delete ${editForm.name}?`)) return;
     try {
-      const storedPilots = JSON.parse(localStorage.getItem('userPilots') || '[]');
+      const storedPilots = [...(userPilots || [])];
       const updatedPilots = storedPilots.filter(p => p.id !== editForm.id);
-      localStorage.setItem('userPilots', JSON.stringify(updatedPilots));
+      updateData('userPilots', updatedPilots);
 
-      const schedules = JSON.parse(localStorage.getItem('crewSchedules') || '{}');
+      const schedules = { ...crewSchedules };
       let changed = false;
       Object.keys(schedules).forEach(k => {
         if (k.startsWith(`${editForm.id}_`) || k.startsWith(`${editForm.name}_`)) {
@@ -194,10 +187,8 @@ const PilotsList = () => {
         }
       });
       if (changed) {
-        localStorage.setItem('crewSchedules', JSON.stringify(schedules));
+        updateData('crewSchedules', schedules);
       }
-
-      loadData();
       setSelectedPilot(null);
       setEditForm(null);
     } catch {
@@ -210,7 +201,7 @@ const PilotsList = () => {
     if (!editForm) return;
 
     try {
-      const storedPilots = JSON.parse(localStorage.getItem('userPilots') || '[]');
+      const storedPilots = [...(userPilots || [])];
       
       const pilotToSave = { ...editForm };
       const originalId = pilotToSave.originalId || pilotToSave.id;
@@ -225,9 +216,7 @@ const PilotsList = () => {
         storedPilots.push(pilotToSave);
       }
 
-      localStorage.setItem('userPilots', JSON.stringify(storedPilots));
-      
-      loadData();
+      updateData('userPilots', storedPilots);
       setSelectedPilot(pilotToSave);
       setEditForm({ ...pilotToSave, originalId: pilotToSave.id });
       setSaved(true);

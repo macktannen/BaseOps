@@ -4,17 +4,19 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { authService } from '../services/authService';
 import { can as permCan, isAdmin as permIsAdmin, hasRole, getUserRoles } from '../services/permissionService';
 import { AuthContext } from './AuthContext';
-import { setUserId, initStore, stopRealtimeSync } from '../services/dataStore';
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
-        setUserId(fbUser.uid);
         const profile = await authService.getUserProfile(fbUser.uid);
+        if (!isMounted) return;
+
         if (profile) {
           const user = {
             id: fbUser.uid,
@@ -28,26 +30,28 @@ export const AuthProvider = ({ children }) => {
           };
           localStorage.setItem('baseOpsCurrentUser', JSON.stringify(user));
           setCurrentUser(user);
-          await initStore();
         } else {
           localStorage.removeItem('baseOpsCurrentUser');
           setCurrentUser(null);
         }
       } else {
+        if (!isMounted) return;
         localStorage.removeItem('baseOpsCurrentUser');
         setCurrentUser(null);
-        stopRealtimeSync();
       }
-      setLoading(false);
+      if (isMounted) setLoading(false);
     });
-    return () => unsubscribe();
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, []);
 
   const login = async (email, password) => {
     const user = await authService.login(email, password);
     localStorage.setItem('baseOpsCurrentUser', JSON.stringify(user));
     setCurrentUser(user);
-    await initStore();
     return user;
   };
 
@@ -55,7 +59,6 @@ export const AuthProvider = ({ children }) => {
     const user = await authService.signup(name, email, password);
     localStorage.setItem('baseOpsCurrentUser', JSON.stringify(user));
     setCurrentUser(user);
-    await initStore();
     return user;
   };
 
@@ -63,7 +66,6 @@ export const AuthProvider = ({ children }) => {
     await authService.logout();
     localStorage.removeItem('baseOpsCurrentUser');
     setCurrentUser(null);
-    stopRealtimeSync();
   };
 
   const updateProfile = async (updates) => {

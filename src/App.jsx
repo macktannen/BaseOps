@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { Calendar as CalendarIcon, Users, Settings, MapPin, Helicopter, Building, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import Logo from './components/Logo';
@@ -10,8 +10,6 @@ import CalendarView from './components/CalendarView';
 import LocationsView from './components/LocationsView';
 import AircraftList from './components/AircraftList';
 import CrewView from './components/CrewView';
-import { initDataSync } from './services/dataSyncService';
-import SyncStatusIndicator from './components/SyncStatusIndicator';
 const APP_VERSION = `v${packageJson.version}`;
 import AccountsContactsView from './components/AccountsContactsView';
 import ExpensesPage from './components/ExpensesPage';
@@ -45,14 +43,6 @@ function DashboardLayout({ activeTab, setActiveTab }) {
 
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const cleanup = initDataSync(() => {
-      // Force UI re-render on sync when storage updates
-      window.dispatchEvent(new Event('storage'));
-    });
-    return cleanup;
-  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -177,7 +167,6 @@ function DashboardLayout({ activeTab, setActiveTab }) {
           </h2>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <SyncStatusIndicator />
               <span
                 onClick={() => setActiveTab('settings')}
                 style={{ fontSize: '0.875rem', fontWeight: 500, cursor: 'pointer' }}

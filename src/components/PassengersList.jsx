@@ -1,50 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useData } from '../contexts/DataProvider';
 import { Search, Plus, Trash2, Users, Briefcase, HeartPulse } from 'lucide-react';
 import SaveButton from './SaveButton';
 
 const PassengersList = () => {
-  const [passengers, setPassengers] = useState([]);
+  const { data, updateData } = useData();
+  const { userPassengers = [], crewSchedules = {} } = data;
+
   const [search, setSearch] = useState('');
   const [selectedPassenger, setSelectedPassenger] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [saved, setSaved] = useState(false);
 
-  const loadData = () => {
-    let storedPassengers = [];
-    try {
-      storedPassengers = JSON.parse(localStorage.getItem('userPassengers'));
-      if (!storedPassengers) {
-        // Seed with a mock passenger
-        storedPassengers = [{
-          id: 'PAX-0001',
-          name: 'Jane VIP',
-          weight: 155,
-          email: 'jane.vip@company.com',
-          phone: '(555) 987-6543',
-          company: 'Acme Corp',
-          title: 'CEO',
-          isCrew: false,
-          emergencyContact: 'John Doe - 555-123-9999',
-          medicalNotes: 'No allergies.',
-          notes: 'Prefers window seat.'
-        }];
-        localStorage.setItem('userPassengers', JSON.stringify(storedPassengers));
-      }
-    } catch (e) {
-      console.error(e);
-      storedPassengers = [];
+  useEffect(() => {
+    if (userPassengers.length === 0) {
+      const seed = [{
+        id: 'PAX-0001',
+        name: 'Jane VIP',
+        weight: 155,
+        email: 'jane.vip@company.com',
+        phone: '(555) 987-6543',
+        company: 'Acme Corp',
+        title: 'CEO',
+        isCrew: false,
+        emergencyContact: 'John Doe - 555-123-9999',
+        medicalNotes: 'No allergies.',
+        notes: 'Prefers window seat.'
+      }];
+      updateData('userPassengers', seed);
     }
+  }, [userPassengers.length, updateData]);
 
-    // Sort by name
-    storedPassengers.sort((a, b) => a.name.localeCompare(b.name));
-    setPassengers(storedPassengers);
-  };
+  const passengers = useMemo(() => {
+    const list = [...userPassengers];
+    list.sort((a, b) => a.name.localeCompare(b.name));
+    return list;
+  }, [userPassengers]);
 
   useEffect(() => {
-    loadData();
-    window.addEventListener('storage', loadData);
-    return () => window.removeEventListener('storage', loadData);
-  }, []);
+    if (selectedPassenger?.id) {
+      const updatedSel = passengers.find(p => p.id === selectedPassenger.id);
+      if (updatedSel) {
+        setSelectedPassenger(updatedSel);
+      }
+    }
+  }, [passengers, selectedPassenger?.id]);
 
   const filteredPassengers = passengers
     .filter(p => !p.isCrew)
@@ -82,24 +82,22 @@ const PassengersList = () => {
     if (!editForm) return;
     if (!window.confirm(`Are you sure you want to delete ${editForm.name}?`)) return;
     try {
-      const storedPassengers = JSON.parse(localStorage.getItem('userPassengers') || '[]');
-      const updatedPassengers = storedPassengers.filter(p => p.id !== editForm.originalId && p.id !== editForm.id);
-      localStorage.setItem('userPassengers', JSON.stringify(updatedPassengers));
+      const updatedPassengers = userPassengers.filter(p => p.id !== editForm.originalId && p.id !== editForm.id);
+      updateData('userPassengers', updatedPassengers);
 
       const targetId = editForm.originalId || editForm.id;
-      const schedules = JSON.parse(localStorage.getItem('crewSchedules') || '{}');
+      const newSchedules = { ...crewSchedules };
       let changed = false;
-      Object.keys(schedules).forEach(k => {
+      Object.keys(newSchedules).forEach(k => {
         if (k.startsWith(`${targetId}_`) || k.startsWith(`${editForm.name}_`)) {
-          delete schedules[k];
+          delete newSchedules[k];
           changed = true;
         }
       });
       if (changed) {
-        localStorage.setItem('crewSchedules', JSON.stringify(schedules));
+        updateData('crewSchedules', newSchedules);
       }
 
-      loadData();
       setSelectedPassenger(null);
       setEditForm(null);
     } catch {
@@ -112,7 +110,7 @@ const PassengersList = () => {
     if (!editForm) return;
 
     try {
-      const storedPassengers = JSON.parse(localStorage.getItem('userPassengers') || '[]');
+      const storedPassengers = [...userPassengers];
       
       const paxToSave = { ...editForm };
       const originalId = paxToSave.originalId || paxToSave.id;
@@ -127,12 +125,12 @@ const PassengersList = () => {
         storedPassengers.push(paxToSave);
       }
 
-      localStorage.setItem('userPassengers', JSON.stringify(storedPassengers));
+      updateData('userPassengers', storedPassengers);
       
-      loadData();
       setSelectedPassenger(paxToSave);
       setEditForm({ ...paxToSave, originalId: paxToSave.id });
       setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
     } catch (e) {
       console.error(e);
     }
