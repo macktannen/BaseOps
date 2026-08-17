@@ -1,21 +1,30 @@
-# Switch (Handoff) Document
-Current Version: **v0.5.3**
+# HANDOFF - baseops
+
+- **Timestamp:** Aug 17, 2026
+- **Tool used:** opencode
+- **Branch:** main
+- **Last commit:** 4fb3abe fix(ui): add CSS spin animation for loading spinners
 
 ## Project Overview
-Helicopter Scheduler Web App (`baseops`). We are actively debugging state synchronization bugs, managing production data safety, and building out new UI layouts.
+Helicopter Scheduler Web App (`baseops`). Manages flights, crew schedules, expenses, fleet, and documents with Firebase/Firestore backend.
 
-## Current Status (v0.5.3)
-1. **Removed "Note" Status**: "Note" has been removed from the schedule status options and legends.
-2. **Filtered Phantom Accounts**: Prevented deleted/phantom accounts (like `acc-1785523358176`) from appearing in the Schedules Grid bottom legend when colored by Account.
-3. **Fresh Unified Schedule Management (`scheduleService.js`)**: Cleaned and unified schedule key resolution, lookup, mutation, and deletion into a centralized service. Corrected date suffix parsing to handle personnel IDs containing underscores without breaking date extraction.
-2. **Firestore Stale Snapshot Protection**: Resolved race condition in `dataStore.js` where `onSnapshot` was overwriting active local writes for non-flight keys (`crewSchedules`, `calendarNotes`, etc.). Added explicit `isPendingLocalWrite(lsKey)` guard.
-2. **Multi-Key Schedule Variant Cleanup**: `CrewSchedule.jsx` and `CalendarView.jsx` purge all key variants (ID, Name, and date variants) upon clearing or changing duty status.
-3. **Synchronous Direct Schedule Mutation**: Hardened `handleCellClick` in `CrewSchedule.jsx` to update React state `setSchedules({ ...stored })` synchronously upon clicking Clear, eliminating render lag or dropped state updates.
-4. **Production Safety & Sandbox Isolation**: Local development (`localhost`) is now automatically isolated to `orgs/dev_sandbox` in Firestore so local testing never alters production database (`orgs/default`).
-5. **Clear Signature Single-Click Logic**: Completely rewritten into an atomic workflow inside `EventModal.jsx`, eliminating stale prop evaluations and multi-layer callback race conditions.
+## What Was Just Completed
+1. **Cloud-only file storage**: Removed all local IndexedDB/localforage fallbacks from `FileStorageService.js`. All file uploads (flight documents and expense receipts) now go exclusively to Firebase Cloud Storage. Upload failures surface errors to the user instead of silently falling back to local storage.
+2. **Firebase Storage rules deployed**: `storage.rules` deployed to Firebase project `baseops-9f0e9` — allows read/write for authenticated users.
+3. **Cross-device receipt deletion sync**: Fixed `ExpensesTab.jsx` `handleDeleteReceipt` to call `persistExpensesToFlight()` so deletions propagate to Firestore and sync across devices via `onSnapshot`.
+4. **AI auto-fill loading indicator**: When uploading an invoice for AI parsing, a new expense row immediately appears with animated purple spinners in every field. The row populates with extracted data when parsing completes. Added `onProcessingStart` callback to `AIInvoiceUploader` and `animate-spin` CSS keyframes to `App.css`.
 
 ## Pending Tasks
-1. **Redo layout for schedules grid** (Not started).
-2. **Fleet view layout** (Not started).
+1. **Redo layout for schedules grid** (Not started — from previous handoff)
+2. **Fleet view layout** (Not started — from previous handoff)
 
+## Contextual Notes
+- Firebase project: `baseops-9f0e9`, dev sandbox: `orgs/dev_sandbox`, production: `orgs/default`
+- Storage rules: `allow read, write: if request.auth != null`
+- `FileStorageService.js` now has a simplified API: `saveFile`, `saveReceipt`, `getFileUrl`, `getReceiptUrl`, `deleteFile`, `deleteReceipt` — all cloud-only, no local fallback parameters
+- `AIInvoiceUploader` accepts `onProcessingStart` callback (called before AI parsing begins)
+- `ExpensesTab` tracks `aiLoadingId` state to manage the spinner row lifecycle
+- `ExpensesPage.jsx` was also updated to match the new `FileStorageService` API signatures (removed extra args from `getReceiptUrl`, `deleteReceipt` calls)
 
+## Next Steps
+Start on the schedules grid layout redo or fleet view layout — whichever the user requests.

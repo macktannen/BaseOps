@@ -4,6 +4,7 @@ import { Calendar as CalendarIcon, Users, Settings, MapPin, Helicopter, Building
 import Logo from './components/Logo';
 import packageJson from '../package.json';
 import './index.css';
+import './App.css';
 import './mobile.css';
 import { can as permCan } from './services/permissionService';
 import CalendarView from './components/CalendarView';
