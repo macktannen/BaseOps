@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v1.0.3] - 2026-08-17
+
+### Fixed
+- **Flight expenses lost on save** — Fixed race condition in `CalendarView.handleSaveFlight` where expenses added via AI auto-fill or manual entry could be overwritten by stale Firestore data during save. Now merges expenses from both the local save payload and the existing Firestore record by ID, ensuring no expenses are silently dropped.
+
 ## [v1.0.2] - 2026-08-17
 
 ### Fixed

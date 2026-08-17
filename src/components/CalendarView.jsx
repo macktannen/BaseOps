@@ -377,13 +377,20 @@ const CalendarView = () => {
     const targetId = String(savedFlight.id);
     const existing = currentStored.find(f => String(f.id) === targetId || (savedFlight.flightNumber && String(f.flightNumber) === String(savedFlight.flightNumber)));
     
-    // Preserve uploads, expenses & flightLog if existing record had them
+    // Preserve uploads & flightLog if existing record had them
     if (existing) {
       if ((!savedFlight.uploads || savedFlight.uploads.length === 0) && (existing.uploads && existing.uploads.length > 0)) {
         savedFlight.uploads = existing.uploads;
       }
-      if ((!savedFlight.expenses || savedFlight.expenses.length === 0) && (existing.expenses && existing.expenses.length > 0)) {
-        savedFlight.expenses = existing.expenses;
+      // Merge expenses: combine saved (local) expenses with existing (Firestore) expenses by ID,
+      // preferring the saved version when IDs match to avoid losing AI-parsed or manually added expenses
+      if (existing.expenses && existing.expenses.length > 0) {
+        const savedIds = new Set((savedFlight.expenses || []).map(e => e.id));
+        const mergedExpenses = [
+          ...(savedFlight.expenses || []),
+          ...existing.expenses.filter(e => !savedIds.has(e.id))
+        ];
+        savedFlight.expenses = mergedExpenses;
       }
       if (!savedFlight.flightLog && existing.flightLog) {
         savedFlight.flightLog = existing.flightLog;

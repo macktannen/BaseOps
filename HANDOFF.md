@@ -3,7 +3,7 @@
 - **Timestamp:** Aug 17, 2026
 - **Tool used:** opencode
 - **Branch:** main
-- **Last commit:** 8bed870 fix(ui): import App.css to enable animate-spin animation for AI loading spinners
+- **Last commit:** 282b1e4 chore: bump version to v1.0.2, document CSS animation fix in changelog
 
 ## Project Overview
 Helicopter Scheduler Web App (`baseops`). Manages flights, crew schedules, expenses, fleet, and documents with Firebase/Firestore backend.
