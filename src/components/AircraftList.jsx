@@ -4,7 +4,6 @@ import { useData } from '../contexts/DataProvider';
 
 import { Search, Plus, Trash2, Helicopter, Wrench, ChevronDown, ChevronUp, History } from 'lucide-react';
 import SaveButton from './SaveButton';
-import { mockAircrafts } from '../data';
 import { authService } from '../services/authService';
 import { can as permCan } from '../services/permissionService';
 
@@ -25,26 +24,6 @@ const AircraftList = () => {
   const [selectedAircraft, setSelectedAircraft] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [auditExpanded, setAuditExpanded] = useState(false);
-
-  useEffect(() => {
-    if (userAircraft.length === 0) {
-      const seed = [...mockAircrafts].map(a => ({
-        ...a,
-        baseLocation: 'KVPZ',
-        totalHours: a.totalHours || 1250,
-        engine1Hours: a.engine1Hours || a.engineHours || a.totalHours || 1250,
-        engine2Hours: a.engine2Hours || 0,
-        engine1Cycles: a.engine1Cycles || a.engineCycles || 450,
-        engine2Cycles: a.engine2Cycles || 0,
-        dualEngine: a.dualEngine || false,
-        maxCruiseSpeed: 120,
-        lastInspection: '2025-10-01',
-        nextInspection: '2026-10-01',
-        notes: ''
-      }));
-      updateData('userAircraft', seed);
-    }
-  }, [userAircraft.length, updateData]);
 
   const aircraft = useMemo(() => {
     const list = [...userAircraft];

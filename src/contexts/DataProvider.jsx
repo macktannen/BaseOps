@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuth } from './useAuth';
-import { mockAircrafts, mockPilots, mockAccounts, mockVendors, mockCustomZones } from '../data';
 
 export const DataContext = createContext();
 
@@ -33,13 +32,13 @@ const LOCAL_KEY_MAP = Object.entries(FIRESTORE_KEY_MAP).reduce((acc, [local, fir
 
 const DEFAULT_DATA = {
   userFlights: [],
-  userAircraft: mockAircrafts,
-  userPilots: mockPilots,
+  userAircraft: [],
+  userPilots: [],
   userPassengers: [],
-  userAccounts: mockAccounts,
-  userVendors: mockVendors,
+  userAccounts: [],
+  userVendors: [],
   globalContacts: [],
-  userCustomZones: mockCustomZones,
+  userCustomZones: [],
   crewSchedules: {},
   calendarNotes: {},
   calendarViewSettings: {},
@@ -73,20 +72,13 @@ function sanitizeForFirestore(val) {
 
 export const DataProvider = ({ children }) => {
   const { currentUser } = useAuth();
-  const [data, setData] = useState(() => {
-    const initial = { ...DEFAULT_DATA };
-    try {
-      const cachedAc = JSON.parse(localStorage.getItem('userAircraft') || '[]');
-      if (cachedAc && cachedAc.length > 0) initial.userAircraft = cachedAc;
-    } catch {}
-    return initial;
-  });
+  const [data, setData] = useState(DEFAULT_DATA);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const dataRef = useRef(data);
   dataRef.current = data;
 
-  // Subscribe to Firestore org document
+  // Subscribe to Firestore org document — 100% cloud single source of truth
   useEffect(() => {
     if (!currentUser && !auth.currentUser) {
       // Wait for auth to resolve
@@ -105,34 +97,13 @@ export const DataProvider = ({ children }) => {
               newState[lsKey] = val;
             }
           });
-
-          // Ensure userAircraft is never empty
-          if (!newState.userAircraft || newState.userAircraft.length === 0) {
-            try {
-              const cached = JSON.parse(localStorage.getItem('userAircraft') || '[]');
-              newState.userAircraft = cached.length > 0 ? cached : mockAircrafts;
-            } catch {
-              newState.userAircraft = mockAircrafts;
-            }
-          }
-
-          return newState;
-        });
-      } else {
-        setData(prev => {
-          const newState = { ...prev };
-          try {
-            const cached = JSON.parse(localStorage.getItem('userAircraft') || '[]');
-            newState.userAircraft = cached.length > 0 ? cached : mockAircrafts;
-          } catch {
-            newState.userAircraft = mockAircrafts;
-          }
           return newState;
         });
       }
       setLoading(false);
       setError(null);
     }, (err) => {
+      console.error("Firestore cloud sync error:", err);
       setError(err);
       setLoading(false);
     });
@@ -147,7 +118,7 @@ export const DataProvider = ({ children }) => {
     // Optimistic UI update
     setData(prev => ({ ...prev, [key]: value }));
 
-    // Persist to Firestore
+    // Persist directly to Firestore cloud document
     try {
       const orgRef = getOrgDocRef();
       try {
@@ -160,6 +131,7 @@ export const DataProvider = ({ children }) => {
         }
       }
     } catch (err) {
+      console.error(`Failed to update cloud key ${key}:`, err);
       // Revert optimistic update on failure
       setData(prev => ({ ...prev, [key]: dataRef.current[key] }));
       throw err;

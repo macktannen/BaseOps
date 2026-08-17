@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Trash2, MapPin, Plus, GripVertical, BookOpen, Clock, ChevronLeft, ChevronRight, ChevronDown, Upload, FileText, Download, Paperclip, Eye, Image, File } from 'lucide-react';
-import { mockPilots, mockCustomZones, mockAccounts, mockAircrafts, mockVendors } from '../data';
+import { mockPilots, mockCustomZones, mockAccounts, mockVendors } from '../data';
 import airportsData from '../data/airports.json';
 import tzlookup from 'tz-lookup';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
@@ -565,11 +565,11 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
 
   const { userPilots, userAircraft, userPassengers, userAccounts, userVendors, userFlights, crewSchedules, locationUsage, updateData } = useData();
 
-  const pilotsList = userPilots?.length > 0 ? userPilots : mockPilots;
-  const aircraftList = userAircraft?.length > 0 ? userAircraft : mockAircrafts;
+  const pilotsList = userPilots || [];
+  const aircraftList = userAircraft || [];
   const passengersList = userPassengers || [];
-  const accountsList = userAccounts?.length > 0 ? userAccounts : mockAccounts;
-  const vendorsList = userVendors?.length > 0 ? userVendors : mockVendors;
+  const accountsList = userAccounts || [];
+  const vendorsList = userVendors || [];
 
   const [legs, setLegs] = useState([
     { departure: null, destination: null, takeoffTime: '08:00', landTime: '09:00', duration: 60, passengers: [], pilotId: getDefaultPilotForDate(initialDateStr, crewSchedules, pilotsList), date: initialDateStr }

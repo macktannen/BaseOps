@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { mockAircrafts } from '../data';
 import { Helicopter, Wrench, Trash2, Save, X, ChevronRight, ChevronDown, ChevronUp, History } from 'lucide-react';
 import { authService } from '../services/authService';
 import { can as permCan } from '../services/permissionService';
@@ -25,26 +24,7 @@ const MobileFleet = () => {
   const { userAircraft, userFlights, updateData } = useData();
 
   const loadData = useCallback(() => {
-    let storedAircraft = userAircraft || [];
-    
-    if (storedAircraft.length === 0) {
-      storedAircraft = [...mockAircrafts].map(a => ({
-        ...a,
-        baseLocation: 'KVPZ',
-        totalHours: a.totalHours || 1250,
-        engine1Hours: a.engine1Hours || a.engineHours || a.totalHours || 1250,
-        engine2Hours: a.engine2Hours || 0,
-        engine1Cycles: a.engine1Cycles || a.engineCycles || 450,
-        engine2Cycles: a.engine2Cycles || 0,
-        dualEngine: a.dualEngine || false,
-        maxCruiseSpeed: 120,
-        lastInspection: '2025-10-01',
-        nextInspection: '2026-10-01',
-        notes: ''
-      }));
-      updateData('userAircraft', storedAircraft);
-    }
-
+    let storedAircraft = [...(userAircraft || [])];
     storedAircraft.sort((a, b) => a.id.localeCompare(b.id));
     setAircraft(storedAircraft);
     setFlights(userFlights || []);
