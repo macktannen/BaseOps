@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuth } from './useAuth';
+import { mockAircrafts, mockPilots, mockAccounts, mockVendors, mockCustomZones } from '../data';
 
 export const DataContext = createContext();
 
@@ -32,13 +33,13 @@ const LOCAL_KEY_MAP = Object.entries(FIRESTORE_KEY_MAP).reduce((acc, [local, fir
 
 const DEFAULT_DATA = {
   userFlights: [],
-  userAircraft: [],
-  userPilots: [],
+  userAircraft: mockAircrafts,
+  userPilots: mockPilots,
   userPassengers: [],
-  userAccounts: [],
-  userVendors: [],
+  userAccounts: mockAccounts,
+  userVendors: mockVendors,
   globalContacts: [],
-  userCustomZones: [],
+  userCustomZones: mockCustomZones,
   crewSchedules: {},
   calendarNotes: {},
   calendarViewSettings: {},
@@ -72,7 +73,14 @@ function sanitizeForFirestore(val) {
 
 export const DataProvider = ({ children }) => {
   const { currentUser } = useAuth();
-  const [data, setData] = useState(DEFAULT_DATA);
+  const [data, setData] = useState(() => {
+    const initial = { ...DEFAULT_DATA };
+    try {
+      const cachedAc = JSON.parse(localStorage.getItem('userAircraft') || '[]');
+      if (cachedAc && cachedAc.length > 0) initial.userAircraft = cachedAc;
+    } catch {}
+    return initial;
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const dataRef = useRef(data);
@@ -97,6 +105,28 @@ export const DataProvider = ({ children }) => {
               newState[lsKey] = val;
             }
           });
+
+          // Ensure userAircraft is never empty
+          if (!newState.userAircraft || newState.userAircraft.length === 0) {
+            try {
+              const cached = JSON.parse(localStorage.getItem('userAircraft') || '[]');
+              newState.userAircraft = cached.length > 0 ? cached : mockAircrafts;
+            } catch {
+              newState.userAircraft = mockAircrafts;
+            }
+          }
+
+          return newState;
+        });
+      } else {
+        setData(prev => {
+          const newState = { ...prev };
+          try {
+            const cached = JSON.parse(localStorage.getItem('userAircraft') || '[]');
+            newState.userAircraft = cached.length > 0 ? cached : mockAircrafts;
+          } catch {
+            newState.userAircraft = mockAircrafts;
+          }
           return newState;
         });
       }
