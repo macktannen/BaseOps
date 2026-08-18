@@ -455,7 +455,9 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
       receiptFiles: newFiles,
       receiptCount: newFiles.length,
       hasReceipt: newFiles.length > 0,
-      _pendingDeletes: pendingDeletes
+      _pendingDeletes: pendingDeletes,
+      _dirty: true,
+      _saved: false
     } : e);
     
     setExpenses(updatedExpenses);
