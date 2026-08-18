@@ -138,10 +138,55 @@ export const DataProvider = ({ children }) => {
     }
   }, []);
 
+  const updateDataBatch = useCallback(async (updates) => {
+    const firestoreUpdates = { _lastUpdated: Date.now() };
+    const localKeys = [];
+
+    for (const [key, value] of Object.entries(updates)) {
+      const fsKey = FIRESTORE_KEY_MAP[key] || key;
+      firestoreUpdates[fsKey] = sanitizeForFirestore(value);
+      localKeys.push(key);
+    }
+
+    // Optimistic UI update — apply all keys in one state change
+    setData(prev => {
+      const next = { ...prev };
+      for (const [key, value] of Object.entries(updates)) {
+        next[key] = value;
+      }
+      return next;
+    });
+
+    // Persist all fields to Firestore in a single write
+    try {
+      const orgRef = getOrgDocRef();
+      try {
+        await updateDoc(orgRef, firestoreUpdates);
+      } catch (updateErr) {
+        if (updateErr.code === 'not-found' || updateErr.message?.includes('No document to update')) {
+          await setDoc(orgRef, firestoreUpdates);
+        } else {
+          throw updateErr;
+        }
+      }
+    } catch (err) {
+      console.error(`Failed to batch update cloud keys:`, err);
+      // Revert optimistic update on failure
+      setData(prev => {
+        const next = { ...prev };
+        for (const key of localKeys) {
+          next[key] = dataRef.current[key];
+        }
+        return next;
+      });
+      throw err;
+    }
+  }, []);
+
   // Spread ...data into the context value so consumers can destructure
   // either { data, updateData } or { userFlights, updateData } directly
   return (
-    <DataContext.Provider value={{ ...data, data, updateData, loading, error }}>
+    <DataContext.Provider value={{ ...data, data, updateData, updateDataBatch, loading, error }}>
       {children}
     </DataContext.Provider>
   );

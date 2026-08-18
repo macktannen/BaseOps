@@ -92,38 +92,6 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
 
   const { userFlights, userVendors, updateData } = useData();
 
-  const persistExpensesToFlight = (updatedExpenses) => {
-    if (!flight && (!updatedExpenses || updatedExpenses.length === 0)) return;
-    try {
-      const storedFlights = [...(userFlights || [])];
-      const targetId = flight?.id ? String(flight.id) : null;
-      const targetFlightNumber = flight?.flightNumber ? String(flight.flightNumber) : null;
-
-      let found = false;
-      const updatedFlights = storedFlights.map(f => {
-        const isMatch = (targetId && String(f.id) === targetId) ||
-                        (targetFlightNumber && String(f.flightNumber) === targetFlightNumber);
-        if (isMatch) {
-          found = true;
-          return { ...f, expenses: updatedExpenses };
-        }
-        return f;
-      });
-
-      if (!found && flight) {
-        updatedFlights.push({
-          ...flight,
-          id: flight.id || Date.now(),
-          expenses: updatedExpenses
-        });
-      }
-
-      updateData('userFlights', updatedFlights);
-    } catch (e) {
-      console.error("Failed to persist expenses", e);
-    }
-  };
-
   const handleHeaderClick = (key) => {
     setSortConfig(prev => {
       if (prev.key === key) {
@@ -247,7 +215,6 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
     const newExp = { id: Date.now(), category: '', vendor: '', amount: '', description: '', date: defaultDate, payer: '', location: flightAirports[0] || '', fuelType: '', gallons: '', purchaser: aircraftId, receiptCount: 0, _dirty: true, _saved: false };
     const next = [...expenses, newExp];
     setExpenses(next);
-    persistExpensesToFlight(next);
   };
 
   const handleAiProcessingStart = () => {
@@ -274,7 +241,6 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
     };
     const next = [...expenses, loadingRow];
     setExpenses(next);
-    persistExpensesToFlight(next);
   };
 
   const handleAutoFillParsedExpense = async (parsedData) => {
@@ -382,25 +348,21 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
     }
     setAiLoadingId(null);
     setExpenses(nextExpenses);
-    persistExpensesToFlight(nextExpenses);
   };
 
   const handleUpdate = (id, field, value) => {
     const updated = expenses.map(e => e.id === id ? { ...e, [field]: value, _dirty: true } : e);
     setExpenses(updated);
-    persistExpensesToFlight(updated);
   };
 
   const handleSaveRow = (id) => {
     const updatedExpenses = expenses.map(e => e.id === id ? { ...e, _dirty: false, _saved: true } : e);
     setExpenses(updatedExpenses);
-    persistExpensesToFlight(updatedExpenses);
   };
 
   const handleRemove = (id) => {
     const updatedExpenses = expenses.filter(e => e.id !== id);
     setExpenses(updatedExpenses);
-    persistExpensesToFlight(updatedExpenses);
   };
 
   const handleDeleteReceipt = async (expId, fileIndex) => {
@@ -427,7 +389,6 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
     } : e);
     
     setExpenses(updatedExpenses);
-    persistExpensesToFlight(updatedExpenses);
     
     if (viewingExpId === expId) {
       setLoadedReceipts(prev => prev.filter((_, idx) => idx !== fileIndex));
@@ -488,7 +449,6 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
       });
 
       setExpenses(updatedExpenses);
-      persistExpensesToFlight(updatedExpenses);
 
       setUploadingExpId(null);
       setUploadProgress(null);

@@ -34,7 +34,7 @@ const getCategoryColor = (category) => {
 const DEPARTMENT_ID = '__DEPARTMENT__';
 
 const ExpensesPage = () => {
-  const { data, updateData } = useData();
+  const { data, updateData, updateDataBatch } = useData();
   const { userFlights = [], departmentExpenses = [], userVendors = [], userAccounts = [] } = data;
 
   const isMobile = useIsMobile();
@@ -250,7 +250,7 @@ const ExpensesPage = () => {
     }
   };
 
-  const handleSaveFlight = (flightData) => {
+  const handleSaveFlight = (flightData, shouldClose = false, extraUpdates = null) => {
     try {
       const updatedFlights = userFlights.map(f => {
         if (String(f.id) === String(flightData.id) || (flightData.flightNumber && String(f.flightNumber) === String(flightData.flightNumber))) {
@@ -262,7 +262,11 @@ const ExpensesPage = () => {
         }
         return f;
       });
-      updateData('userFlights', updatedFlights);
+      if (extraUpdates) {
+        updateDataBatch({ userFlights: updatedFlights, ...extraUpdates });
+      } else {
+        updateData('userFlights', updatedFlights);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -301,9 +305,6 @@ const ExpensesPage = () => {
         }
         return flight;
       });
-      if (flightsChanged) {
-        updateData('userFlights', storedFlights);
-      }
 
       let deptChanged = false;
       const newDeptExp = departmentExpenses.map(exp => {
@@ -313,7 +314,16 @@ const ExpensesPage = () => {
         }
         return exp;
       });
-      if (deptChanged) {
+
+      const updates = {};
+      if (flightsChanged) updates.userFlights = storedFlights;
+      if (deptChanged) updates.departmentExpenses = newDeptExp;
+
+      if (Object.keys(updates).length > 1) {
+        updateDataBatch(updates);
+      } else if (flightsChanged) {
+        updateData('userFlights', storedFlights);
+      } else if (deptChanged) {
         updateData('departmentExpenses', newDeptExp);
       }
     } catch (err) {
@@ -679,11 +689,10 @@ const ExpensesPage = () => {
           updateData('departmentExpenses', updatedDept);
         } else {
           const remainingDept = deptExpenses.filter(e => e.id !== editingDeptExpenseId);
-          updateData('departmentExpenses', remainingDept);
           const movedExp = { ...existing, ...updatedFields };
           if (!targetFlight.expenses) targetFlight.expenses = [];
           targetFlight.expenses.unshift(movedExp);
-          updateData('userFlights', storedFlights);
+          updateDataBatch({ departmentExpenses: remainingDept, userFlights: storedFlights });
         }
       } else {
         const newExp = {

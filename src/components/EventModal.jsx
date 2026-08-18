@@ -563,7 +563,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const [conflictModal, setConflictModal] = useState({ open: false, pilotConflicts: [], aircraftConflicts: [] });
   const [expenses, setExpenses] = useState([]);
 
-  const { userPilots, userAircraft, userPassengers, userAccounts, userVendors, userFlights, crewSchedules, locationUsage, updateData } = useData();
+  const { userPilots, userAircraft, userPassengers, userAccounts, userVendors, userFlights, crewSchedules, locationUsage, updateData, updateDataBatch } = useData();
 
   const pilotsList = userPilots || [];
   const aircraftList = userAircraft || [];
@@ -636,6 +636,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     suppressSyncRef.current = true;
 
     // STEP 2: Update aircraft record in single atomic commit
+    let pendingAircraftUpdate = null;
     try {
       const storedAircraft = [...(userAircraft || [])];
       const acIndex = storedAircraft.findIndex(a => a.id === aircraftId);
@@ -661,7 +662,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
         ac.auditLog.push(`Signed flight #${flightNumber || ''} by ${currentUser?.name || 'Pilot'} on ${new Date().toLocaleString()}: +${snapshottedTotals.changeFlight}h`);
         
         storedAircraft[acIndex] = ac;
-        updateData('userAircraft', storedAircraft);
+        pendingAircraftUpdate = storedAircraft;
       }
     } catch (err) {
       console.error('Failed to update aircraft on sign:', err);
@@ -687,8 +688,8 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     setFlightLog(signedLog);
     setStatus('completed');
 
-    // STEP 5: Persist flight
-    performSave(signedLog, 'completed');
+    // STEP 5: Persist flight + aircraft in single batched write
+    performSave(signedLog, 'completed', false, pendingAircraftUpdate ? { userAircraft: pendingAircraftUpdate } : null);
 
     // STEP 6: Release sync guard
     setTimeout(() => { suppressSyncRef.current = false; }, 10000);
@@ -702,6 +703,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     suppressSyncRef.current = true;
 
     // STEP 2: Revert aircraft totals from the snapshot
+    let pendingAircraftUpdate = null;
     const totals = flightLog.aircraftTotals;
     if (aircraftId && totals) {
       try {
@@ -727,7 +729,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
           if (!ac.auditLog) ac.auditLog = [];
           ac.auditLog.push(`Signature cleared & meters reverted by ${currentUser?.name || 'Admin'} on ${new Date().toLocaleString()}`);
           storedAircraft[acIndex] = ac;
-          updateData('userAircraft', storedAircraft);
+          pendingAircraftUpdate = storedAircraft;
         }
       } catch (e) { console.error('Failed to revert aircraft totals:', e); }
     }
@@ -749,7 +751,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     setStatus('confirmed');
 
     // STEP 5: Persist atomically via performSave
-    performSave(unsignedLog, 'confirmed');
+    performSave(unsignedLog, 'confirmed', false, pendingAircraftUpdate ? { userAircraft: pendingAircraftUpdate } : null);
 
     // STEP 6: Release the sync guard after Firestore echo settles
     setTimeout(() => { suppressSyncRef.current = false; }, 10000);
@@ -1317,11 +1319,11 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     setLegs(newLegs);
   };
 
-  const incrementUsage = (locationId) => {
+  const usageAccumulatorRef = useRef({});
+
+  const accumulateUsage = (locationId) => {
     if (!locationId) return;
-    const usageData = { ...(locationUsage || {}) };
-    usageData[locationId] = (usageData[locationId] || 0) + 1;
-    updateData('locationUsage', usageData);
+    usageAccumulatorRef.current[locationId] = (usageAccumulatorRef.current[locationId] || 0) + 1;
   };
 
   const allFlights = userFlights || [];
@@ -1424,11 +1426,11 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     if (changed) setLegs(recalculateLegTimes(newLegs));
   };
 
-  const performSave = (overrideFlightLog = null, overrideStatus = null, shouldClose = false) => {
+  const performSave = (overrideFlightLog = null, overrideStatus = null, shouldClose = false, extraUpdates = null) => {
     try {
       legs.forEach(leg => {
-        if (leg.departure && leg.departure.id) incrementUsage(leg.departure.id);
-        if (leg.destination && leg.destination.id) incrementUsage(leg.destination.id);
+        if (leg.departure && leg.departure.id) accumulateUsage(leg.departure.id);
+        if (leg.destination && leg.destination.id) accumulateUsage(leg.destination.id);
       });
 
       const firstLeg = legs[0] || {};
@@ -1479,8 +1481,17 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
         uploads: uploads || []
       };
 
+      // Merge accumulated location usage into Firestore
+      const pendingUsage = { ...(locationUsage || {}) };
+      for (const [locId, count] of Object.entries(usageAccumulatorRef.current)) {
+        pendingUsage[locId] = (pendingUsage[locId] || 0) + count;
+      }
+      usageAccumulatorRef.current = {};
+
+      const allExtraUpdates = { locationUsage: pendingUsage, ...extraUpdates };
+
       if (onSave) {
-        onSave(flightPayload, shouldClose);
+        onSave(flightPayload, shouldClose, allExtraUpdates);
       }
 
       setIsSaved(false);

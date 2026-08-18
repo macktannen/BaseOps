@@ -137,7 +137,7 @@ const CheckItem = ({ label, checked, onChange, disabled = false }) => (
 const viewSectionHeader = { fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', margin: '8px 0 6px 0' };
 
 const CalendarView = () => {
-  const { data, updateData } = useData();
+  const { data, updateData, updateDataBatch } = useData();
   const { 
     userFlights: flights = [], 
     userPilots: pilotsList = [], 
@@ -365,7 +365,7 @@ const CalendarView = () => {
     setIsModalOpen(true);
   };
 
-  const handleSaveFlight = (flightData, shouldClose = false) => {
+  const handleSaveFlight = (flightData, shouldClose = false, extraUpdates = null) => {
     let currentStored = flights || [];
     let updatedFlights;
     let savedFlight = { ...flightData };
@@ -409,7 +409,11 @@ const CalendarView = () => {
       updatedFlights = [...currentStored, savedFlight];
     }
 
-    updateData('userFlights', updatedFlights);
+    if (extraUpdates) {
+      updateDataBatch({ userFlights: updatedFlights, ...extraUpdates });
+    } else {
+      updateData('userFlights', updatedFlights);
+    }
     setEditingFlight(savedFlight);
 
     if (shouldClose) {

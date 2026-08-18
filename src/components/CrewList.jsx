@@ -4,7 +4,7 @@ import { Search, Plus, Trash2, Users, Briefcase, HeartPulse, UserCheck } from 'l
 import SaveButton from './SaveButton';
 
 const CrewList = () => {
-  const { data, updateData } = useData();
+  const { data, updateData, updateDataBatch } = useData();
   const { userPassengers = [], crewSchedules = {} } = data;
 
   const [search, setSearch] = useState('');
@@ -63,7 +63,6 @@ const CrewList = () => {
     if (!window.confirm(`Are you sure you want to delete ${editForm.name}?`)) return;
     try {
       const updated = userPassengers.filter(p => p.id !== editForm.originalId && p.id !== editForm.id);
-      updateData('userPassengers', updated);
 
       const targetId = editForm.originalId || editForm.id;
       let changed = false;
@@ -74,8 +73,11 @@ const CrewList = () => {
           changed = true;
         }
       });
+
       if (changed) {
-        updateData('crewSchedules', newSchedules);
+        updateDataBatch({ userPassengers: updated, crewSchedules: newSchedules });
+      } else {
+        updateData('userPassengers', updated);
       }
 
       setSelectedCrew(null);

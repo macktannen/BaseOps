@@ -5,7 +5,7 @@ import { mockPilots } from '../data';
 import { useData } from '../contexts/DataProvider';
 
 const PilotsList = () => {
-  const { userPilots, crewSchedules, userFlights, updateData } = useData();
+  const { userPilots, crewSchedules, userFlights, updateData, updateDataBatch } = useData();
 
   const pilots = React.useMemo(() => {
     let storedPilots = userPilots || [];
@@ -176,7 +176,6 @@ const PilotsList = () => {
     try {
       const storedPilots = [...(userPilots || [])];
       const updatedPilots = storedPilots.filter(p => p.id !== editForm.id);
-      updateData('userPilots', updatedPilots);
 
       const schedules = { ...crewSchedules };
       let changed = false;
@@ -186,8 +185,11 @@ const PilotsList = () => {
           changed = true;
         }
       });
+
       if (changed) {
-        updateData('crewSchedules', schedules);
+        updateDataBatch({ userPilots: updatedPilots, crewSchedules: schedules });
+      } else {
+        updateData('userPilots', updatedPilots);
       }
       setSelectedPilot(null);
       setEditForm(null);

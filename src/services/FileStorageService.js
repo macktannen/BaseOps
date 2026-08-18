@@ -2,9 +2,82 @@ import { storage } from '../firebase';
 import { ref, uploadBytes, getDownloadURL, getBlob, deleteObject, listAll } from 'firebase/storage';
 
 const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
+const MAX_IMAGE_DIMENSION = 1024;
+const IMAGE_QUALITY = 0.8;
 
 function sanitizeFileName(name) {
   return `${Date.now()}_${(name || 'file').replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+}
+
+function isImageFile(file) {
+  const type = file.type || '';
+  return type.startsWith('image/') && !type.includes('svg');
+}
+
+function resizeImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+
+      let { width, height } = img;
+
+      if (width <= MAX_IMAGE_DIMENSION && height <= MAX_IMAGE_DIMENSION) {
+        resolve(file);
+        return;
+      }
+
+      if (width > height) {
+        height = Math.round(height * (MAX_IMAGE_DIMENSION / width));
+        width = MAX_IMAGE_DIMENSION;
+      } else {
+        width = Math.round(width * (MAX_IMAGE_DIMENSION / height));
+        height = MAX_IMAGE_DIMENSION;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const resized = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(resized);
+          } else {
+            resolve(file);
+          }
+        },
+        'image/jpeg',
+        IMAGE_QUALITY
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(file);
+    };
+
+    img.src = url;
+  });
+}
+
+async function prepareFileForUpload(file) {
+  if (!isImageFile(file)) return file;
+  try {
+    return await resizeImage(file);
+  } catch (err) {
+    console.warn('Image resize failed, uploading original:', err);
+    return file;
+  }
 }
 
 export const FileStorageService = {
@@ -19,18 +92,20 @@ export const FileStorageService = {
       throw new Error('Firebase Storage is not configured. File upload is not available.');
     }
 
-    const safeName = sanitizeFileName(file.name);
+    const uploadFile = await prepareFileForUpload(file);
+
+    const safeName = sanitizeFileName(uploadFile.name);
     const storagePath = `flights/${flightId || 'general'}/${safeName}`;
 
     const fileRef = ref(storage, storagePath);
-    await uploadBytes(fileRef, file);
+    await uploadBytes(fileRef, uploadFile);
     const cloudUrl = await getDownloadURL(fileRef);
 
     return {
       id: safeName,
       name: file.name,
-      type: file.type || 'application/octet-stream',
-      size: file.size,
+      type: uploadFile.type || 'application/octet-stream',
+      size: uploadFile.size,
       url: cloudUrl,
       storagePath,
       uploadedAt: new Date().toISOString(),
@@ -153,20 +228,22 @@ export const FileStorageService = {
       throw new Error('Firebase Storage is not configured. Receipt upload is not available.');
     }
 
-    const safeName = sanitizeFileName(file.name);
+    const uploadFile = await prepareFileForUpload(file);
+
+    const safeName = sanitizeFileName(uploadFile.name);
     const path = `receipts/${flightId || 'general'}/${expenseId}/${safeName}`;
 
     const fileRef = ref(storage, path);
-    const arrayBuffer = await file.arrayBuffer();
-    const blob = new Blob([arrayBuffer], { type: file.type || 'application/octet-stream' });
+    const arrayBuffer = await uploadFile.arrayBuffer();
+    const blob = new Blob([arrayBuffer], { type: uploadFile.type || 'application/octet-stream' });
     await uploadBytes(fileRef, blob);
     const cloudUrl = await getDownloadURL(fileRef);
 
     return {
       id: safeName,
       name: file.name,
-      type: file.type || 'application/octet-stream',
-      size: file.size,
+      type: uploadFile.type || 'application/octet-stream',
+      size: uploadFile.size,
       url: cloudUrl,
       storagePath: path,
       uploadedAt: new Date().toISOString(),

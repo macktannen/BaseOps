@@ -4,7 +4,7 @@ import { Search, Plus, Trash2, Users, Briefcase, HeartPulse } from 'lucide-react
 import SaveButton from './SaveButton';
 
 const PassengersList = () => {
-  const { data, updateData } = useData();
+  const { data, updateData, updateDataBatch } = useData();
   const { userPassengers = [], crewSchedules = {} } = data;
 
   const [search, setSearch] = useState('');
@@ -83,7 +83,6 @@ const PassengersList = () => {
     if (!window.confirm(`Are you sure you want to delete ${editForm.name}?`)) return;
     try {
       const updatedPassengers = userPassengers.filter(p => p.id !== editForm.originalId && p.id !== editForm.id);
-      updateData('userPassengers', updatedPassengers);
 
       const targetId = editForm.originalId || editForm.id;
       const newSchedules = { ...crewSchedules };
@@ -94,8 +93,11 @@ const PassengersList = () => {
           changed = true;
         }
       });
+
       if (changed) {
-        updateData('crewSchedules', newSchedules);
+        updateDataBatch({ userPassengers: updatedPassengers, crewSchedules: newSchedules });
+      } else {
+        updateData('userPassengers', updatedPassengers);
       }
 
       setSelectedPassenger(null);
