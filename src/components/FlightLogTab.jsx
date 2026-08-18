@@ -5,7 +5,7 @@ import useIsMobile from '../hooks/useIsMobile';
 import MobileDropdownMenu from './MobileDropdownMenu';
 import { useData } from '../contexts/DataProvider';
 
-const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign, onClearSignature, aircraftId, aircraftList, pilotsList }) => {
+const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign, onClearSignature, onToggleLock, aircraftId, aircraftList, pilotsList }) => {
   const isMobile = useIsMobile();
   const [auditExpanded, setAuditExpanded] = useState(false);
   const { userAircraft, updateData } = useData();
@@ -281,14 +281,18 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
     
     const newLocked = !log.isLocked;
     const action = newLocked ? 'locked' : 'unlocked';
-    if (newLocked) updateGlobalAircraft(1);
-    else updateGlobalAircraft(-1);
-    
-    updateLog(prev => ({
-      ...prev,
+
+    const nextLog = {
+      ...log,
       isLocked: newLocked,
-      auditLog: [...(prev.auditLog || []), `Log ${action} by Admin (${currentUser.name}) on ${new Date().toLocaleString()}`]
-    }));
+      auditLog: [...(log.auditLog || []), `Log ${action} by Admin (${currentUser.name}) on ${new Date().toLocaleString()}`]
+    };
+    setFlightLog(nextLog);
+    if (persistFlightLog) persistFlightLog(nextLog);
+
+    if (onToggleLock) {
+      onToggleLock(newLocked);
+    }
   };
 
   const handleDeleteAuditEntry = (originalIndex) => {

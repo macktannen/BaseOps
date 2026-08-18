@@ -790,6 +790,47 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     setTimeout(() => { suppressSyncRef.current = false; }, 10000);
   };
 
+  // ── TOGGLE LOCK (single atomic operation) ──
+  const handleToggleLock = (newLocked) => {
+    if (!aircraftId) return;
+
+    let pendingAircraftUpdate = null;
+    try {
+      const storedAircraft = [...(userAircraft || [])];
+      const acIndex = storedAircraft.findIndex(a => a.id === aircraftId);
+      if (acIndex >= 0) {
+        const ac = { ...storedAircraft[acIndex] };
+        const totals = flightLog?.aircraftTotals;
+        if (totals) {
+          const isTwin = ac.dualEngine || totals.dualEngine;
+          const multiplier = newLocked ? 1 : -1;
+
+          ac.totalHours = (Math.round((parseFloat(totals.flightBefore || 0) + (totals.changeFlight || 0) * multiplier) * 10) / 10).toFixed(1);
+          ac.landings = parseInt(totals.landingsBefore || 0) + Math.round((totals.changeLandings || 0) * multiplier);
+          ac.hobbs = (Math.round((parseFloat(totals.hobbsBefore || 0) + (totals.changeHobbs || 0) * multiplier) * 10) / 10).toFixed(1);
+          ac.engine1Hours = (Math.round((parseFloat(totals.engine1Before || 0) + (totals.changeEngine1Hours || 0) * multiplier) * 10) / 10).toFixed(1);
+          ac.engineHours = ac.engine1Hours;
+          ac.engine1Cycles = parseInt(totals.cycles1Before || 0) + Math.round((totals.changeEngine1Cycles || 0) * multiplier);
+          ac.engineCycles = ac.engine1Cycles;
+          if (isTwin) {
+            ac.engine2Hours = (Math.round((parseFloat(totals.engine2Before || 0) + (totals.changeEngine2Hours || 0) * multiplier) * 10) / 10).toFixed(1);
+            ac.engine2Cycles = parseInt(totals.cycles2Before || 0) + Math.round((totals.changeEngine2Cycles || 0) * multiplier);
+          }
+
+          if (!ac.auditLog) ac.auditLog = [];
+          const action = newLocked ? 'Locked' : 'Unlocked';
+          ac.auditLog.push(`${action} flight #${flightNumber || ''} by ${currentUser?.name || 'Admin'} on ${new Date().toLocaleString()}`);
+        }
+        storedAircraft[acIndex] = ac;
+        pendingAircraftUpdate = storedAircraft;
+      }
+    } catch (err) {
+      console.error('Failed to update aircraft on toggle lock:', err);
+    }
+
+    performSave(null, null, false, pendingAircraftUpdate ? { userAircraft: pendingAircraftUpdate } : null);
+  };
+
   const persistFlightLogToFlight = (nextFlightLog) => {
     if (!flight) return;
     try {
@@ -2576,6 +2617,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                 persistFlightLog={persistFlightLogToFlight}
                 onSign={handleSignFlight}
                 onClearSignature={handleClearSignature}
+                onToggleLock={handleToggleLock}
                 aircraftId={aircraftId}
                 aircraftList={aircraftList}
                 pilotsList={pilotsList}
