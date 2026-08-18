@@ -616,6 +616,17 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     const updatedFlight = (userFlights || []).find(f => String(f.id) === String(flight.id) || (flight.flightNumber && String(f.flightNumber) === String(flight.flightNumber)));
     if (!updatedFlight) return;
 
+    // Always auto-sync if a flight log signature was added (authoritative, locks the flight)
+    const remoteSigned = !!(updatedFlight.flightLog?.signature);
+    const localSigned = !!(flightLog?.signature);
+    if (remoteSigned && !localSigned) {
+      if (updatedFlight.expenses) setExpenses(updatedFlight.expenses);
+      if (updatedFlight.uploads) setUploads(updatedFlight.uploads);
+      if (updatedFlight.flightLog) setFlightLog(updatedFlight.flightLog);
+      if (updatedFlight.status) setStatus(normalizeStatus(updatedFlight.status));
+      return;
+    }
+
     // Check if we have unsaved local changes
     if (hasUnsavedChanges()) {
       // Detect what changed
