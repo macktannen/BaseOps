@@ -92,6 +92,38 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
 
   const { userFlights, userVendors, updateData } = useData();
 
+  const persistExpensesToFlight = (updatedExpenses) => {
+    if (!flight) return;
+    try {
+      const storedFlights = [...(userFlights || [])];
+      const targetId = flight?.id ? String(flight.id) : null;
+      const targetFlightNumber = flight?.flightNumber ? String(flight.flightNumber) : null;
+
+      let found = false;
+      const updatedFlights = storedFlights.map(f => {
+        const isMatch = (targetId && String(f.id) === targetId) ||
+                        (targetFlightNumber && String(f.flightNumber) === targetFlightNumber);
+        if (isMatch) {
+          found = true;
+          return { ...f, expenses: updatedExpenses };
+        }
+        return f;
+      });
+
+      if (!found) {
+        updatedFlights.push({
+          ...flight,
+          id: flight.id || Date.now(),
+          expenses: updatedExpenses
+        });
+      }
+
+      updateData('userFlights', updatedFlights);
+    } catch (e) {
+      console.error("Failed to persist expenses", e);
+    }
+  };
+
   const handleHeaderClick = (key) => {
     setSortConfig(prev => {
       if (prev.key === key) {
@@ -358,6 +390,7 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
   const handleSaveRow = (id) => {
     const updatedExpenses = expenses.map(e => e.id === id ? { ...e, _dirty: false, _saved: true } : e);
     setExpenses(updatedExpenses);
+    persistExpensesToFlight(updatedExpenses);
   };
 
   const handleRemove = (id) => {
