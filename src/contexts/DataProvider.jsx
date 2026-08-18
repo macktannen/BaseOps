@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { doc, collection, onSnapshot, setDoc, updateDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { doc, collection, onSnapshot, setDoc, updateDoc, deleteDoc, writeBatch, getDocs } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuth } from './useAuth';
 
@@ -80,6 +80,43 @@ function sanitizeForFirestore(val) {
   return clean;
 }
 
+// One-time migration: move flights from org doc field to subcollection
+async function migrateFlightsToSubcollection() {
+  try {
+    const orgRef = getOrgDocRef();
+    const orgSnap = await import('firebase/firestore').then(m => m.getDoc(orgRef));
+    if (!orgSnap.exists()) return;
+
+    const orgData = orgSnap.data();
+    const legacyFlights = orgData.flights;
+
+    if (!legacyFlights || !Array.isArray(legacyFlights) || legacyFlights.length === 0) return;
+
+    // Check if subcollection already has flights (migration already done)
+    const flightsRef = getFlightsCollectionRef();
+    const existingSnap = await getDocs(flightsRef);
+    if (!existingSnap.empty) {
+      // Subcollection already has flights — just remove legacy field
+      await updateDoc(orgRef, { flights: null });
+      return;
+    }
+
+    // Migrate each flight to the subcollection
+    for (const flight of legacyFlights) {
+      if (flight && flight.id) {
+        const flightRef = getFlightDocRef(flight.id);
+        await setDoc(flightRef, sanitizeForFirestore(flight));
+      }
+    }
+
+    // Remove the legacy flights field from org doc
+    await updateDoc(orgRef, { flights: null });
+    console.log(`Migrated ${legacyFlights.length} flights to subcollection`);
+  } catch (err) {
+    console.error('Flight migration failed:', err);
+  }
+}
+
 export const DataProvider = ({ children }) => {
   const { currentUser } = useAuth();
   const [data, setData] = useState(DEFAULT_DATA);
@@ -91,6 +128,9 @@ export const DataProvider = ({ children }) => {
   // Subscribe to Firestore org document (lists only — no flights)
   useEffect(() => {
     if (!currentUser && !auth.currentUser) return;
+
+    // Run one-time migration on mount
+    migrateFlightsToSubcollection();
 
     const orgRef = getOrgDocRef();
     const unsubscribe = onSnapshot(orgRef, (snap) => {
