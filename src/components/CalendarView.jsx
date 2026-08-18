@@ -137,7 +137,7 @@ const CheckItem = ({ label, checked, onChange, disabled = false }) => (
 const viewSectionHeader = { fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', margin: '8px 0 6px 0' };
 
 const CalendarView = () => {
-  const { data, updateData, updateDataBatch } = useData();
+  const { data, updateData, updateDataBatch, saveFlight, saveFlightsBatch, deleteFlight } = useData();
   const { 
     userFlights: flights = [], 
     userPilots: pilotsList = [], 
@@ -361,9 +361,7 @@ const CalendarView = () => {
         flightNumber: newFlightNumber
       };
       
-      const updatedFlights = [...flights, flightData];
-      
-      updateData('userFlights', updatedFlights);
+      saveFlight(flightData);
       setPendingDuplicateFlight(null);
       return;
     }
@@ -382,9 +380,8 @@ const CalendarView = () => {
     setIsModalOpen(true);
   };
 
-  const handleSaveFlight = (flightData, shouldClose = false, extraUpdates = null) => {
+  const handleSaveFlight = async (flightData, shouldClose = false, extraUpdates = null) => {
     let currentStored = flights || [];
-    let updatedFlights;
     let savedFlight = { ...flightData };
 
     if (!savedFlight.id) {
@@ -399,8 +396,6 @@ const CalendarView = () => {
       if ((!savedFlight.uploads || savedFlight.uploads.length === 0) && (existing.uploads && existing.uploads.length > 0)) {
         savedFlight.uploads = existing.uploads;
       }
-      // Merge expenses: combine saved (local) expenses with existing (Firestore) expenses by ID,
-      // preferring the saved version when IDs match to avoid losing AI-parsed or manually added expenses
       if (existing.expenses && existing.expenses.length > 0) {
         const savedIds = new Set((savedFlight.expenses || []).map(e => e.id));
         const mergedExpenses = [
@@ -414,24 +409,12 @@ const CalendarView = () => {
       }
     }
 
-    let found = false;
-    updatedFlights = currentStored.map(f => {
-      if (String(f.id) === targetId || (savedFlight.flightNumber && String(f.flightNumber) === String(savedFlight.flightNumber))) {
-        found = true;
-        return { ...f, ...savedFlight };
-      }
-      return f;
-    });
-    if (!found) {
-      updatedFlights = [...currentStored, savedFlight];
-    }
+    await saveFlight(savedFlight);
+    setEditingFlight(savedFlight);
 
     if (extraUpdates) {
-      updateDataBatch({ userFlights: updatedFlights, ...extraUpdates });
-    } else {
-      updateData('userFlights', updatedFlights);
+      await updateDataBatch(extraUpdates);
     }
-    setEditingFlight(savedFlight);
 
     if (shouldClose) {
       sessionStorage.removeItem('baseops_open_flight_id');
@@ -453,8 +436,7 @@ const CalendarView = () => {
       return;
     }
 
-    const updatedFlights = base.filter(f => String(f.id) !== String(flightId));
-    updateData('userFlights', updatedFlights);
+    deleteFlight(flightId);
     setIsModalOpen(false);
   };
 

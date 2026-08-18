@@ -91,7 +91,7 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
   const [aiLoadingId, setAiLoadingId] = useState(null);
   const pendingDeletesRef = useRef([]);
 
-  const { userFlights, userVendors, updateData } = useData();
+  const { userFlights, userVendors, updateData, saveFlight } = useData();
 
   // Expose pending deletes to parent (EventModal) for flight save
   useEffect(() => {
@@ -103,30 +103,19 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
   const persistExpensesToFlight = (updatedExpenses) => {
     if (!flight) return;
     try {
-      const storedFlights = [...(userFlights || [])];
-      const targetId = flight?.id ? String(flight.id) : null;
-      const targetFlightNumber = flight?.flightNumber ? String(flight.flightNumber) : null;
+      const existingFlight = (userFlights || []).find(f =>
+        (flight?.id && String(f.id) === String(flight.id)) ||
+        (flight?.flightNumber && String(f.flightNumber) === String(flight.flightNumber))
+      );
 
-      let found = false;
-      const updatedFlights = storedFlights.map(f => {
-        const isMatch = (targetId && String(f.id) === targetId) ||
-                        (targetFlightNumber && String(f.flightNumber) === targetFlightNumber);
-        if (isMatch) {
-          found = true;
-          return { ...f, expenses: updatedExpenses };
-        }
-        return f;
-      });
+      const updatedFlight = {
+        ...(existingFlight || flight),
+        id: existingFlight?.id || flight?.id || Date.now(),
+        flightNumber: existingFlight?.flightNumber || flight?.flightNumber,
+        expenses: updatedExpenses
+      };
 
-      if (!found) {
-        updatedFlights.push({
-          ...flight,
-          id: flight.id || Date.now(),
-          expenses: updatedExpenses
-        });
-      }
-
-      updateData('userFlights', updatedFlights);
+      saveFlight(updatedFlight);
     } catch (e) {
       console.error("Failed to persist expenses", e);
     }

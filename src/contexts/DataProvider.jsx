@@ -1,12 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, collection, onSnapshot, setDoc, updateDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuth } from './useAuth';
 
 export const DataContext = createContext();
 
 const FIRESTORE_KEY_MAP = {
-  'userFlights': 'flights',
   'userAircraft': 'aircraft',
   'userPilots': 'pilots',
   'userPassengers': 'passengers',
@@ -24,7 +23,6 @@ const FIRESTORE_KEY_MAP = {
   'gemini_api_key': 'geminiApiKey',
 };
 
-// Reverse map for converting firestore keys back to local state keys
 const LOCAL_KEY_MAP = Object.entries(FIRESTORE_KEY_MAP).reduce((acc, [local, firestore]) => {
   acc[firestore] = local;
   return acc;
@@ -55,6 +53,18 @@ function getOrgDocRef() {
   return doc(db, 'orgs', orgName);
 }
 
+function getFlightsCollectionRef() {
+  const isDev = import.meta.env.DEV || (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'));
+  const orgName = isDev ? 'dev_sandbox' : 'default';
+  return collection(db, 'orgs', orgName, 'flights');
+}
+
+function getFlightDocRef(flightId) {
+  const isDev = import.meta.env.DEV || (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'));
+  const orgName = isDev ? 'dev_sandbox' : 'default';
+  return doc(db, 'orgs', orgName, 'flights', String(flightId));
+}
+
 function sanitizeForFirestore(val) {
   if (val === undefined) return null;
   if (val === null || typeof val !== 'object') return val;
@@ -78,12 +88,9 @@ export const DataProvider = ({ children }) => {
   const dataRef = useRef(data);
   dataRef.current = data;
 
-  // Subscribe to Firestore org document — 100% cloud single source of truth
+  // Subscribe to Firestore org document (lists only — no flights)
   useEffect(() => {
-    if (!currentUser && !auth.currentUser) {
-      // Wait for auth to resolve
-      return;
-    }
+    if (!currentUser && !auth.currentUser) return;
 
     const orgRef = getOrgDocRef();
     const unsubscribe = onSnapshot(orgRef, (snap) => {
@@ -103,7 +110,7 @@ export const DataProvider = ({ children }) => {
       setLoading(false);
       setError(null);
     }, (err) => {
-      console.error("Firestore cloud sync error:", err);
+      console.error("Firestore org sync error:", err);
       setError(err);
       setLoading(false);
     });
@@ -111,14 +118,129 @@ export const DataProvider = ({ children }) => {
     return () => unsubscribe();
   }, [currentUser]);
 
+  // Subscribe to flights subcollection — each flight is its own document
+  useEffect(() => {
+    if (!currentUser && !auth.currentUser) return;
+
+    const flightsRef = getFlightsCollectionRef();
+    const unsubscribe = onSnapshot(flightsRef, (snap) => {
+      const flights = [];
+      snap.forEach((docSnap) => {
+        const flightData = docSnap.data();
+        if (flightData && !flightData._deleted) {
+          flights.push(flightData);
+        }
+      });
+      flights.sort((a, b) => {
+        const dateA = a.date || '';
+        const dateB = b.date || '';
+        if (dateA !== dateB) return dateA < dateB ? -1 : 1;
+        const numA = parseInt(a.flightNumber) || 0;
+        const numB = parseInt(b.flightNumber) || 0;
+        return numA - numB;
+      });
+      setData(prev => ({ ...prev, userFlights: flights }));
+      setLoading(false);
+      setError(null);
+    }, (err) => {
+      console.error("Firestore flights sync error:", err);
+      setError(err);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
+
+  // Save a single flight to the flights subcollection
+  const saveFlight = useCallback(async (flightData) => {
+    if (!flightData || !flightData.id) throw new Error('Flight must have an id');
+    const sanitized = sanitizeForFirestore({ ...flightData, _lastUpdated: Date.now() });
+
+    // Optimistic UI update
+    setData(prev => {
+      const flights = [...(prev.userFlights || [])];
+      const idx = flights.findIndex(f => String(f.id) === String(flightData.id));
+      if (idx >= 0) {
+        flights[idx] = sanitized;
+      } else {
+        flights.push(sanitized);
+      }
+      return { ...prev, userFlights: flights };
+    });
+
+    try {
+      const flightRef = getFlightDocRef(flightData.id);
+      await setDoc(flightRef, sanitized, { merge: true });
+    } catch (err) {
+      console.error('Failed to save flight:', err);
+      // Revert optimistic update
+      setData(prev => {
+        const flights = prev.userFlights.filter(f => String(f.id) !== String(flightData.id));
+        return { ...prev, userFlights: flights };
+      });
+      throw err;
+    }
+  }, []);
+
+  // Save multiple flights in a batch
+  const saveFlightsBatch = useCallback(async (flightsArray) => {
+    if (!flightsArray || flightsArray.length === 0) return;
+
+    const sanitized = flightsArray.map(f => sanitizeForFirestore({ ...f, _lastUpdated: Date.now() }));
+
+    // Optimistic UI update
+    setData(prev => {
+      const flightsMap = new Map((prev.userFlights || []).map(f => [String(f.id), f]));
+      for (const f of sanitized) {
+        flightsMap.set(String(f.id), f);
+      }
+      return { ...prev, userFlights: Array.from(flightsMap.values()) };
+    });
+
+    try {
+      // Firestore batch limit is 500, chunk if needed
+      for (let i = 0; i < sanitized.length; i += 450) {
+        const chunk = sanitized.slice(i, i + 450);
+        const batch = writeBatch(db);
+        for (const f of chunk) {
+          const flightRef = getFlightDocRef(f.id);
+          batch.set(flightRef, f, { merge: true });
+        }
+        await batch.commit();
+      }
+    } catch (err) {
+      console.error('Failed to batch save flights:', err);
+      throw err;
+    }
+  }, []);
+
+  // Delete a single flight from the flights subcollection
+  const deleteFlight = useCallback(async (flightId) => {
+    if (!flightId) throw new Error('Flight id is required');
+    const idStr = String(flightId);
+
+    // Optimistic UI update
+    setData(prev => ({
+      ...prev,
+      userFlights: (prev.userFlights || []).filter(f => String(f.id) !== idStr)
+    }));
+
+    try {
+      const flightRef = getFlightDocRef(flightId);
+      await deleteDoc(flightRef);
+    } catch (err) {
+      console.error('Failed to delete flight:', err);
+      throw err;
+    }
+  }, []);
+
+  // Write a single key to the org document (for lists, schedules, etc.)
   const updateData = useCallback(async (key, value) => {
     const fsKey = FIRESTORE_KEY_MAP[key] || key;
     const sanitizedValue = sanitizeForFirestore(value);
 
-    // Optimistic UI update
     setData(prev => ({ ...prev, [key]: value }));
 
-    // Persist directly to Firestore cloud document
     try {
       const orgRef = getOrgDocRef();
       try {
@@ -132,12 +254,12 @@ export const DataProvider = ({ children }) => {
       }
     } catch (err) {
       console.error(`Failed to update cloud key ${key}:`, err);
-      // Revert optimistic update on failure
       setData(prev => ({ ...prev, [key]: dataRef.current[key] }));
       throw err;
     }
   }, []);
 
+  // Batch write multiple keys to the org document
   const updateDataBatch = useCallback(async (updates) => {
     const firestoreUpdates = { _lastUpdated: Date.now() };
     const localKeys = [];
@@ -148,7 +270,6 @@ export const DataProvider = ({ children }) => {
       localKeys.push(key);
     }
 
-    // Optimistic UI update — apply all keys in one state change
     setData(prev => {
       const next = { ...prev };
       for (const [key, value] of Object.entries(updates)) {
@@ -157,7 +278,6 @@ export const DataProvider = ({ children }) => {
       return next;
     });
 
-    // Persist all fields to Firestore in a single write
     try {
       const orgRef = getOrgDocRef();
       try {
@@ -171,7 +291,6 @@ export const DataProvider = ({ children }) => {
       }
     } catch (err) {
       console.error(`Failed to batch update cloud keys:`, err);
-      // Revert optimistic update on failure
       setData(prev => {
         const next = { ...prev };
         for (const key of localKeys) {
@@ -183,10 +302,8 @@ export const DataProvider = ({ children }) => {
     }
   }, []);
 
-  // Spread ...data into the context value so consumers can destructure
-  // either { data, updateData } or { userFlights, updateData } directly
   return (
-    <DataContext.Provider value={{ ...data, data, updateData, updateDataBatch, loading, error }}>
+    <DataContext.Provider value={{ ...data, data, updateData, updateDataBatch, saveFlight, saveFlightsBatch, deleteFlight, loading, error }}>
       {children}
     </DataContext.Provider>
   );

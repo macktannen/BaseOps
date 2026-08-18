@@ -63,7 +63,7 @@ const MobileExpenses = () => {
 
   const [showAutoModal, setShowAutoModal] = useState(false);
 
-  const { userFlights, departmentExpenses, updateData } = useData();
+  const { userFlights, departmentExpenses, updateData, saveFlight } = useData();
   const flights = React.useMemo(() => userFlights || [], [userFlights]);
 
   const expenses = React.useMemo(() => {
@@ -103,9 +103,10 @@ const MobileExpenses = () => {
 
   const persistExpenseToFlight = (flightId, updatedExpenses) => {
     try {
-      const storedFlights = [...flights];
-      const updated = storedFlights.map(f => String(f.id) === String(flightId) ? { ...f, expenses: updatedExpenses } : f);
-      updateData('userFlights', updated);
+      const targetFlight = flights.find(f => String(f.id) === String(flightId));
+      if (targetFlight) {
+        saveFlight({ ...targetFlight, expenses: updatedExpenses });
+      }
     } catch (e) { console.error('Failed to persist expense', e); }
   };
 

@@ -74,7 +74,9 @@ export default function MobileLayout({ activeTab: propActiveTab, setActiveTab: p
     userAccounts,
     calendarViewSettings,
     calendarNotes,
-    updateData
+    updateData,
+    saveFlight,
+    deleteFlight
   } = useData();
 
   const flights = (userFlights && userFlights.length > 0) ? userFlights : mockFlights;
@@ -173,9 +175,7 @@ export default function MobileLayout({ activeTab: propActiveTab, setActiveTab: p
       legs: newLegs
     };
     try {
-      const stored = [...(userFlights || [])];
-      stored.push(newFlight);
-      updateData('userFlights', stored);
+      saveFlight(newFlight);
     } catch {}
     setDuplicateFlightData(null);
     setDuplicateDate('');
@@ -921,18 +921,11 @@ export default function MobileLayout({ activeTab: propActiveTab, setActiveTab: p
             flightsCount={flights.length === 0 ? 0 : Math.max(0, ...flights.map(f => parseInt(String(f.flightNumber).replace(/\D/g, ''), 10) || 0))}
             onSave={(updatedFlight, shouldClose = false) => {
               try {
-                const stored = [...(userFlights || [])];
                 const flightToSave = { ...updatedFlight };
                 if (!flightToSave.id) {
                   flightToSave.id = Date.now();
                 }
-                const idx = stored.findIndex(f => String(f.id) === String(flightToSave.id) || (flightToSave.flightNumber && String(f.flightNumber) === String(flightToSave.flightNumber)));
-                if (idx !== -1) {
-                  stored[idx] = { ...stored[idx], ...flightToSave };
-                } else {
-                  stored.push(flightToSave);
-                }
-                updateData('userFlights', stored);
+                saveFlight(flightToSave);
               } catch (e) {
                 console.error("Failed to save flight in MobileLayout:", e);
               }
@@ -942,9 +935,7 @@ export default function MobileLayout({ activeTab: propActiveTab, setActiveTab: p
             }}
             onDelete={(flightId) => {
               try {
-                const stored = [...(userFlights || [])];
-                const updated = stored.filter(f => f.id !== flightId);
-                updateData('userFlights', updated);
+                deleteFlight(flightId);
               } catch {}
               handleCloseFlightModal();
             }}

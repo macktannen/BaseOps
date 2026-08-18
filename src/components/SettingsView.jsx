@@ -53,7 +53,7 @@ const RoleCheckboxGroup = ({ value = [], onChange, disabled = false }) => (
 
 const SettingsView = () => {
   const { currentUser, isAdmin, updateProfile } = useAuth();
-  const { updateData, gemini_api_key } = useData();
+  const { updateData, userFlights, deleteFlight, gemini_api_key } = useData();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('account');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -648,7 +648,9 @@ const SettingsView = () => {
                 className="btn"
                 onClick={() => {
                   if (window.confirm('⚠️ Are you sure you want to delete ALL flights from the database? This cannot be undone.')) {
-                    updateData('userFlights', []);
+                    for (const flight of (userFlights || [])) {
+                      deleteFlight(flight.id);
+                    }
                     alert('All flight records cleared!');
                   }
                 }}

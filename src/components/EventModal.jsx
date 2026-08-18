@@ -565,7 +565,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const getExpensesPendingDeletesRef = useRef(null);
   const [pendingRemoteChanges, setPendingRemoteChanges] = useState(null);
 
-  const { userPilots, userAircraft, userPassengers, userAccounts, userVendors, userFlights, crewSchedules, locationUsage, updateData, updateDataBatch } = useData();
+  const { userPilots, userAircraft, userPassengers, userAccounts, userVendors, userFlights, crewSchedules, locationUsage, updateData, updateDataBatch, saveFlight, deleteFlight } = useData();
 
   const pilotsList = userPilots || [];
   const aircraftList = userAircraft || [];
@@ -834,38 +834,23 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const persistFlightLogToFlight = (nextFlightLog) => {
     if (!flight) return;
     try {
-      const storedFlights = [...(userFlights || [])];
-      const targetId = flight?.id ? String(flight.id) : null;
-      const targetFlightNumber = flight?.flightNumber ? String(flight.flightNumber) : null;
-
       const isSigned = !!(nextFlightLog?.signature);
       setStatus(isSigned ? 'completed' : 'confirmed');
 
-      let found = false;
-      const updatedFlights = storedFlights.map(f => {
-        const isMatch = (targetId && String(f.id) === targetId) ||
-                        (targetFlightNumber && String(f.flightNumber) === targetFlightNumber);
-        if (isMatch) {
-          found = true;
-          return {
-            ...f,
-            flightLog: nextFlightLog,
-            status: isSigned ? 'completed' : (f.status === 'completed' ? 'confirmed' : (f.status || 'confirmed'))
-          };
-        }
-        return f;
-      });
+      const existingFlight = (userFlights || []).find(f =>
+        (flight?.id && String(f.id) === String(flight.id)) ||
+        (flight?.flightNumber && String(f.flightNumber) === String(flight.flightNumber))
+      );
 
-      if (!found && flight) {
-        updatedFlights.push({
-          ...flight,
-          id: flight.id || Date.now(),
-          flightLog: nextFlightLog,
-          status: isSigned ? 'completed' : 'confirmed'
-        });
-      }
+      const updatedFlight = {
+        ...(existingFlight || flight),
+        id: existingFlight?.id || flight?.id || Date.now(),
+        flightNumber: existingFlight?.flightNumber || flight?.flightNumber,
+        flightLog: nextFlightLog,
+        status: isSigned ? 'completed' : ((existingFlight?.status === 'completed') ? 'confirmed' : (existingFlight?.status || 'confirmed'))
+      };
 
-      updateData('userFlights', updatedFlights);
+      saveFlight(updatedFlight);
     } catch (e) {
       console.error('Failed to persist flightLog to flight:', e);
     }
@@ -874,30 +859,19 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const persistUploadsToFlight = (nextUploads) => {
     if (!flight && (!nextUploads || nextUploads.length === 0)) return;
     try {
-      const storedFlights = [...(userFlights || [])];
-      const targetId = flight?.id ? String(flight.id) : null;
-      const targetFlightNumber = flight?.flightNumber ? String(flight.flightNumber) : null;
+      const existingFlight = (userFlights || []).find(f =>
+        (flight?.id && String(f.id) === String(flight.id)) ||
+        (flight?.flightNumber && String(f.flightNumber) === String(flight.flightNumber))
+      );
 
-      let found = false;
-      const updatedFlights = storedFlights.map(f => {
-        const isMatch = (targetId && String(f.id) === targetId) ||
-                        (targetFlightNumber && String(f.flightNumber) === targetFlightNumber);
-        if (isMatch) {
-          found = true;
-          return { ...f, uploads: nextUploads };
-        }
-        return f;
-      });
+      const updatedFlight = {
+        ...(existingFlight || flight),
+        id: existingFlight?.id || flight?.id || Date.now(),
+        flightNumber: existingFlight?.flightNumber || flight?.flightNumber,
+        uploads: nextUploads
+      };
 
-      if (!found && flight) {
-        updatedFlights.push({
-          ...flight,
-          id: flight.id || Date.now(),
-          uploads: nextUploads
-        });
-      }
-
-      updateData('userFlights', updatedFlights);
+      saveFlight(updatedFlight);
     } catch (e) {
       console.error('Failed to persist uploads to flight:', e);
     }

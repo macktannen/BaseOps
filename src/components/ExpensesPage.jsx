@@ -34,7 +34,7 @@ const getCategoryColor = (category) => {
 const DEPARTMENT_ID = '__DEPARTMENT__';
 
 const ExpensesPage = () => {
-  const { data, updateData, updateDataBatch } = useData();
+  const { data, updateData, updateDataBatch, saveFlight, saveFlightsBatch, deleteFlight } = useData();
   const { userFlights = [], departmentExpenses = [], userVendors = [], userAccounts = [] } = data;
 
   const isMobile = useIsMobile();
@@ -183,14 +183,15 @@ const ExpensesPage = () => {
     });
     setExpenses(updatedExpenses);
     try {
-      const storedFlights = [...userFlights];
-      const flightIdx = storedFlights.findIndex(f => String(f.id) === String(viewingExpense.flightId));
-      if (flightIdx >= 0) {
-        const expIdx = storedFlights[flightIdx].expenses.findIndex(e => e.id === viewingExpense.id);
-        if (expIdx >= 0) {
-          storedFlights[flightIdx].expenses[expIdx] = { ...storedFlights[flightIdx].expenses[expIdx], receiptFiles: newFiles, receiptCount: newFiles.length, hasReceipt: newFiles.length > 0 };
-          updateData('userFlights', storedFlights);
-        }
+      const targetFlight = userFlights.find(f => String(f.id) === String(viewingExpense.flightId));
+      if (targetFlight) {
+        const updatedExpenses = (targetFlight.expenses || []).map(e => {
+          if (e.id === viewingExpense.id) {
+            return { ...e, receiptFiles: newFiles, receiptCount: newFiles.length, hasReceipt: newFiles.length > 0 };
+          }
+          return e;
+        });
+        saveFlight({ ...targetFlight, expenses: updatedExpenses });
       }
     } catch {}
     setLoadedReceipts(prev => prev.filter((_, idx) => idx !== fileIndex));
@@ -254,22 +255,20 @@ const ExpensesPage = () => {
     }
   };
 
-  const handleSaveFlight = (flightData, shouldClose = false, extraUpdates = null) => {
+  const handleSaveFlight = async (flightData, shouldClose = false, extraUpdates = null) => {
     try {
-      const updatedFlights = userFlights.map(f => {
-        if (String(f.id) === String(flightData.id) || (flightData.flightNumber && String(f.flightNumber) === String(flightData.flightNumber))) {
-          return {
-            ...f,
-            ...flightData,
-            flightLog: flightData.flightLog || f.flightLog
-          };
-        }
-        return f;
-      });
+      const existingFlight = userFlights.find(f =>
+        String(f.id) === String(flightData.id) ||
+        (flightData.flightNumber && String(f.flightNumber) === String(flightData.flightNumber))
+      );
+      const mergedFlight = {
+        ...(existingFlight || {}),
+        ...flightData,
+        flightLog: flightData.flightLog || existingFlight?.flightLog
+      };
+      await saveFlight(mergedFlight);
       if (extraUpdates) {
-        updateDataBatch({ userFlights: updatedFlights, ...extraUpdates });
-      } else {
-        updateData('userFlights', updatedFlights);
+        await updateDataBatch(extraUpdates);
       }
     } catch (e) {
       console.error(e);
@@ -295,20 +294,16 @@ const ExpensesPage = () => {
 
   const remapVendorInExpenses = (oldKey, newKey) => {
     try {
-      let flightsChanged = false;
-      const storedFlights = userFlights.map(flight => {
-        if (flight.expenses && flight.expenses.length > 0) {
-          const newExp = flight.expenses.map(exp => {
-            if ((exp.vendor || '').trim() === oldKey) {
-              flightsChanged = true;
-              return { ...exp, vendor: newKey };
-            }
-            return exp;
-          });
-          return { ...flight, expenses: newExp };
-        }
-        return flight;
-      });
+      const flightsToUpdate = userFlights.filter(flight =>
+        flight.expenses?.some(exp => (exp.vendor || '').trim() === oldKey)
+      );
+
+      for (const flight of flightsToUpdate) {
+        const updatedExpenses = flight.expenses.map(exp =>
+          (exp.vendor || '').trim() === oldKey ? { ...exp, vendor: newKey } : exp
+        );
+        saveFlight({ ...flight, expenses: updatedExpenses });
+      }
 
       let deptChanged = false;
       const newDeptExp = departmentExpenses.map(exp => {
@@ -319,15 +314,7 @@ const ExpensesPage = () => {
         return exp;
       });
 
-      const updates = {};
-      if (flightsChanged) updates.userFlights = storedFlights;
-      if (deptChanged) updates.departmentExpenses = newDeptExp;
-
-      if (Object.keys(updates).length > 1) {
-        updateDataBatch(updates);
-      } else if (flightsChanged) {
-        updateData('userFlights', storedFlights);
-      } else if (deptChanged) {
+      if (deptChanged) {
         updateData('departmentExpenses', newDeptExp);
       }
     } catch (err) {
@@ -434,15 +421,12 @@ const ExpensesPage = () => {
         }
         return;
       }
-      const storedFlights = [...userFlights];
-      const flightIndex = storedFlights.findIndex(f => f.id === flightId);
-      if (flightIndex >= 0) {
-        const flight = storedFlights[flightIndex];
-        const expIndex = flight.expenses.findIndex(e => e.id === expId);
-        if (expIndex >= 0) {
-          flight.expenses[expIndex] = { ...flight.expenses[expIndex], isPaid: newPaidStatus };
-          updateData('userFlights', storedFlights);
-        }
+      const targetFlight = userFlights.find(f => f.id === flightId);
+      if (targetFlight) {
+        const updatedExpenses = targetFlight.expenses.map(e =>
+          e.id === expId ? { ...e, isPaid: newPaidStatus } : e
+        );
+        saveFlight({ ...targetFlight, expenses: updatedExpenses });
       }
     } catch (err) {
       console.error(err);
@@ -570,7 +554,7 @@ const ExpensesPage = () => {
       if (!targetFlight.expenses) targetFlight.expenses = [];
       targetFlight.expenses.unshift(newExp);
 
-      updateData('userFlights', storedFlights);
+      saveFlight(targetFlight);
 
       alert(`✨ Successfully parsed invoice!\nAdded ${parsedData.amount ? '$' + parsedData.amount : 'expense'} (${parsedData.vendor || 'Unknown'}) to Flight #${targetFlight.flightNumber || targetFlight.id}.`);
     } catch(err) {
@@ -611,9 +595,8 @@ const ExpensesPage = () => {
       const isDepartment = !manualForm.flightId;
 
       let targetFlight = null;
-      let storedFlights = [...userFlights];
       if (!isDepartment) {
-        targetFlight = storedFlights.find(f => String(f.id) === String(manualForm.flightId));
+        targetFlight = userFlights.find(f => String(f.id) === String(manualForm.flightId));
         if (!targetFlight) {
           alert('Selected flight could not be found.');
           return;
@@ -699,7 +682,8 @@ const ExpensesPage = () => {
           const movedExp = { ...existing, ...updatedFields };
           if (!targetFlight.expenses) targetFlight.expenses = [];
           targetFlight.expenses.unshift(movedExp);
-          updateDataBatch({ departmentExpenses: remainingDept, userFlights: storedFlights });
+          saveFlight(targetFlight);
+          updateData('departmentExpenses', remainingDept);
         }
       } else {
         const newExp = {
@@ -726,7 +710,7 @@ const ExpensesPage = () => {
         } else {
           if (!targetFlight.expenses) targetFlight.expenses = [];
           targetFlight.expenses.unshift(newExp);
-          updateData('userFlights', storedFlights);
+          saveFlight(targetFlight);
         }
       }
 
@@ -1270,9 +1254,7 @@ const ExpensesPage = () => {
           onDelete={(flightId) => {
             try {
               sessionStorage.removeItem('baseops_open_flight_id');
-              const storedFlights = [...(userFlights || [])];
-              const updatedFlights = storedFlights.filter(f => f.id !== flightId);
-              updateData('userFlights', updatedFlights);
+              deleteFlight(flightId);
               setIsModalOpen(false);
               setSelectedFlight(null);
             } catch (e) { console.error(e); }

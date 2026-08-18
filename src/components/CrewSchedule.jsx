@@ -101,7 +101,7 @@ const CustomStatusDropdown = ({ value, onChange }) => {
 const CrewSchedule = () => {
   const isMobile = useIsMobile();
   const [currentWeek, setCurrentWeek] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
-  const { data, updateData } = useData();
+  const { data, updateData, saveFlight, deleteFlight } = useData();
   const { 
     userPilots, 
     userPassengers, 
@@ -874,15 +874,7 @@ const CrewSchedule = () => {
           flight={selectedFlight}
           onSave={(updatedFlight) => {
             try {
-              const storedFlights = [...(flights || [])];
-              const idx = storedFlights.findIndex(f => f.id === updatedFlight.id);
-              let newFlights;
-              if (idx >= 0) {
-                newFlights = storedFlights.map(f => f.id === updatedFlight.id ? updatedFlight : f);
-              } else {
-                newFlights = [...storedFlights, updatedFlight];
-              }
-              updateData('userFlights', newFlights);
+              saveFlight(updatedFlight);
             } catch(e) {
               console.error(e);
             }
@@ -891,9 +883,7 @@ const CrewSchedule = () => {
           }}
           onDelete={(flightId) => {
             try {
-              const storedFlights = [...(flights || [])];
-              const newFlights = storedFlights.filter(f => f.id !== flightId);
-              updateData('userFlights', newFlights);
+              deleteFlight(flightId);
             } catch(e) {
               console.error(e);
             }
