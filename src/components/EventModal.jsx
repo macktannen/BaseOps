@@ -566,7 +566,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const getExpensesPendingDeletesRef = useRef(null);
   const [pendingRemoteChanges, setPendingRemoteChanges] = useState(null);
 
-  const { userPilots, userAircraft, userPassengers, userAccounts, userVendors, userFlights, crewSchedules, locationUsage, updateData, updateDataBatch, saveFlight, deleteFlight } = useData();
+  const { userPilots, userAircraft, userPassengers, userAccounts, userVendors, userFlights, userCustomZones, crewSchedules, locationUsage, updateData, updateDataBatch, saveFlight, deleteFlight } = useData();
 
   const pilotsList = userPilots || [];
   const aircraftList = userAircraft || [];
