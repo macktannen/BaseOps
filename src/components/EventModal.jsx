@@ -562,6 +562,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [conflictModal, setConflictModal] = useState({ open: false, pilotConflicts: [], aircraftConflicts: [] });
   const [expenses, setExpenses] = useState([]);
+  const getExpensesPendingDeletesRef = useRef(null);
 
   const { userPilots, userAircraft, userPassengers, userAccounts, userVendors, userFlights, crewSchedules, locationUsage, updateData, updateDataBatch } = useData();
 
@@ -1431,7 +1432,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     if (changed) setLegs(recalculateLegTimes(newLegs));
   };
 
-  const performSave = (overrideFlightLog = null, overrideStatus = null, shouldClose = false, extraUpdates = null) => {
+  const performSave = async (overrideFlightLog = null, overrideStatus = null, shouldClose = false, extraUpdates = null) => {
     try {
       legs.forEach(leg => {
         if (leg.departure && leg.departure.id) accumulateUsage(leg.departure.id);
@@ -1441,10 +1442,37 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       const firstLeg = legs[0] || {};
       const passengers = firstLeg.passengers || [];
 
+      // Process pending receipt deletions before saving
+      for (const exp of expenses) {
+        if (exp._pendingDeletes?.length > 0) {
+          for (const storagePath of exp._pendingDeletes) {
+            try {
+              await FileStorageService.deleteReceipt(storagePath);
+            } catch (err) {
+              console.error("Failed to delete receipt", err);
+            }
+          }
+        }
+      }
+
+      // Process global pending deletes (from removed expenses)
+      if (getExpensesPendingDeletesRef.current) {
+        const globalPendingDeletes = getExpensesPendingDeletesRef.current();
+        while (globalPendingDeletes.length > 0) {
+          const storagePath = globalPendingDeletes.shift();
+          try {
+            await FileStorageService.deleteReceipt(storagePath);
+          } catch (err) {
+            console.error("Failed to delete receipt", err);
+          }
+        }
+      }
+
       const savedExpenses = expenses.map(exp => ({
         ...exp,
         _dirty: false,
-        _saved: true
+        _saved: true,
+        _pendingDeletes: []
       }));
       setExpenses(savedExpenses);
 
@@ -2468,7 +2496,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
            </div>
         ) : (
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-             <ExpensesTab expenses={expenses} setExpenses={setExpenses} legs={legs} aircraftId={aircraftId} vendorsList={vendorsList} flightDate={date} flight={flight} />
+             <ExpensesTab expenses={expenses} setExpenses={setExpenses} legs={legs} aircraftId={aircraftId} vendorsList={vendorsList} flightDate={date} flight={flight} onGetPendingDeletes={(fn) => { getExpensesPendingDeletesRef.current = fn; }} />
           </div>
         )}
 

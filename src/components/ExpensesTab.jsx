@@ -79,7 +79,7 @@ const CategoryCombobox = ({ value, onChange, options, style, isMobile }) => {
   );
 };
 
-const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendorsList = [], flightDate = '', flight = null }) => {
+const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendorsList = [], flightDate = '', flight = null, onGetPendingDeletes }) => {
   const isMobile = useIsMobile();
   const fileInputRef = useRef(null);
   const [uploadingExpId, setUploadingExpId] = useState(null);
@@ -89,8 +89,16 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
   const [loadedReceipts, setLoadedReceipts] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [aiLoadingId, setAiLoadingId] = useState(null);
+  const pendingDeletesRef = useRef([]);
 
   const { userFlights, userVendors, updateData } = useData();
+
+  // Expose pending deletes to parent (EventModal) for flight save
+  useEffect(() => {
+    if (onGetPendingDeletes) {
+      onGetPendingDeletes(() => pendingDeletesRef.current);
+    }
+  }, [onGetPendingDeletes]);
 
   const persistExpensesToFlight = (updatedExpenses) => {
     if (!flight) return;
@@ -390,13 +398,41 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
     setExpenses(updated);
   };
 
-  const handleSaveRow = (id) => {
-    const updatedExpenses = expenses.map(e => e.id === id ? { ...e, _dirty: false, _saved: true } : e);
+  const handleSaveRow = async (id) => {
+    // Process per-expense pending deletes
+    const exp = expenses.find(e => e.id === id);
+    if (exp && exp._pendingDeletes?.length > 0) {
+      for (const storagePath of exp._pendingDeletes) {
+        try {
+          await FileStorageService.deleteReceipt(storagePath);
+        } catch (err) {
+          console.error("Failed to delete receipt", err);
+        }
+      }
+    }
+
+    // Process global pending deletes (from removed expenses)
+    while (pendingDeletesRef.current.length > 0) {
+      const storagePath = pendingDeletesRef.current.shift();
+      try {
+        await FileStorageService.deleteReceipt(storagePath);
+      } catch (err) {
+        console.error("Failed to delete receipt", err);
+      }
+    }
+
+    const updatedExpenses = expenses.map(e => e.id === id ? { ...e, _dirty: false, _saved: true, _pendingDeletes: [] } : e);
     setExpenses(updatedExpenses);
     persistExpensesToFlight(updatedExpenses);
   };
 
   const handleRemove = (id) => {
+    const exp = expenses.find(e => e.id === id);
+    if (exp?.receiptFiles?.length > 0) {
+      for (const file of exp.receiptFiles) {
+        pendingDeletesRef.current.push(file.storagePath);
+      }
+    }
     const updatedExpenses = expenses.filter(e => e.id !== id);
     setExpenses(updatedExpenses);
   };
@@ -408,12 +444,9 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
     const currentFiles = exp.receiptFiles || [];
     const fileToDelete = currentFiles[fileIndex];
     
+    const pendingDeletes = [...(exp._pendingDeletes || [])];
     if (fileToDelete) {
-      try {
-        await FileStorageService.deleteReceipt(fileToDelete.storagePath);
-      } catch (err) {
-        console.error("Failed to delete receipt", err);
-      }
+      pendingDeletes.push(fileToDelete.storagePath);
     }
 
     const newFiles = currentFiles.filter((_, idx) => idx !== fileIndex);
@@ -421,7 +454,8 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
       ...e,
       receiptFiles: newFiles,
       receiptCount: newFiles.length,
-      hasReceipt: newFiles.length > 0
+      hasReceipt: newFiles.length > 0,
+      _pendingDeletes: pendingDeletes
     } : e);
     
     setExpenses(updatedExpenses);
