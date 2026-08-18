@@ -1641,6 +1641,10 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   };
 
   const hasUnsavedChanges = () => {
+    // For new flights (no existing flight record), nothing is "unsaved"
+    // since the user hasn't input anything yet
+    if (!flight || !flight.id) return false;
+
     if (expenses.some(e => e._dirty)) return true;
 
     const origFlight = flight || {};
