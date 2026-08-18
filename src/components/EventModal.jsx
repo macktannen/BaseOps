@@ -559,6 +559,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const prevFlightIdRef = useRef(flight?.id ? String(flight.id) : (flight ? String(flight.flightNumber || 'new') : 'new'));
   const [flightLog, setFlightLog] = useState(() => flight?.flightLog || {});
   const suppressSyncRef = useRef(false); // Guard against sync overwrites during active unsign
+  const hasInitialSyncedRef = useRef(false); // Skip banner on first sync
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [conflictModal, setConflictModal] = useState({ open: false, pilotConflicts: [], aircraftConflicts: [] });
   const [expenses, setExpenses] = useState([]);
@@ -620,6 +621,18 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     const remoteSigned = !!(updatedFlight.flightLog?.signature);
     const localSigned = !!(flightLog?.signature);
     if (remoteSigned && !localSigned) {
+      if (updatedFlight.expenses) setExpenses(updatedFlight.expenses);
+      if (updatedFlight.uploads) setUploads(updatedFlight.uploads);
+      if (updatedFlight.flightLog) setFlightLog(updatedFlight.flightLog);
+      if (updatedFlight.status) setStatus(normalizeStatus(updatedFlight.status));
+      hasInitialSyncedRef.current = true;
+      return;
+    }
+
+    // On first sync, auto-sync silently (no banner) since state was just initialized
+    if (!hasInitialSyncedRef.current) {
+      hasInitialSyncedRef.current = true;
+      // Auto-sync to ensure state matches Firestore exactly
       if (updatedFlight.expenses) setExpenses(updatedFlight.expenses);
       if (updatedFlight.uploads) setUploads(updatedFlight.uploads);
       if (updatedFlight.flightLog) setFlightLog(updatedFlight.flightLog);
@@ -948,6 +961,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
 
     if (isOpening || isFlightChanged) {
       prevFlightIdRef.current = currentFlightId;
+      hasInitialSyncedRef.current = false; // Reset so first sync is silent
       setActiveView(defaultActiveView || 'Plan');
       setHeaderCollapsed(false);
 
