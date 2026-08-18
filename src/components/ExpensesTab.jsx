@@ -368,8 +368,8 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
       receiptCount,
       hasReceipt: receiptCount > 0,
       autoParsed: true,
-      _dirty: false,
-      _saved: true
+      _dirty: true,
+      _saved: false
     };
 
     let nextExpenses;
