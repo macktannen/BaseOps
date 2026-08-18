@@ -1557,6 +1557,32 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     performSave(null, null, true);
   };
 
+  const hasUnsavedChanges = () => {
+    if (expenses.some(e => e._dirty)) return true;
+
+    const origFlight = flight || {};
+    if (title !== (origFlight.title || '')) return true;
+    if (comments !== (origFlight.comments || '')) return true;
+    if (opsNotes !== (origFlight.opsNotes || '')) return true;
+    if (tag !== (origFlight.tag || '')) return true;
+    if (accountId !== (origFlight.accountId || '')) return true;
+    if (aircraftId !== (origFlight.aircraftId || '')) return true;
+
+    const origLegs = origFlight.legs || [];
+    if (JSON.stringify(legs) !== JSON.stringify(origLegs)) return true;
+
+    return false;
+  };
+
+  const handleClose = () => {
+    if (hasUnsavedChanges()) {
+      if (!window.confirm('You have unsaved changes. Are you sure you want to close?')) {
+        return;
+      }
+    }
+    onClose();
+  };
+
   
   const formatTime = (mins) => {
     const h = Math.floor(mins / 60);
@@ -1580,7 +1606,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   return (
     <>
     <div 
-        onClick={onClose}
+        onClick={handleClose}
         style={{
           position: 'fixed', top: '5vh', left: 0, right: 0, bottom: 0,
           backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
@@ -1804,7 +1830,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                 />
               </button>
             )}
-            <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}><X size={20} color="var(--text-muted)"/></button>
+            <button type="button" onClick={handleClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}><X size={20} color="var(--text-muted)"/></button>
           </div>
         </div>
 
