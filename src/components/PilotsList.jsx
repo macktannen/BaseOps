@@ -7,6 +7,8 @@ import { useData } from '../contexts/DataProvider';
 const PilotsList = () => {
   const { userPilots, crewSchedules, userFlights, updateData, updateDataBatch } = useData();
   const [search, setSearch] = useState('');
+  const [selectedPilot, setSelectedPilot] = useState(null);
+  const [editForm, setEditForm] = useState(null);
 
   const pilots = React.useMemo(() => {
     let storedPilots = userPilots || [];
