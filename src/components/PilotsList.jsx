@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Search, User, Plus, Trash2, Users as UsersIcon, Helicopter } from 'lucide-react';
 import SaveButton from './SaveButton';
 import { mockPilots } from '../data';
@@ -6,6 +6,7 @@ import { useData } from '../contexts/DataProvider';
 
 const PilotsList = () => {
   const { userPilots, crewSchedules, userFlights, updateData, updateDataBatch } = useData();
+  const [search, setSearch] = useState('');
 
   const pilots = React.useMemo(() => {
     let storedPilots = userPilots || [];
