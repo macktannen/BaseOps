@@ -9,6 +9,7 @@ const PilotsList = () => {
   const [search, setSearch] = useState('');
   const [selectedPilot, setSelectedPilot] = useState(null);
   const [editForm, setEditForm] = useState(null);
+  const [saved, setSaved] = useState(false);
 
   const pilots = React.useMemo(() => {
     let storedPilots = userPilots || [];
