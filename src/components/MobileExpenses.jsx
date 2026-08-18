@@ -251,6 +251,9 @@ const MobileExpenses = () => {
           const result = await FileStorageService.saveReceipt(flightId, newExp.id, parsedData._originalFile);
           receiptFiles = [{ storagePath: result.storagePath, name: parsedData._originalFile.name, type: parsedData._originalFile.type, size: result.size, url: result.url }];
           receiptCount = 1;
+          if (result.resizeFailed) {
+            alert(`Image compression failed for "${parsedData._originalFile.name}". The file was uploaded at full size, which may use more storage than expected.`);
+          }
         }
       } catch (e) { console.warn('Receipt upload error:', e); }
     }

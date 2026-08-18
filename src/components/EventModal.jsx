@@ -836,6 +836,11 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     setUploading(true);
     try {
       const results = await Promise.all(files.map(f => FileStorageService.saveFile(flightId, f)));
+      const resizeFailures = results.filter(r => r.resizeFailed);
+      if (resizeFailures.length > 0) {
+        const names = resizeFailures.map(r => r.name).join(', ');
+        alert(`Image compression failed for: ${names}. Files were uploaded at full size, which may use more storage than expected.`);
+      }
       const nextUploads = [...uploads, ...results];
       setUploads(nextUploads);
       persistUploadsToFlight(nextUploads);
@@ -1567,6 +1572,17 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     if (tag !== (origFlight.tag || '')) return true;
     if (accountId !== (origFlight.accountId || '')) return true;
     if (aircraftId !== (origFlight.aircraftId || '')) return true;
+
+    const origDate = origFlight.date ? origFlight.date.split('T')[0] : '';
+    if (date !== origDate) return true;
+
+    const origFlightNumber = origFlight.flightNumber != null
+      ? String(origFlight.flightNumber).replace(/^FLT-/i, '')
+      : '';
+    if (flightNumber !== origFlightNumber) return true;
+
+    const origStatus = normalizeStatus(origFlight.status || 'on hold');
+    if (status !== origStatus) return true;
 
     const origLegs = origFlight.legs || [];
     if (JSON.stringify(legs) !== JSON.stringify(origLegs)) return true;

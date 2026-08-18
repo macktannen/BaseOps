@@ -53,6 +53,7 @@ function resizeImage(file) {
             });
             resolve(resized);
           } else {
+            file._resizeFailed = true;
             resolve(file);
           }
         },
@@ -63,6 +64,7 @@ function resizeImage(file) {
 
     img.onerror = () => {
       URL.revokeObjectURL(url);
+      file._resizeFailed = true;
       resolve(file);
     };
 
@@ -71,12 +73,13 @@ function resizeImage(file) {
 }
 
 async function prepareFileForUpload(file) {
-  if (!isImageFile(file)) return file;
+  if (!isImageFile(file)) return { file, resizeFailed: false };
   try {
-    return await resizeImage(file);
+    const result = await resizeImage(file);
+    return { file: result, resizeFailed: !!result._resizeFailed };
   } catch (err) {
     console.warn('Image resize failed, uploading original:', err);
-    return file;
+    return { file, resizeFailed: true };
   }
 }
 
@@ -92,7 +95,7 @@ export const FileStorageService = {
       throw new Error('Firebase Storage is not configured. File upload is not available.');
     }
 
-    const uploadFile = await prepareFileForUpload(file);
+    const { file: uploadFile, resizeFailed } = await prepareFileForUpload(file);
 
     const safeName = sanitizeFileName(uploadFile.name);
     const storagePath = `flights/${flightId || 'general'}/${safeName}`;
@@ -109,6 +112,7 @@ export const FileStorageService = {
       url: cloudUrl,
       storagePath,
       uploadedAt: new Date().toISOString(),
+      resizeFailed,
     };
   },
 
@@ -228,7 +232,7 @@ export const FileStorageService = {
       throw new Error('Firebase Storage is not configured. Receipt upload is not available.');
     }
 
-    const uploadFile = await prepareFileForUpload(file);
+    const { file: uploadFile, resizeFailed } = await prepareFileForUpload(file);
 
     const safeName = sanitizeFileName(uploadFile.name);
     const path = `receipts/${flightId || 'general'}/${expenseId}/${safeName}`;
@@ -247,6 +251,7 @@ export const FileStorageService = {
       url: cloudUrl,
       storagePath: path,
       uploadedAt: new Date().toISOString(),
+      resizeFailed,
     };
   },
 
