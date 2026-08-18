@@ -165,15 +165,32 @@ const CalendarView = () => {
   const [noteModal, setNoteModal] = useState({ open: false, date: null, dateEnd: null, title: '', content: '', editId: null });
   const [dropConflictModal, setDropConflictModal] = useState({ open: false, pilotConflicts: [], aircraftConflicts: [], pendingFlight: null });
   const [cellModalOpen, setCellModalOpen] = useState(null); // { personId, dateStr, status }
+  const [pendingCrewSchedules, setPendingCrewSchedules] = useState(null);
+
+  const effectiveCrewSchedules = pendingCrewSchedules || crewSchedules;
 
   const handleCellStatusClick = (personId, dateStr, status) => {
     try {
       const allPersonnel = [...(pilotsList || []), ...(passengersList || [])];
-      const updated = setPersonStatusForDate(crewSchedules, personId, dateStr, status, allPersonnel);
-      updateData('crewSchedules', updated);
+      const updated = setPersonStatusForDate(effectiveCrewSchedules, personId, dateStr, status, allPersonnel);
+      setPendingCrewSchedules(updated);
+    } catch (err) {
+      console.error('Error updating crew schedule:', err);
+    }
+  };
+
+  const handleSaveCrewSchedules = () => {
+    if (!pendingCrewSchedules) return;
+    try {
+      updateData('crewSchedules', pendingCrewSchedules);
+      setPendingCrewSchedules(null);
     } catch (err) {
       console.error('Error saving crew schedule:', err);
     }
+  };
+
+  const handleDiscardCrewSchedules = () => {
+    setPendingCrewSchedules(null);
   };
 
   const handleSaveCellModal = () => {
@@ -574,12 +591,12 @@ const CalendarView = () => {
                 newArrDate = newDepDate;
               }
 
-              return {
-                ...l,
-                date: newDepDate,
-                arrDate: newArrDate,
-                pilotId: l.pilotId || (l.pilots && l.pilots.length > 0 ? l.pilots[0] : getDefaultPilotForDate(newDepDate, crewSchedules))
-              };
+               return {
+                 ...l,
+                 date: newDepDate,
+                 arrDate: newArrDate,
+                 pilotId: l.pilotId || (l.pilots && l.pilots.length > 0 ? l.pilots[0] : getDefaultPilotForDate(newDepDate, effectiveCrewSchedules))
+               };
            }
 
            return l;
@@ -984,14 +1001,14 @@ const CalendarView = () => {
               </div>
               {viewSettings.showCrewPills && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: 'auto', paddingTop: '8px' }}>
-                {Object.keys(crewSchedules).map(key => {
+                {Object.keys(effectiveCrewSchedules).map(key => {
                    const dayStr = format(day, 'yyyy-MM-dd');
                    const dateSuffix = `_${dayStr}`;
                    if (!key.endsWith(dateSuffix) && !key.includes(dayStr)) return null;
                    const pId = key.includes(dateSuffix) ? key.substring(0, key.lastIndexOf(dateSuffix)) : key.split('_')[0];
                    const dateStr = dayStr;
                    
-                   const status = crewSchedules[key];
+                   const status = effectiveCrewSchedules[key];
                    if (!status || status === 'Clear') return null;
                    const pilot = (pilotsList || []).find(p => String(p.id) === String(pId) || p.name === pId);
                    const pax = (passengersList || []).find(p => String(p.id) === String(pId) || p.name === pId);
@@ -1042,6 +1059,39 @@ const CalendarView = () => {
           );
         })}
       </div>
+
+      {/* Pending Crew Schedule Changes Bar */}
+      {pendingCrewSchedules && (
+        <div style={{
+          position: 'sticky', bottom: 0, zIndex: 100,
+          backgroundColor: '#ebf8ff', borderTop: '2px solid #3182ce',
+          padding: '10px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+        }}>
+          <span style={{ fontWeight: 600, color: '#2b6cb0', fontSize: '0.85rem' }}>
+            Unsaved crew schedule changes
+          </span>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={handleDiscardCrewSchedules}
+              style={{
+                backgroundColor: 'white', color: '#3182ce', border: '1px solid #3182ce',
+                borderRadius: '4px', padding: '6px 14px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer'
+              }}
+            >
+              Discard
+            </button>
+            <button
+              onClick={handleSaveCrewSchedules}
+              style={{
+                backgroundColor: '#3182ce', color: 'white', border: 'none',
+                borderRadius: '4px', padding: '6px 14px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer'
+              }}
+            >
+              Save Schedule
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Notes Modal */}
       {noteModal.open && (
