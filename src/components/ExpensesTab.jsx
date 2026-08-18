@@ -407,6 +407,7 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
           await FileStorageService.deleteReceipt(storagePath);
         } catch (err) {
           console.error("Failed to delete receipt", err);
+          alert(err.message || 'Failed to delete receipt from cloud storage. The file may still exist.');
         }
       }
     }
@@ -418,6 +419,7 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
         await FileStorageService.deleteReceipt(storagePath);
       } catch (err) {
         console.error("Failed to delete receipt", err);
+        alert(err.message || 'Failed to delete receipt from cloud storage. The file may still exist.');
       }
     }
 

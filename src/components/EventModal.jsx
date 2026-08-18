@@ -895,6 +895,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       persistUploadsToFlight(nextUploads);
     } catch (err) {
       console.error('Delete failed:', err);
+      alert(err.message || 'Failed to delete file. The file may still exist in cloud storage.');
     }
   };
 
@@ -1482,6 +1483,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
               await FileStorageService.deleteReceipt(storagePath);
             } catch (err) {
               console.error("Failed to delete receipt", err);
+              alert(err.message || 'Failed to delete receipt from cloud storage. The file may still exist.');
             }
           }
         }
@@ -1496,6 +1498,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
             await FileStorageService.deleteReceipt(storagePath);
           } catch (err) {
             console.error("Failed to delete receipt", err);
+            alert(err.message || 'Failed to delete receipt from cloud storage. The file may still exist.');
           }
         }
       }

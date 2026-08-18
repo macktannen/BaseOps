@@ -147,10 +147,13 @@ export const FileStorageService = {
       try {
         const fileRef = ref(storage, storagePath);
         await deleteObject(fileRef);
+        return true;
       } catch (cloudErr) {
         console.warn('Cloud delete error:', cloudErr);
+        throw new Error('Failed to delete file from cloud storage. The file may still exist.');
       }
     }
+    return true;
   },
 
   async getFileBlob(storagePath) {
@@ -272,10 +275,13 @@ export const FileStorageService = {
       try {
         const fileRef = ref(storage, storagePath);
         await deleteObject(fileRef);
+        return true;
       } catch (cloudErr) {
         console.warn('Cloud receipt delete error:', cloudErr);
+        throw new Error('Failed to delete receipt from cloud storage. The file may still exist.');
       }
     }
+    return true;
   },
 
   async getReceipts(flightId, expenseId) {

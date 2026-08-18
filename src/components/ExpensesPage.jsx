@@ -168,7 +168,11 @@ const ExpensesPage = () => {
     const files = viewingExpense.receiptFiles || [];
     const fileToDelete = files[fileIndex];
     if (fileToDelete) {
-      try { await FileStorageService.deleteReceipt(fileToDelete.storagePath); } catch {}
+      try {
+        await FileStorageService.deleteReceipt(fileToDelete.storagePath);
+      } catch (err) {
+        alert(err.message || 'Failed to delete receipt from cloud storage. The file may still exist.');
+      }
     }
     const newFiles = files.filter((_, idx) => idx !== fileIndex);
     const updatedExpenses = expenses.map(e => {
