@@ -307,7 +307,8 @@ const CrewSchedule = () => {
   };
 
   const changeColorBy = (mode) => {
-    updateData('schedulesGridColorBy', mode);
+    const updated = { ...calendarViewSettings, schedulesGridColorBy: mode };
+    updateData('calendarViewSettings', updated);
   };
 
   return (
