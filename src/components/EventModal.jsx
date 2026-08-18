@@ -2704,7 +2704,24 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
            >
               <Trash2 size={13} /> Delete
            </button>
-           <button onClick={() => onDuplicate && onDuplicate({ ...flight, title, accountId, legs, aircraftId, comments, opsNotes, status, tag, expenses: [], uploads: [], documents: [], files: [], receipts: [], receiptFiles: [] })} className="btn btn-outline" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '5px 6px', fontSize: '0.7rem', textAlign: 'center', lineHeight: '1', whiteSpace: 'nowrap' }}>
+            <button onClick={() => onDuplicate && onDuplicate({
+                ...flight,
+                title: title || '',
+                accountId,
+                legs,
+                aircraftId,
+                comments,
+                opsNotes,
+                status: 'confirmed',
+                tag,
+                flightLog: {},
+                expenses: [],
+                uploads: [],
+                documents: [],
+                files: [],
+                receipts: [],
+                receiptFiles: []
+              })} className="btn btn-outline" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '5px 6px', fontSize: '0.7rem', textAlign: 'center', lineHeight: '1', whiteSpace: 'nowrap' }}>
               <BookOpen size={13} /> Duplicate
            </button>
 <button className="btn btn-outline" onClick={() => setShowUploads(!showUploads)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '5px 6px', fontSize: '0.7rem', textAlign: 'center', lineHeight: '1', whiteSpace: 'nowrap' }}>
