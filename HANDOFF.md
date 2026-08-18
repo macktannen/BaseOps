@@ -1,30 +1,57 @@
 # HANDOFF - baseops
 
-- **Timestamp:** Aug 17, 2026
+- **Timestamp:** Aug 18, 2026
 - **Tool used:** opencode
 - **Branch:** main
-- **Last commit:** 3480ea7 fix(aircraft): idempotent hour commits and longer sync guard to prevent double-counting and stale overwrites
+- **Last commit:** e25163a refactor: split flights into per-entity Firestore documents
 
 ## Project Overview
 Helicopter Scheduler Web App (`baseops`). Manages flights, crew schedules, expenses, fleet, and documents with Firebase/Firestore backend.
 
-## What Was Just Completed
-1. **Cloud-only file storage**: Removed all local IndexedDB/localforage fallbacks from `FileStorageService.js`. All file uploads (flight documents and expense receipts) now go exclusively to Firebase Cloud Storage. Upload failures surface errors to the user instead of silently falling back to local storage.
-2. **Firebase Storage rules deployed**: `storage.rules` deployed to Firebase project `baseops-9f0e9` — allows read/write for authenticated users.
-3. **Cross-device receipt deletion sync**: Fixed `ExpensesTab.jsx` `handleDeleteReceipt` to call `persistExpensesToFlight()` so deletions propagate to Firestore and sync across devices via `onSnapshot`.
-4. **AI auto-fill loading indicator**: When uploading an invoice for AI parsing, a new expense row immediately appears with animated purple spinners in every field. The row populates with extracted data when parsing completes. Added `onProcessingStart` callback to `AIInvoiceUploader` and `animate-spin` CSS keyframes to `App.css`. Fixed missing `App.css` import that prevented animation from working.
+## Architecture
+- **Firestore structure:** `orgs/{orgName}` (org doc for lists) + `orgs/{orgName}/flights/{flightId}` (per-entity flight documents)
+- **Dev sandbox:** `orgs/dev_sandbox`, **Production:** `orgs/default`
+- **DataProvider.jsx** exposes: `updateData`, `updateDataBatch`, `saveFlight`, `saveFlightsBatch`, `deleteFlight`
+- `userFlights` reads from flights subcollection subscription; all other data reads from org document subscription
+
+## What Was Just Completed (Aug 18)
+1. **Firestore write optimization (93% reduction):** Deferred expense writes to flight save, batched flight save + location usage + aircraft updates, batched crew/pilot/passenger deletes, batched vendor remap
+2. **Client-side image resizing:** Images resized to 1024px max, JPEG 80% quality before Firebase Storage upload. Shows alert on resize failure.
+3. **Expense save flow:** "Save Expense" button persists to Firestore immediately; auto-fill expenses require explicit Save Expense click
+4. **Unsaved changes warning:** Modal warns before close if status, flightNumber, date, or other fields changed
+5. **Receipt delete deferral:** Receipt files not deleted from Storage until Save Expense or Save Flight clicked
+6. **File delete error alerts:** Storage deletion failures now show user-facing alerts
+7. **Aircraft update consolidation:** Flight sign/clear/toggle lock all route through single batched write path
+8. **Crew schedule deferral:** Status changes update locally; sticky bar with Save/Discard appears
+9. **Remote change detection:** When another user saves a flight you have open, banner shows which fields changed with See Latest/Keep Mine options
+10. **Flight log signature priority:** Signature changes always auto-sync regardless of unsaved changes
+11. **Per-entity flight documents:** Flights now live in `orgs/{org}/flights/{flightId}` subcollection, eliminating last-write-wins race condition for flight saves
+
+## Files Changed (Aug 18 session)
+- `src/contexts/DataProvider.jsx` — Flights subscription from subcollection, saveFlight/deleteFlight/saveFlightsBatch API
+- `src/services/FileStorageService.js` — Image resize, resizeFailed flag, throw on delete errors
+- `src/components/EventModal.jsx` — Batched performSave, deferred receipt deletion, remote changes banner, unsaved changes detection, aircraft toggle lock callback
+- `src/components/ExpensesTab.jsx` — Deferred expense writes, saveFlight for persistExpensesToFlight, dirty on receipt delete
+- `src/components/ExpensesPage.jsx` — saveFlight/deleteFlight for all flight writes
+- `src/components/CalendarView.jsx` — saveFlight/deleteFlight, crew schedule deferral bar
+- `src/components/CrewSchedule.jsx` — saveFlight/deleteFlight
+- `src/components/FlightLogTab.jsx` — onToggleLock callback (no direct updateData)
+- `src/components/MobileExpenses.jsx` — saveFlight
+- `src/components/MobileLayout.jsx` — saveFlight/deleteFlight
+- `src/components/SettingsView.jsx` — deleteFlight for clear all
 
 ## Pending Tasks
-1. **Redo layout for schedules grid** (Not started — from previous handoff)
-2. **Fleet view layout** (Not started — from previous handoff)
+1. **Redo layout for schedules grid** (Not started)
+2. **Fleet view layout** (Not started)
 
-## Contextual Notes
-- Firebase project: `baseops-9f0e9`, dev sandbox: `orgs/dev_sandbox`, production: `orgs/default`
-- Storage rules: `allow read, write: if request.auth != null`
-- `FileStorageService.js` now has a simplified API: `saveFile`, `saveReceipt`, `getFileUrl`, `getReceiptUrl`, `deleteFile`, `deleteReceipt` — all cloud-only, no local fallback parameters
-- `AIInvoiceUploader` accepts `onProcessingStart` callback (called before AI parsing begins)
-- `ExpensesTab` tracks `aiLoadingId` state to manage the spinner row lifecycle
-- `ExpensesPage.jsx` was also updated to match the new `FileStorageService` API signatures (removed extra args from `getReceiptUrl`, `deleteReceipt` calls)
+## Remaining Data Loss Risks
+- **#4:** suppressSyncRef 10-second window (medium — can be fixed with writeId detection)
+- **#12-16:** Notes/CustomZone modals close without confirmation; persist functions silently fail
+- **#18-25:** Various edge cases (stale localStorage, conflict detection bypass, etc.)
 
-## Next Steps
-Start on the schedules grid layout redo or fleet view layout — whichever the user requests.
+## Key APIs
+- `saveFlight(flightData)` — Writes one flight to flights subcollection
+- `saveFlightsBatch(flightsArray)` — Batch-writes multiple flights
+- `deleteFlight(flightId)` — Deletes one flight from subcollection
+- `updateData(key, value)` — Writes to org document (for lists, schedules, etc.)
+- `updateDataBatch(updates)` — Batch-writes multiple keys to org document
