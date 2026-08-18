@@ -563,6 +563,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const [conflictModal, setConflictModal] = useState({ open: false, pilotConflicts: [], aircraftConflicts: [] });
   const [expenses, setExpenses] = useState([]);
   const getExpensesPendingDeletesRef = useRef(null);
+  const [pendingRemoteChanges, setPendingRemoteChanges] = useState(null);
 
   const { userPilots, userAircraft, userPassengers, userAccounts, userVendors, userFlights, crewSchedules, locationUsage, updateData, updateDataBatch } = useData();
 
@@ -613,12 +614,32 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     if (suppressSyncRef.current) return;
     
     const updatedFlight = (userFlights || []).find(f => String(f.id) === String(flight.id) || (flight.flightNumber && String(f.flightNumber) === String(flight.flightNumber)));
-    if (updatedFlight) {
-      if (updatedFlight.expenses) setExpenses(updatedFlight.expenses);
-      if (updatedFlight.uploads) setUploads(updatedFlight.uploads);
-      if (updatedFlight.flightLog) setFlightLog(updatedFlight.flightLog);
-      if (updatedFlight.status) setStatus(normalizeStatus(updatedFlight.status));
+    if (!updatedFlight) return;
+
+    // Check if we have unsaved local changes
+    if (hasUnsavedChanges()) {
+      // Detect what changed
+      const changes = [];
+      if (JSON.stringify(updatedFlight.expenses) !== JSON.stringify(expenses)) changes.push('Expenses');
+      if (JSON.stringify(updatedFlight.uploads) !== JSON.stringify(uploads)) changes.push('Uploads');
+      if (JSON.stringify(updatedFlight.flightLog) !== JSON.stringify(flightLog)) changes.push('Flight Log');
+      if (normalizeStatus(updatedFlight.status || '') !== status) changes.push('Status');
+      if (JSON.stringify(updatedFlight.legs) !== JSON.stringify(legs)) changes.push('Route/Legs');
+      if ((updatedFlight.title || '') !== title) changes.push('Title');
+      if ((updatedFlight.comments || '') !== comments) changes.push('Comments');
+      if ((updatedFlight.opsNotes || '') !== opsNotes) changes.push('Ops Notes');
+      
+      if (changes.length > 0) {
+        setPendingRemoteChanges({ changes, updatedFlight });
+      }
+      return;
     }
+
+    // No unsaved changes — auto-sync as before
+    if (updatedFlight.expenses) setExpenses(updatedFlight.expenses);
+    if (updatedFlight.uploads) setUploads(updatedFlight.uploads);
+    if (updatedFlight.flightLog) setFlightLog(updatedFlight.flightLog);
+    if (updatedFlight.status) setStatus(normalizeStatus(updatedFlight.status));
   }, [flight, userFlights]);
 
   const dragItem = useRef(null);
@@ -1627,6 +1648,20 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     onClose();
   };
 
+  const handleAcceptRemoteChanges = () => {
+    if (!pendingRemoteChanges) return;
+    const { updatedFlight } = pendingRemoteChanges;
+    if (updatedFlight.expenses) setExpenses(updatedFlight.expenses);
+    if (updatedFlight.uploads) setUploads(updatedFlight.uploads);
+    if (updatedFlight.flightLog) setFlightLog(updatedFlight.flightLog);
+    if (updatedFlight.status) setStatus(normalizeStatus(updatedFlight.status));
+    setPendingRemoteChanges(null);
+  };
+
+  const handleDismissRemoteChanges = () => {
+    setPendingRemoteChanges(null);
+  };
+
   
   const formatTime = (mins) => {
     const h = Math.floor(mins / 60);
@@ -2052,6 +2087,44 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
         )}
 
         {/* CONTENT AREA */}
+        {pendingRemoteChanges && (
+          <div style={{
+            backgroundColor: '#ebf8ff', borderBottom: '2px solid #3182ce',
+            padding: '10px 15px', flexShrink: 0
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                <span style={{ fontWeight: 700, color: '#2b6cb0', fontSize: '0.85rem', flexShrink: 0 }}>⚠️ Changes by another user:</span>
+                <span style={{ color: '#2c5282', fontSize: '0.8rem' }}>
+                  {pendingRemoteChanges.changes.join(', ')}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                <button
+                  type="button"
+                  onClick={handleAcceptRemoteChanges}
+                  style={{
+                    backgroundColor: '#3182ce', color: 'white', border: 'none', borderRadius: '4px',
+                    padding: '4px 10px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer'
+                  }}
+                >
+                  See Latest
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDismissRemoteChanges}
+                  style={{
+                    backgroundColor: 'white', color: '#3182ce', border: '1px solid #3182ce', borderRadius: '4px',
+                    padding: '4px 10px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer'
+                  }}
+                >
+                  Keep Mine
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeView === 'Plan' ? (
           <div style={{ flex: 1, overflowY: 'auto', padding: '0', display: 'flex', flexDirection: 'column' }}>
             
