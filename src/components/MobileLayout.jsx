@@ -13,7 +13,6 @@ import EventModal from './EventModal';
 import MobileFleet from './MobileFleet';
 import MobileExpenses from './MobileExpenses';
 import MobileAccounts from './MobileAccounts';
-import { mockFlights } from '../data';
 import { useData } from '../contexts/DataProvider';
 
 const APP_VERSION = `v${packageJson.version}`;
@@ -79,7 +78,7 @@ export default function MobileLayout({ activeTab: propActiveTab, setActiveTab: p
     deleteFlight
   } = useData();
 
-  const flights = (userFlights && userFlights.length > 0) ? userFlights : mockFlights;
+  const flights = userFlights || [];
   const schedules = crewSchedules || {};
   const crewList = useMemo(() => {
     const crewPax = (userPassengers || []).filter(p => p.isCrew);

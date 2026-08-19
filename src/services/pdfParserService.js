@@ -69,14 +69,7 @@ export async function parseInvoiceFile(file, customApiKey = null, existingVendor
 
   const { base64, mimeType } = await fileToBase64Image(file);
 
-  if (!existingVendors || existingVendors.length === 0) {
-    try {
-      const { mockVendors } = await import('../data');
-      existingVendors = mockVendors;
-    } catch {}
-  }
-
-  const vendorListContext = existingVendors.map(v => 
+  const vendorListContext = (existingVendors || []).map(v => 
     `- [ID: ${v.vendorId || v.id}] Name: "${v.name}" | Category: "${v.category || ''}" | Address: "${v.address || ''}"`
   ).join('\n');
 

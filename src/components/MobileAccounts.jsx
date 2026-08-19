@@ -1,13 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { Search, Building, User, Mail, Phone, ChevronRight, ChevronDown } from 'lucide-react';
-import { mockAccounts } from '../data';
 import { getAccountColor } from '../services/gridColors';
 import { useData } from '../contexts/DataProvider';
 
 const MobileAccounts = ({ mode = 'all' }) => {
   const { userAccounts, globalContacts } = useData();
   const contacts = useMemo(() => globalContacts || [], [globalContacts]);
-  const accounts = useMemo(() => userAccounts && userAccounts.length > 0 ? userAccounts.map(a => ({ ...a, contactIds: a.contactIds || [] })) : mockAccounts.map(a => ({ ...a, contactIds: [] })), [userAccounts]);
+  const accounts = useMemo(() => (userAccounts || []).map(a => ({ ...a, contactIds: a.contactIds || [] })), [userAccounts]);
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState(null);
 

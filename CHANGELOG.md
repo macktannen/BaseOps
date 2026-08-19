@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v1.3.1] - 2026-08-19
+
+### Removed
+- **Dead mock data** — Deleted `src/data.js` and removed all mock data imports/references across 9 files (EventModal, CalendarView, CrewSchedule, ExpensesPage, MobileAccounts, PilotsList, MobileLayout, AccountsView, pdfParserService). All data now comes from Firestore exclusively.
+
 ## [v1.3.0] - 2026-08-19
 
 ### Fixed

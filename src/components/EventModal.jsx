@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Trash2, MapPin, Plus, GripVertical, BookOpen, Clock, ChevronLeft, ChevronRight, ChevronDown, Upload, FileText, Download, Paperclip, Eye, Image, File } from 'lucide-react';
-import { mockPilots, mockCustomZones } from '../data';
 import airportsData from '../data/airports.json';
 import tzlookup from 'tz-lookup';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
@@ -17,7 +16,7 @@ import { useData } from '../contexts/DataProvider';
 
 const getDefaultPilotForDate = (dateStr, schedules, storedPilots) => {
   if (!dateStr || !schedules) return '';
-  const allPilots = storedPilots?.length > 0 ? storedPilots : mockPilots;
+  const allPilots = storedPilots || [];
 
   for (const [key, status] of Object.entries(schedules)) {
     if (key.endsWith(`_${dateStr}`) && (status === 'On Duty' || status === 'Duty/Training')) {
@@ -298,12 +297,7 @@ const LocationSelect = ({ value, onChange, label, placeholder }) => {
   const storedZones = userCustomZones || [];
 
   const allLocations = [
-    ...mockCustomZones.map(cz => {
-      const override = storedZones.find(s => s.id === cz.id);
-      const data = override || cz;
-      return { ...data, isCustom: true, displayName: data.title, searchString: `${data.title} ${data.address || ''}`.toLowerCase(), usageCount: getUsageCount(data.id) };
-    }),
-    ...storedZones.filter(sz => sz.type === 'custom' && !mockCustomZones.find(c => c.id === sz.id)).map(cz => {
+    ...storedZones.filter(sz => sz.type === 'custom').map(cz => {
       return { ...cz, isCustom: true, displayName: cz.title, searchString: `${cz.title} ${cz.address || ''}`.toLowerCase(), usageCount: getUsageCount(cz.id) };
     }),
     ...airportsData.map(ap => {
@@ -317,7 +311,7 @@ const LocationSelect = ({ value, onChange, label, placeholder }) => {
     if (!value) return placeholder || 'Select...';
     
     // First check custom zones or overrides
-    const cz = [...mockCustomZones, ...storedZones].find(c => c.id === value.id);
+    const cz = storedZones.find(c => c.id === value.id);
     if (cz) return cz.title || cz.name || cz.id;
 
     // Then check raw airports
@@ -1322,7 +1316,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       return ap ? { lat: ap.lat, lon: ap.lon } : null;
     } else {
       const storedZones = userCustomZones || [];
-      const cz = [...mockCustomZones, ...storedZones].find(c => c.id === locationVal.id);
+      const cz = storedZones.find(c => c.id === locationVal.id);
       if (!cz) return null;
       if (cz.lat && cz.lon) return { lat: parseFloat(cz.lat), lon: parseFloat(cz.lon) };
       if (cz.coordinates) {
@@ -1911,7 +1905,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       return ap ? { display: ap.id, city: `${ap.municipality || ap.name}, ${ap.state}`, name: ap.name } : { display: locVal.id, city: '' };
     } else {
       const storedZones = userCustomZones || [];
-      const cz = [...mockCustomZones, ...storedZones].find(c => c.id === locVal.id);
+      const cz = storedZones.find(c => c.id === locVal.id);
       if (!cz) return { display: locVal.id, city: '' };
       return { display: cz.title, city: cz.address || 'Custom LZ', name: cz.title };
     }

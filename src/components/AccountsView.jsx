@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useData } from '../contexts/DataProvider';
 import { Plus, X, Pencil, Trash2, Building, GripVertical } from 'lucide-react';
 
-import { mockAccounts } from '../data';
 import { getAccountColor } from '../services/gridColors';
 
 const AccountsView = () => {
@@ -17,13 +16,6 @@ const AccountsView = () => {
   // Drag and drop refs
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
-
-  useEffect(() => {
-    if (userAccounts.length === 0) {
-      const seed = mockAccounts.map(a => ({ ...a, contactIds: [] }));
-      updateData('userAccounts', seed);
-    }
-  }, [userAccounts.length, updateData]);
 
   // Ensure accounts have contactIds array initialized
   const accounts = userAccounts.map(a => ({ ...a, contactIds: a.contactIds || [] }));

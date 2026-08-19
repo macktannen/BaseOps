@@ -3,7 +3,6 @@ import { useData } from '../contexts/DataProvider';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, addDays, startOfMonth, endOfMonth, isSameMonth, isSameDay, parseISO, differenceInCalendarDays } from 'date-fns';
 import { ChevronLeft, ChevronRight, ChevronDown, Plus, GripVertical, Moon, Filter, RotateCcw, MessageSquare, Helicopter, X } from 'lucide-react';
 import airportsData from '../data/airports.json';
-import { mockCustomZones } from '../data';
 import EventModal from './EventModal';
 import ConflictWarningModal from './ConflictWarningModal';
 import { detectConflicts } from '../services/schedulingConflicts';
@@ -642,7 +641,7 @@ const CalendarView = () => {
       return ap ? ap.id : loc.id;
     } else {
       const storedZones = getStoredCustomZones();
-      const cz = [...mockCustomZones, ...storedZones].find(c => c.id === loc.id);
+      const cz = storedZones.find(c => c.id === loc.id);
       return cz ? (cz.id || cz.title) : loc.id;
     }
   };
@@ -1234,8 +1233,6 @@ const CalendarView = () => {
         const getName = (val) => {
           if (!val) return '';
           if (airportsData[val]) return val;
-          const zone = mockCustomZones.find(z => z.id === val || z.name === val);
-          if (zone) return zone.name;
           return val;
         };
 

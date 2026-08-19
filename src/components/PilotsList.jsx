@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Search, User, Plus, Trash2, Users as UsersIcon, Helicopter } from 'lucide-react';
 import SaveButton from './SaveButton';
-import { mockPilots } from '../data';
 import { useData } from '../contexts/DataProvider';
 
 const PilotsList = () => {
@@ -12,17 +11,7 @@ const PilotsList = () => {
   const [saved, setSaved] = useState(false);
 
   const pilots = React.useMemo(() => {
-    let storedPilots = userPilots || [];
-    if (storedPilots.length === 0) {
-      storedPilots = [...mockPilots].map(p => ({
-        ...p,
-        email: `${p.name.split(' ')[0].toLowerCase()}@example.com`,
-        phone: '(555) 123-4567',
-        medicalExpiration: '2027-01-01',
-        certifications: 'CPL, IR',
-        notes: ''
-      }));
-    }
+    const storedPilots = userPilots || [];
     const cloned = [...storedPilots];
     cloned.sort((a, b) => a.name.localeCompare(b.name));
     return cloned;
@@ -30,20 +19,6 @@ const PilotsList = () => {
 
   const schedules = crewSchedules || {};
   const flights = userFlights || [];
-
-  useEffect(() => {
-    if (userPilots && userPilots.length === 0) {
-      const mockData = [...mockPilots].map(p => ({
-        ...p,
-        email: `${p.name.split(' ')[0].toLowerCase()}@example.com`,
-        phone: '(555) 123-4567',
-        medicalExpiration: '2027-01-01',
-        certifications: 'CPL, IR',
-        notes: ''
-      }));
-      updateData('userPilots', mockData);
-    }
-  }, [userPilots, updateData]);
 
   const getTodayPilotStatus = (pilot) => {
     if (!pilot) return { dutyStatus: 'Off Duty', flightText: null, fullLabel: 'Off Duty' };

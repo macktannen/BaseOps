@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useData } from '../contexts/DataProvider';
 import { DollarSign, Search, Calendar, FileText, Building, Plus, Trash2, Edit2, Check, X, BarChart3, Paperclip, Download, CheckSquare, Clock } from 'lucide-react';
-import { mockVendors, mockAccounts } from '../data';
 import EventModal from './EventModal';
 import AIInvoiceUploader from './AIInvoiceUploader';
 import ExpensesDashboard from './ExpensesDashboard';
@@ -93,8 +92,8 @@ const ExpensesPage = () => {
     });
   };
   // Vendors State
-  const vendors = userVendors.length > 0 ? userVendors : mockVendors;
-  const accounts = userAccounts.length > 0 ? userAccounts : mockAccounts;
+  const vendors = userVendors;
+  const accounts = userAccounts;
   const [editingVendorId, setEditingVendorId] = useState(null);
   const [editForm, setEditForm] = useState({ vendorId: '', name: '', category: '', address: '', phone: '', email: '', poc: '' });
 
@@ -468,10 +467,6 @@ const ExpensesPage = () => {
       if (parsedData.vendor && parsedData.vendor.trim()) {
         try {
           let currentVendors = [...userVendors];
-          if (currentVendors.length === 0) {
-            const { mockVendors } = await import('../data');
-            currentVendors = mockVendors;
-          }
 
           const rawVendorInput = parsedData.vendor.trim().toLowerCase();
           const matchedVendorId = (parsedData.matchedVendorId || '').toLowerCase();
@@ -615,10 +610,6 @@ const ExpensesPage = () => {
       if (manualForm.vendor && manualForm.vendor.trim()) {
         try {
           let currentVendors = [...userVendors];
-          if (currentVendors.length === 0) {
-            const { mockVendors } = await import('../data');
-            currentVendors = mockVendors;
-          }
 
           const rawVendorInput = manualForm.vendor.trim().toLowerCase();
           const matchedVendor = currentVendors.find(v => {
