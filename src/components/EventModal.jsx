@@ -382,6 +382,7 @@ const PassengerSelect = ({ passengers, onAdd, onRemove, passengersList, onAddNew
       onAdd(paxId);
     }
     setSearch('');
+    setIsOpen(false);
   };
 
   const handleCreateAndAdd = () => {
@@ -409,75 +410,39 @@ const PassengerSelect = ({ passengers, onAdd, onRemove, passengersList, onAddNew
 
   return (
     <div ref={dropdownRef} style={{ position: 'relative', flex: 1, minWidth: 0 }}>
-      <div
-        onClick={() => setIsOpen(!isOpen)}
-        style={{
-          padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-color)',
-          backgroundColor: 'white', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '3px',
-          minHeight: '30px', cursor: 'pointer', fontSize: '0.75rem'
+      <select
+        value=""
+        onChange={e => {
+          if (!e.target.value) return;
+          if (e.target.value === '__add_new__') {
+            setShowNewModal(true);
+            return;
+          }
+          handleAddPax(e.target.value);
         }}
+        onFocus={() => setIsOpen(true)}
+        onBlur={() => setTimeout(() => setIsOpen(false), 200)}
+        style={{ padding: '4px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '0.75rem', backgroundColor: 'white', width: '100%', boxSizing: 'border-box' }}
       >
-        {selectedNames.length > 0 ? selectedNames.map(p => (
-          <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569', borderRadius: '3px', padding: '1px 5px', fontSize: '0.65rem', lineHeight: '1.4' }}>
-            {p.name}
-            <span onClick={(e) => { e.stopPropagation(); onRemove(p.id); }} style={{ cursor: 'pointer', marginLeft: '3px', fontWeight: 'bold', color: '#94a3b8' }}><X size={9} /></span>
-          </span>
-        )) : (
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Add Passenger...</span>
-        )}
-      </div>
+        <option value="">Add Passenger...</option>
+        {availablePax.map(p => (
+          <option key={p.id} value={p.id} disabled={paxOnLeg.includes(p.id)}>
+            {p.name}{paxOnLeg.includes(p.id) ? ' (added)' : ''}
+          </option>
+        ))}
+        <option value="__add_new__" style={{ fontWeight: 600, color: 'var(--primary-color)' }}>+ Add New Passenger...</option>
+      </select>
 
-      {isOpen && (
-        <div style={{
-          position: 'absolute', top: '100%', left: 0, right: 0,
-          backgroundColor: 'white', border: '1px solid var(--border-color)',
-          borderRadius: '4px', zIndex: 2000, maxHeight: '250px',
-          display: 'flex', flexDirection: 'column',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)', marginTop: '2px', minWidth: '220px'
-        }}>
-          <div style={{ padding: '6px 8px', borderBottom: '1px solid var(--border-color)' }}>
-            <input
-              type="text"
-              placeholder="Search passengers..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              autoFocus
-              style={{ width: '100%', padding: '5px 8px', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '0.8rem', boxSizing: 'border-box' }}
-            />
-          </div>
-          <div style={{ overflowY: 'auto', flex: 1 }}>
-            {filtered.length === 0 && !search && (
-              <div style={{ padding: '12px', color: 'var(--text-muted)', textAlign: 'center', fontSize: '0.8rem' }}>
-                No passengers available
-              </div>
-            )}
-            {filtered.map(p => (
-              <div
-                key={p.id}
-                onClick={() => handleAddPax(p.id)}
-                style={{
-                  padding: '7px 10px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0',
-                  backgroundColor: paxOnLeg.includes(p.id) ? '#f0f7ff' : 'white',
-                  fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                }}
-              >
-                <span>{p.name}{p.company ? ` (${p.company})` : ''}</span>
-                {paxOnLeg.includes(p.id) && <span style={{ fontSize: '0.65rem', color: 'var(--primary-color)', fontWeight: 600 }}>Added</span>}
-              </div>
-            ))}
-            <div
-              onClick={() => { setShowNewModal(true); }}
-              style={{
-                padding: '8px 10px', cursor: 'pointer',
-                backgroundColor: 'var(--primary-light)', color: 'var(--primary-color)',
-                fontWeight: 500, fontSize: '0.8rem',
-                display: 'flex', alignItems: 'center', gap: '6px',
-                borderTop: '1px solid var(--primary-color)'
-              }}
-            >
-              <Plus size={14} /> {search ? `Add "${search}" as new passenger...` : 'Add New Passenger...'}
-            </div>
-          </div>
+      {selectedNames.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: '4px' }}>
+          {selectedNames.map(p => (
+            <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569', borderRadius: '3px', padding: '1px 5px', fontSize: '0.62rem', lineHeight: '1.4', userSelect: 'none', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+              <span style={{ padding: '0 2px', fontWeight: 'bold' }}>{p.name}</span>
+              <span onClick={() => onRemove(p.id)} style={{ cursor: 'pointer', marginLeft: '2px', display: 'inline-flex', alignItems: 'center', borderLeft: '1px solid rgba(0,0,0,0.12)', backgroundColor: 'rgba(0,0,0,0.05)', padding: '1px 4px', borderRadius: '0 3px 3px 0', color: '#475569' }}>
+                <X size={9} strokeWidth={2.5} />
+              </span>
+            </span>
+          ))}
         </div>
       )}
 
