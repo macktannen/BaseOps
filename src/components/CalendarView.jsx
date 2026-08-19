@@ -3,6 +3,7 @@ import { useData } from '../contexts/DataProvider';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, addDays, startOfMonth, endOfMonth, isSameMonth, isSameDay, parseISO, differenceInCalendarDays } from 'date-fns';
 import { ChevronLeft, ChevronRight, ChevronDown, Plus, GripVertical, Moon, Filter, RotateCcw, MessageSquare, Helicopter, X } from 'lucide-react';
 import airportsData from '../data/airports.json';
+import { mockCustomZones } from '../data';
 import EventModal from './EventModal';
 import ConflictWarningModal from './ConflictWarningModal';
 import { detectConflicts } from '../services/schedulingConflicts';
