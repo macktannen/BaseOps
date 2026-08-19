@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v1.5.1] - 2026-08-19
+
+### Fixed
+- **False "remote changes" banner** — The sync useEffect was firing immediately after saves because `performSave` never set `suppressSyncRef`. This caused the Firestore listener to detect the just-saved data as a "remote change" and show a confusing banner. Added `suppressSyncRef` guard to `performSave`.
+
 ## [v1.5.0] - 2026-08-19
 
 ### Changed

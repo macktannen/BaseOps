@@ -1664,6 +1664,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   };
 
   const performSave = async (overrideFlightLog = null, overrideStatus = null, shouldClose = false, extraUpdates = null) => {
+    suppressSyncRef.current = true;
     try {
       legs.forEach(leg => {
         if (leg.departure && leg.departure.id) accumulateUsage(leg.departure.id);
@@ -1763,9 +1764,11 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       setIsSaved(false);
       setTimeout(() => {
         setIsSaved(true);
+        suppressSyncRef.current = false;
       }, 50);
     } catch (err) {
       console.error("performSave error:", err);
+      suppressSyncRef.current = false;
       setAlertDialog({ open: true, title: 'Save Failed', message: 'Failed to save flight: ' + err.message });
     }
   };
