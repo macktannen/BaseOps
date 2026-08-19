@@ -13,6 +13,7 @@ import EventModal from './EventModal';
 import MobileFleet from './MobileFleet';
 import MobileExpenses from './MobileExpenses';
 import MobileAccounts from './MobileAccounts';
+import { mockFlights } from '../data';
 import { useData } from '../contexts/DataProvider';
 
 const APP_VERSION = `v${packageJson.version}`;

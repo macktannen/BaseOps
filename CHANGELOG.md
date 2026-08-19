@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v1.3.5] - 2026-08-19
+
+### Fixed
+- **Rolldown TDZ crash** — Restored `data.js` module and all imports. Rolldown's scope hoisting requires the module graph to remain stable; removing `data.js` changed module initialization order and caused "Cannot access before initialization" crash at runtime.
+
 ## [v1.3.4] - 2026-08-19
 
 ### Fixed

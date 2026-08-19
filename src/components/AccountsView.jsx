@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useData } from '../contexts/DataProvider';
 import { Plus, X, Pencil, Trash2, Building, GripVertical } from 'lucide-react';
 
+import { mockAccounts } from '../data';
 import { getAccountColor } from '../services/gridColors';
 
 const AccountsView = () => {

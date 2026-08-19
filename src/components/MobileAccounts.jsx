@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Search, Building, User, Mail, Phone, ChevronRight, ChevronDown } from 'lucide-react';
+import { mockAccounts } from '../data';
 import { getAccountColor } from '../services/gridColors';
 import { useData } from '../contexts/DataProvider';
 

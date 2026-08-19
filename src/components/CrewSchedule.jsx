@@ -3,6 +3,7 @@ import { useData } from '../contexts/DataProvider';
 import { ChevronLeft, ChevronRight, ChevronDown, Settings, Settings2, Helicopter, X, GripVertical, Moon } from 'lucide-react';
 import { startOfWeek, addDays, format, subWeeks, addWeeks } from 'date-fns';
 import airportsData from '../data/airports.json';
+import { mockCustomZones } from '../data';
 import { getColorForKey, getAccountColor, TAG_COLORS } from '../services/gridColors';
 import EventModal from './EventModal';
 import useIsMobile from '../hooks/useIsMobile';

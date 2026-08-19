@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Trash2, MapPin, Plus, GripVertical, BookOpen, Clock, ChevronLeft, ChevronRight, ChevronDown, Upload, FileText, Download, Paperclip, Eye, Image, File } from 'lucide-react';
+import { mockPilots, mockCustomZones } from '../data';
 import airportsData from '../data/airports.json';
 import tzlookup from 'tz-lookup';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
