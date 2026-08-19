@@ -58,3 +58,11 @@ Helicopter Scheduler Web App (`baseops`). Manages flights, crew schedules, expen
 - `deleteFlight(flightId)` — Deletes one flight from subcollection
 - `updateData(key, value)` — Writes to org document (for lists, schedules, etc.)
 - `updateDataBatch(updates)` — Batch-writes multiple keys to org document
+
+## Deployment Workflow (Standing Instructions)
+For every app change:
+1. Bump version in `package.json`
+2. Update `CHANGELOG.md` with the change
+3. Update `HANDOFF.md` (timestamp, last commit, completed work, files changed)
+4. Commit and push to `origin/main`
+5. Vercel auto-deploys from git main — no manual deploy needed
