@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v1.2.0] - 2026-08-19
+
+### Added
+- **Add New Passenger from Flight Modal** — Added "+ Add New Passenger..." option at the bottom of the passenger selector dropdown in the flight event modal (both desktop and mobile). Selecting it opens a modal to create a new passenger with Name, Weight, Phone, Email, Company, and Title fields. The new passenger is immediately saved to the system-wide passenger list (persisted to Firestore) and added to the current flight leg. Passenger ID is set to the person's full name, matching the existing convention in Crew & Passenger Management.
+
 ## [v1.0.5] - 2026-08-17
 
 ### Fixed

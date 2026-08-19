@@ -1,9 +1,9 @@
 # HANDOFF - baseops
 
-- **Timestamp:** Aug 18, 2026
+- **Timestamp:** Aug 19, 2026
 - **Tool used:** opencode
 - **Branch:** main
-- **Last commit:** e25163a refactor: split flights into per-entity Firestore documents
+- **Last commit:** (uncommitted — v1.2.0 changes)
 
 ## Project Overview
 Helicopter Scheduler Web App (`baseops`). Manages flights, crew schedules, expenses, fleet, and documents with Firebase/Firestore backend.
@@ -26,6 +26,9 @@ Helicopter Scheduler Web App (`baseops`). Manages flights, crew schedules, expen
 9. **Remote change detection:** When another user saves a flight you have open, banner shows which fields changed with See Latest/Keep Mine options
 10. **Flight log signature priority:** Signature changes always auto-sync regardless of unsaved changes
 11. **Per-entity flight documents:** Flights now live in `orgs/{org}/flights/{flightId}` subcollection, eliminating last-write-wins race condition for flight saves
+
+## What Was Just Completed (Aug 19)
+12. **Add New Passenger from Flight Modal** — "+ Add New Passenger..." option in passenger dropdown opens a modal to create a new passenger (Name, Weight, Phone, Email, Company, Title). Saves to system-wide `userPassengers` list and adds to current flight leg. Works on both desktop and mobile. Passenger ID = Name.
 
 ## Files Changed (Aug 18 session)
 - `src/contexts/DataProvider.jsx` — Flights subscription from subcollection, saveFlight/deleteFlight/saveFlightsBatch API

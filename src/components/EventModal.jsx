@@ -150,6 +150,106 @@ const CustomZoneModal = ({ isOpen, onClose, onSave, initialSearch }) => {
   );
 };
 
+const NewPassengerModal = ({ isOpen, onClose, onSave }) => {
+  const [name, setName] = useState('');
+  const [weight, setWeight] = useState(180);
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [company, setCompany] = useState('');
+  const [title, setTitle] = useState('');
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+    const newPassenger = {
+      id: trimmedName,
+      name: trimmedName,
+      weight: parseInt(weight) || 180,
+      email,
+      phone,
+      company,
+      title,
+      isCrew: false,
+      emergencyContact: '',
+      medicalNotes: '',
+      notes: ''
+    };
+    onSave(newPassenger);
+    setName('');
+    setWeight(180);
+    setEmail('');
+    setPhone('');
+    setCompany('');
+    setTitle('');
+  };
+
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 1100, padding: '20px'
+    }}>
+      <div className="card" style={{ width: '500px', maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto', backgroundColor: '#fff' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h3 style={{ color: 'var(--primary-color)' }}>Add New Passenger</h3>
+          <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={onClose}>
+            <X size={20} />
+          </button>
+        </div>
+        
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>Full Name *</label>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required placeholder="e.g. John Smith"
+              style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)' }} />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>Weight (lbs)</label>
+              <input type="number" value={weight} onChange={(e) => setWeight(e.target.value)}
+                style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)' }} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>Phone</label>
+              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 123-4567"
+                style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)' }} />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>Email</label>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="john.smith@company.com"
+              style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)' }} />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>Company</label>
+              <input type="text" value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Acme Corp"
+                style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)' }} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>Title</label>
+              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="CEO"
+                style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)' }} />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+            <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-primary">Save Passenger</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 
 // --- LOCATION SELECT ---
 const LocationSelect = ({ value, onChange, label, placeholder }) => {
@@ -565,6 +665,8 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const [expenses, setExpenses] = useState([]);
   const getExpensesPendingDeletesRef = useRef(null);
   const [pendingRemoteChanges, setPendingRemoteChanges] = useState(null);
+  const [showNewPassengerModal, setShowNewPassengerModal] = useState(false);
+  const [newPassengerLegIndex, setNewPassengerLegIndex] = useState(null);
 
   const { userPilots, userAircraft, userPassengers, userAccounts, userVendors, userFlights, userCustomZones, crewSchedules, locationUsage, updateData, updateDataBatch, saveFlight, deleteFlight } = useData();
 
@@ -1175,6 +1277,19 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     }
     const minutes = Math.ceil((distNM / speed) * 60);
     return { mins: Math.max(1, minutes), nm: Math.round(distNM) };
+  };
+
+  const handleSaveNewPassenger = (newPassenger) => {
+    const updatedPassengers = [...userPassengers, newPassenger];
+    updateData('userPassengers', updatedPassengers);
+    if (newPassengerLegIndex !== null) {
+      const current = legs[newPassengerLegIndex].passengers || [];
+      if (!current.includes(newPassenger.id)) {
+        handleUpdateLeg(newPassengerLegIndex, 'passengers', [...current, newPassenger.id]);
+      }
+    }
+    setShowNewPassengerModal(false);
+    setNewPassengerLegIndex(null);
   };
 
   const handleUpdateLeg = (index, field, value) => {
@@ -2450,41 +2565,52 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                             </div>
                           )}
                         </div>
-                        {/* Passengers */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          <label style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600 }}>Passengers ({leg.passengers.length})</label>
-                          {isMobile ? (
-                            <MobileDropdownMenu
-                              value=""
-                              onChange={val => {
-                                if (!val) return;
-                                const paxId = val;
-                                const current = leg.passengers || [];
-                                if (!current.includes(paxId)) {
-                                  handleUpdateLeg(index, 'passengers', [...current, paxId]);
-                                }
-                              }}
-                              options={[{ value: '', label: 'Add Passenger...' }, ...passengersList.map(p => ({ value: p.id, label: p.name }))]}
-                              placeholder="Add Passenger..."
-                              style={{ fontSize: '0.75rem' }}
-                            />
-                          ) : (
-                            <select 
-                              value="" 
-                              onChange={e => {
-                                if (!e.target.value) return;
-                                const paxId = e.target.value;
-                                const current = leg.passengers || [];
-                                if (!current.includes(paxId)) {
-                                  handleUpdateLeg(index, 'passengers', [...current, paxId]);
-                                }
-                              }}
-                              style={{ padding: '4px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '0.75rem', backgroundColor: 'white' }}
-                            >
-                              <option value="">Add Passenger...</option>
-                              {passengersList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                            </select>
-                          )}
+                         {/* Passengers */}
+                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                           <label style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600 }}>Passengers ({leg.passengers.length})</label>
+                           {isMobile ? (
+                             <MobileDropdownMenu
+                               value=""
+                               onChange={val => {
+                                 if (!val) return;
+                                 if (val === '__new__') {
+                                   setNewPassengerLegIndex(index);
+                                   setShowNewPassengerModal(true);
+                                   return;
+                                 }
+                                 const paxId = val;
+                                 const current = leg.passengers || [];
+                                 if (!current.includes(paxId)) {
+                                   handleUpdateLeg(index, 'passengers', [...current, paxId]);
+                                 }
+                               }}
+                               options={[{ value: '', label: 'Add Passenger...' }, ...passengersList.map(p => ({ value: p.id, label: p.name })), { value: '__new__', label: '+ Add New Passenger...' }]}
+                               placeholder="Add Passenger..."
+                               style={{ fontSize: '0.75rem' }}
+                             />
+                           ) : (
+                             <select 
+                               value="" 
+                               onChange={e => {
+                                 if (!e.target.value) return;
+                                 if (e.target.value === '__new__') {
+                                   setNewPassengerLegIndex(index);
+                                   setShowNewPassengerModal(true);
+                                   return;
+                                 }
+                                 const paxId = e.target.value;
+                                 const current = leg.passengers || [];
+                                 if (!current.includes(paxId)) {
+                                   handleUpdateLeg(index, 'passengers', [...current, paxId]);
+                                 }
+                               }}
+                               style={{ padding: '4px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '0.75rem', backgroundColor: 'white' }}
+                             >
+                               <option value="">Add Passenger...</option>
+                               {passengersList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                               <option value="__new__">+ Add New Passenger...</option>
+                             </select>
+                           )}
                           {leg.passengers.length > 0 && (
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: '2px' }}>
                               {leg.passengers.map(pId => {
@@ -2803,6 +2929,14 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
         pilotNames={Object.fromEntries(pilotsList.map(p => [String(p.id), p.name]))}
         onProceed={() => { setConflictModal({ open: false, pilotConflicts: [], aircraftConflicts: [] }); performSave(); }}
         onCancel={() => setConflictModal({ open: false, pilotConflicts: [], aircraftConflicts: [] })}
+      />
+    )}
+
+    {showNewPassengerModal && (
+      <NewPassengerModal
+        isOpen={showNewPassengerModal}
+        onClose={() => { setShowNewPassengerModal(false); setNewPassengerLegIndex(null); }}
+        onSave={handleSaveNewPassenger}
       />
     )}
 
