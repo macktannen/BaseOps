@@ -150,7 +150,7 @@ const CustomZoneModal = ({ isOpen, onClose, onSave, initialSearch }) => {
   );
 };
 
-const NewPassengerModal = ({ isOpen, onClose, onSave }) => {
+const NewPassengerModal = ({ isOpen, onClose, onSave, passenger }) => {
   const [name, setName] = useState('');
   const [weight, setWeight] = useState(180);
   const [email, setEmail] = useState('');
@@ -158,32 +158,46 @@ const NewPassengerModal = ({ isOpen, onClose, onSave }) => {
   const [company, setCompany] = useState('');
   const [title, setTitle] = useState('');
 
+  useEffect(() => {
+    if (passenger) {
+      setName(passenger.name || '');
+      setWeight(passenger.weight || 180);
+      setEmail(passenger.email || '');
+      setPhone(passenger.phone || '');
+      setCompany(passenger.company || '');
+      setTitle(passenger.title || '');
+    } else {
+      setName('');
+      setWeight(180);
+      setEmail('');
+      setPhone('');
+      setCompany('');
+      setTitle('');
+    }
+  }, [passenger]);
+
   if (!isOpen) return null;
+
+  const isEditing = !!passenger;
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const trimmedName = name.trim();
     if (!trimmedName) return;
-    const newPassenger = {
-      id: trimmedName,
+    const passengerData = {
+      id: isEditing ? passenger.id : trimmedName,
       name: trimmedName,
       weight: parseInt(weight) || 180,
       email,
       phone,
       company,
       title,
-      isCrew: false,
-      emergencyContact: '',
-      medicalNotes: '',
-      notes: ''
+      isCrew: passenger?.isCrew || false,
+      emergencyContact: passenger?.emergencyContact || '',
+      medicalNotes: passenger?.medicalNotes || '',
+      notes: passenger?.notes || ''
     };
-    onSave(newPassenger);
-    setName('');
-    setWeight(180);
-    setEmail('');
-    setPhone('');
-    setCompany('');
-    setTitle('');
+    onSave(passengerData, isEditing ? passenger.id : null);
   };
 
   return (
@@ -195,7 +209,7 @@ const NewPassengerModal = ({ isOpen, onClose, onSave }) => {
     }}>
       <div className="card" style={{ width: '500px', maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto', backgroundColor: '#fff' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h3 style={{ color: 'var(--primary-color)' }}>Add New Passenger</h3>
+          <h3 style={{ color: 'var(--primary-color)' }}>{isEditing ? 'Edit Passenger' : 'Add New Passenger'}</h3>
           <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={onClose}>
             <X size={20} />
           </button>
@@ -242,7 +256,7 @@ const NewPassengerModal = ({ isOpen, onClose, onSave }) => {
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
             <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary">Save Passenger</button>
+            <button type="submit" className="btn btn-primary">{isEditing ? 'Save Changes' : 'Save Passenger'}</button>
           </div>
         </form>
       </div>
@@ -667,6 +681,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const [pendingRemoteChanges, setPendingRemoteChanges] = useState(null);
   const [showNewPassengerModal, setShowNewPassengerModal] = useState(false);
   const [newPassengerLegIndex, setNewPassengerLegIndex] = useState(null);
+  const [editingPassenger, setEditingPassenger] = useState(null);
 
   const { userPilots, userAircraft, userPassengers, userAccounts, userVendors, userFlights, userCustomZones, crewSchedules, locationUsage, updateData, updateDataBatch, saveFlight, deleteFlight } = useData();
 
@@ -1279,17 +1294,23 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     return { mins: Math.max(1, minutes), nm: Math.round(distNM) };
   };
 
-  const handleSaveNewPassenger = (newPassenger) => {
-    const updatedPassengers = [...userPassengers, newPassenger];
+  const handleSaveNewPassenger = (passengerData, originalId) => {
+    let updatedPassengers;
+    if (originalId) {
+      updatedPassengers = userPassengers.map(p => p.id === originalId ? passengerData : p);
+    } else {
+      updatedPassengers = [...userPassengers, passengerData];
+    }
     updateData('userPassengers', updatedPassengers);
-    if (newPassengerLegIndex !== null) {
+    if (!originalId && newPassengerLegIndex !== null) {
       const current = legs[newPassengerLegIndex].passengers || [];
-      if (!current.includes(newPassenger.id)) {
-        handleUpdateLeg(newPassengerLegIndex, 'passengers', [...current, newPassenger.id]);
+      if (!current.includes(passengerData.id)) {
+        handleUpdateLeg(newPassengerLegIndex, 'passengers', [...current, passengerData.id]);
       }
     }
     setShowNewPassengerModal(false);
     setNewPassengerLegIndex(null);
+    setEditingPassenger(null);
   };
 
   const handleUpdateLeg = (index, field, value) => {
@@ -2631,10 +2652,20 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                                       userSelect: 'none', 
                                       boxShadow: '0 1px 2px rgba(0,0,0,0.05)' 
                                     }}
-                                  >
-                                    <span style={{ padding: '2px 5px', fontWeight: 'bold' }}>
-                                      {pax ? pax.name : pId}
-                                    </span>
+                                   >
+                                     <span 
+                                       style={{ padding: '2px 5px', fontWeight: 'bold', cursor: 'pointer' }}
+                                       onClick={(e) => {
+                                         e.stopPropagation();
+                                         if (pax) {
+                                           setEditingPassenger(pax);
+                                           setShowNewPassengerModal(true);
+                                         }
+                                       }}
+                                       title="Click to view/edit passenger"
+                                     >
+                                       {pax ? pax.name : pId}
+                                     </span>
                                     <span
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -2935,8 +2966,9 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     {showNewPassengerModal && (
       <NewPassengerModal
         isOpen={showNewPassengerModal}
-        onClose={() => { setShowNewPassengerModal(false); setNewPassengerLegIndex(null); }}
+        onClose={() => { setShowNewPassengerModal(false); setNewPassengerLegIndex(null); setEditingPassenger(null); }}
         onSave={handleSaveNewPassenger}
+        passenger={editingPassenger}
       />
     )}
 

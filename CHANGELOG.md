@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v1.2.1] - 2026-08-19
+
+### Added
+- **Edit Passenger from Flight Modal** — Clicking a passenger name badge in the flight leg now opens the passenger modal in edit mode, pre-filled with their current information (Name, Weight, Phone, Email, Company, Title). Changes persist to the system-wide passenger list. Works for both existing and newly added passengers.
+
 ## [v1.2.0] - 2026-08-19
 
 ### Added
