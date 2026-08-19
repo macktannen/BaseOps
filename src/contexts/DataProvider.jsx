@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { doc, collection, onSnapshot, setDoc, updateDoc, deleteDoc, writeBatch, getDocs } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuth } from './useAuth';
@@ -340,12 +340,8 @@ export const DataProvider = ({ children }) => {
     }
   }, []);
 
-  const contextValue = useMemo(() => ({
-    ...data, data, updateData, updateDataBatch, saveFlight, saveFlightsBatch, deleteFlight, loading, error
-  }), [data, updateData, updateDataBatch, saveFlight, saveFlightsBatch, deleteFlight, loading, error]);
-
   return (
-    <DataContext.Provider value={contextValue}>
+    <DataContext.Provider value={{ ...data, data, updateData, updateDataBatch, saveFlight, saveFlightsBatch, deleteFlight, loading, error }}>
       {children}
     </DataContext.Provider>
   );
