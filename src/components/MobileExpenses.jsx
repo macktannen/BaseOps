@@ -5,6 +5,9 @@ import AIInvoiceUploader from './AIInvoiceUploader';
 import { FileStorageService } from '../services/FileStorageService';
 import { useData } from '../contexts/DataProvider';
 
+import ConfirmDialog from './ConfirmDialog';
+import AlertDialog from './AlertDialog';
+
 const CATEGORIES = [
   'Catering', 'Cleaning / Detailing', 'Crew Meal', 'Customs / Border Fees',
   'De-icing', 'Fuel', 'GPU / Start Cart', 'Ground Transportation', 'Handling',
@@ -62,6 +65,8 @@ const MobileExpenses = () => {
   const [manualSaving, setManualSaving] = useState(false);
 
   const [showAutoModal, setShowAutoModal] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
+  const [alertDialog, setAlertDialog] = useState({ open: false, title: '', message: '' });
 
   const { userFlights, departmentExpenses, updateData, saveFlight } = useData();
   const flights = React.useMemo(() => userFlights || [], [userFlights]);
@@ -253,7 +258,7 @@ const MobileExpenses = () => {
           receiptFiles = [{ storagePath: result.storagePath, name: parsedData._originalFile.name, type: parsedData._originalFile.type, size: result.size, url: result.url }];
           receiptCount = 1;
           if (result.resizeFailed) {
-            alert(`Image compression failed for "${parsedData._originalFile.name}". The file was uploaded at full size, which may use more storage than expected.`);
+            setAlertDialog({ open: true, title: 'Image Compression Failed', message: `Image compression failed for "${parsedData._originalFile.name}". The file was uploaded at full size, which may use more storage than expected.` });
           }
         }
       } catch (e) { console.warn('Receipt upload error:', e); }
@@ -736,6 +741,19 @@ const MobileExpenses = () => {
           <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
         </div>
       )}
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ open: false, title: '', message: '', onConfirm: null })}
+      />
+      <AlertDialog
+        isOpen={alertDialog.open}
+        title={alertDialog.title}
+        message={alertDialog.message}
+        onClose={() => setAlertDialog({ open: false, title: '', message: '' })}
+      />
     </div>
   );
 };

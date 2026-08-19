@@ -9,6 +9,8 @@ import ConflictWarningModal from './ConflictWarningModal';
 import { detectConflicts } from '../services/schedulingConflicts';
 import { authService } from '../services/authService';
 import { setPersonStatusForDate } from '../services/scheduleService';
+import ConfirmDialog from './ConfirmDialog';
+import AlertDialog from './AlertDialog';
 
 const LEGEND = {
   'Off Duty': '#ef4444', 
@@ -167,6 +169,9 @@ const CalendarView = () => {
   const [dropConflictModal, setDropConflictModal] = useState({ open: false, pilotConflicts: [], aircraftConflicts: [], pendingFlight: null });
   const [cellModalOpen, setCellModalOpen] = useState(null); // { personId, dateStr, status }
   const [pendingCrewSchedules, setPendingCrewSchedules] = useState(null);
+
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
+  const [alertDialog, setAlertDialog] = useState({ open: false, title: '', message: '' });
 
   const effectiveCrewSchedules = pendingCrewSchedules || crewSchedules;
 
@@ -433,7 +438,7 @@ const CalendarView = () => {
     const isSigned = !!(targetFlight?.flightLog?.signature || targetFlight?.flightLog?.isLocked);
     
     if (isSigned && !isAdmin) {
-      alert('This flight has a signed flight log and can only be deleted by an administrator.');
+      setAlertDialog({open:true,title:'Admin Required',message:'This flight has a signed flight log and can only be deleted by an administrator.'});
       return;
     }
 
@@ -535,7 +540,7 @@ const CalendarView = () => {
 
         const isFlightSigned = !!(sourceFlight.flightLog?.signature || sourceFlight.flightLog?.isLocked);
         if (isFlightSigned) {
-          alert('This flight has a signed flight log and cannot be moved to a different day. It must remain as logged on the date flown.');
+          setAlertDialog({open:true,title:'Flight Locked',message:'This flight has a signed flight log and cannot be moved to a different day. It must remain as logged on the date flown.'});
           return;
         }
 
@@ -1347,6 +1352,24 @@ const CalendarView = () => {
           </div>
         );
       })()}
+
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={() => {
+          setConfirmDialog(prev => ({ ...prev, open: false }));
+          if (confirmDialog.onConfirm) confirmDialog.onConfirm();
+        }}
+        onCancel={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+        danger
+      />
+      <AlertDialog
+        isOpen={alertDialog.open}
+        title={alertDialog.title}
+        message={alertDialog.message}
+        onClose={() => setAlertDialog(prev => ({ ...prev, open: false }))}
+      />
     </div>
   );
 };

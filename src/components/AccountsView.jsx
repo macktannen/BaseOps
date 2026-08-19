@@ -5,6 +5,9 @@ import { Plus, X, Pencil, Trash2, Building, GripVertical } from 'lucide-react';
 import { mockAccounts } from '../data';
 import { getAccountColor } from '../services/gridColors';
 
+import ConfirmDialog from './ConfirmDialog';
+import AlertDialog from './AlertDialog';
+
 const AccountsView = () => {
   const { data, updateData } = useData();
   const { userAccounts = [], globalContacts = [] } = data;
@@ -14,6 +17,8 @@ const AccountsView = () => {
   const [name, setName] = useState('');
   const [contactIds, setContactIds] = useState([]);
   const [, setSaved] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
+  const [alertDialog, setAlertDialog] = useState({ open: false, title: '', message: '' });
   // Drag and drop refs
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
@@ -45,10 +50,16 @@ const AccountsView = () => {
   };
 
   const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this account?')) {
-      const updatedAccounts = accounts.filter(a => a.id !== id);
-      updateData('userAccounts', updatedAccounts);
-    }
+    setConfirmDialog({
+      open: true,
+      title: 'Delete Account',
+      message: 'Are you sure you want to delete this account?',
+      onConfirm: () => {
+        const updatedAccounts = accounts.filter(a => a.id !== id);
+        updateData('userAccounts', updatedAccounts);
+        setConfirmDialog({ open: false, title: '', message: '', onConfirm: null });
+      }
+    });
   };
 
   const openModal = (account = null) => {
@@ -255,6 +266,19 @@ const AccountsView = () => {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ open: false, title: '', message: '', onConfirm: null })}
+      />
+      <AlertDialog
+        isOpen={alertDialog.open}
+        title={alertDialog.title}
+        message={alertDialog.message}
+        onClose={() => setAlertDialog({ open: false, title: '', message: '' })}
+      />
     </div>
   );
 };

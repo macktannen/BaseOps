@@ -8,6 +8,8 @@ import ExpensesDashboard from './ExpensesDashboard';
 import { FileStorageService } from '../services/FileStorageService';
 import useIsMobile from '../hooks/useIsMobile';
 import MobileDropdownMenu from './MobileDropdownMenu';
+import ConfirmDialog from './ConfirmDialog';
+import AlertDialog from './AlertDialog';
 
 const getCategoryColor = (category) => {
   if (!category) return { bg: '#edf2f7', text: '#4a5568' };
@@ -98,6 +100,9 @@ const ExpensesPage = () => {
   const [editingVendorId, setEditingVendorId] = useState(null);
   const [editForm, setEditForm] = useState({ vendorId: '', name: '', category: '', address: '', phone: '', email: '', poc: '' });
 
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
+  const [alertDialog, setAlertDialog] = useState({ open: false, title: '', message: '' });
+
   const expenses = useMemo(() => {
     let allExpenses = [];
     userFlights.forEach(flight => {
@@ -171,7 +176,7 @@ const ExpensesPage = () => {
       try {
         await FileStorageService.deleteReceipt(fileToDelete.storagePath);
       } catch (err) {
-        alert(err.message || 'Failed to delete receipt from cloud storage. The file may still exist.');
+        setAlertDialog({open:true,title:'Delete Failed',message:err.message || 'Failed to delete receipt from cloud storage. The file may still exist.'});
       }
     }
     const newFiles = files.filter((_, idx) => idx !== fileIndex);
@@ -445,7 +450,7 @@ const ExpensesPage = () => {
     try {
       const storedFlights = [...userFlights];
       if (storedFlights.length === 0) {
-        alert(`Parsed Expense: ${parsedData.vendor} - $${parsedData.amount}\n(No flights found to attach expense to. Please create a flight first).`);
+        setAlertDialog({open:true,title:'No Flight Found',message:`Parsed Expense: ${parsedData.vendor} - $${parsedData.amount}\n(No flights found to attach expense to. Please create a flight first).`});
         return;
       }
       
@@ -527,7 +532,7 @@ const ExpensesPage = () => {
           receiptFiles = [{ storagePath: result.storagePath, name: parsedData._originalFile.name, type: parsedData._originalFile.type, size: result.size, url: result.url }];
           receiptCount = 1;
           if (result.resizeFailed) {
-            alert(`Image compression failed for "${parsedData._originalFile.name}". The file was uploaded at full size, which may use more storage than expected.`);
+            setAlertDialog({open:true,title:'Compression Failed',message:`Image compression failed for "${parsedData._originalFile.name}". The file was uploaded at full size, which may use more storage than expected.`});
           }
         } catch(e) { console.warn('Receipt upload error:', e); }
       }
@@ -556,7 +561,7 @@ const ExpensesPage = () => {
 
       saveFlight(targetFlight);
 
-      alert(`✨ Successfully parsed invoice!\nAdded ${parsedData.amount ? '$' + parsedData.amount : 'expense'} (${parsedData.vendor || 'Unknown'}) to Flight #${targetFlight.flightNumber || targetFlight.id}.`);
+      setAlertDialog({open:true,title:'Success',message:`Successfully parsed invoice!\nAdded ${parsedData.amount ? '$' + parsedData.amount : 'expense'} (${parsedData.vendor || 'Unknown'}) to Flight #${targetFlight.flightNumber || targetFlight.id}.`});
     } catch(err) {
       console.error("Global auto-fill error:", err);
     }
@@ -598,7 +603,7 @@ const ExpensesPage = () => {
       if (!isDepartment) {
         targetFlight = userFlights.find(f => String(f.id) === String(manualForm.flightId));
         if (!targetFlight) {
-          alert('Selected flight could not be found.');
+          setAlertDialog({open:true,title:'Flight Not Found',message:'Selected flight could not be found.'});
           return;
         }
       }
@@ -657,7 +662,7 @@ const ExpensesPage = () => {
       if (isEditing) {
         const existing = deptExpenses.find(e => e.id === editingDeptExpenseId);
         if (!existing) {
-          alert('This expense could not be found. It may have been deleted.');
+          setAlertDialog({open:true,title:'Expense Not Found',message:'This expense could not be found. It may have been deleted.'});
           return;
         }
 
@@ -724,16 +729,22 @@ const ExpensesPage = () => {
 
   const handleDeleteDepartmentExpense = () => {
     if (editingDeptExpenseId == null) return;
-    if (!window.confirm('Delete this department expense? This cannot be undone.')) return;
-    try {
-      const remaining = departmentExpenses.filter(e => e.id !== editingDeptExpenseId);
-      updateData('departmentExpenses', remaining);
-      setIsManualModalOpen(false);
-      setEditingDeptExpenseId(null);
-      setManualForm(emptyManualForm);
-    } catch (err) {
-      console.error("Delete department expense error:", err);
-    }
+    setConfirmDialog({
+      open: true,
+      title: 'Delete Department Expense',
+      message: 'Delete this department expense? This cannot be undone.',
+      onConfirm: () => {
+        try {
+          const remaining = departmentExpenses.filter(e => e.id !== editingDeptExpenseId);
+          updateData('departmentExpenses', remaining);
+          setIsManualModalOpen(false);
+          setEditingDeptExpenseId(null);
+          setManualForm(emptyManualForm);
+        } catch (err) {
+          console.error("Delete department expense error:", err);
+        }
+      }
+    });
   };
 
   return (
@@ -1559,6 +1570,24 @@ const ExpensesPage = () => {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={() => {
+          setConfirmDialog(prev => ({ ...prev, open: false }));
+          if (confirmDialog.onConfirm) confirmDialog.onConfirm();
+        }}
+        onCancel={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+        danger
+      />
+      <AlertDialog
+        isOpen={alertDialog.open}
+        title={alertDialog.title}
+        message={alertDialog.message}
+        onClose={() => setAlertDialog(prev => ({ ...prev, open: false }))}
+      />
     </div>
   );
 };

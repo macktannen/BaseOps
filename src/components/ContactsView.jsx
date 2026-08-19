@@ -3,6 +3,9 @@ import { useData } from '../contexts/DataProvider';
 import SaveButton from './SaveButton';
 import { Plus, X, Pencil, Trash2, Users, GripVertical, Search } from 'lucide-react';
 
+import ConfirmDialog from './ConfirmDialog';
+import AlertDialog from './AlertDialog';
+
 const ContactsView = () => {
   const { data, updateData } = useData();
   const { globalContacts = [] } = data;
@@ -16,6 +19,8 @@ const ContactsView = () => {
   const [editingContact, setEditingContact] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [saved, setSaved] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
+  const [alertDialog, setAlertDialog] = useState({ open: false, title: '', message: '' });
   
   // Form fields
   const [name, setName] = useState('');
@@ -56,10 +61,16 @@ const ContactsView = () => {
   };
 
   const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this contact?')) {
-      const updatedContacts = contacts.filter(c => c.id !== id);
-      updateData('globalContacts', updatedContacts);
-    }
+    setConfirmDialog({
+      open: true,
+      title: 'Delete Contact',
+      message: 'Are you sure you want to delete this contact?',
+      onConfirm: () => {
+        const updatedContacts = contacts.filter(c => c.id !== id);
+        updateData('globalContacts', updatedContacts);
+        setConfirmDialog({ open: false, title: '', message: '', onConfirm: null });
+      }
+    });
   };
 
   const openModal = (contact = null) => {
@@ -363,6 +374,19 @@ const ContactsView = () => {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ open: false, title: '', message: '', onConfirm: null })}
+      />
+      <AlertDialog
+        isOpen={alertDialog.open}
+        title={alertDialog.title}
+        message={alertDialog.message}
+        onClose={() => setAlertDialog({ open: false, title: '', message: '' })}
+      />
     </div>
   );
 };

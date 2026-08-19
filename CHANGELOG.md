@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v1.5.0] - 2026-08-19
+
+### Changed
+- **All native dialogs replaced** — Every `window.confirm()` and `alert()` call across the entire codebase now uses styled ConfirmDialog/AlertDialog components. 54 instances replaced across 14 files. Zero native browser dialogs remain.
+
 ## [v1.4.1] - 2026-08-19
 
 ### Changed

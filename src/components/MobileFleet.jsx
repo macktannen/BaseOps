@@ -5,6 +5,9 @@ import { can as permCan } from '../services/permissionService';
 import SaveButton from './SaveButton';
 import { useData } from '../contexts/DataProvider';
 
+import ConfirmDialog from './ConfirmDialog';
+import AlertDialog from './AlertDialog';
+
 const MobileFleet = () => {
   const currentUser = authService.getCurrentUser();
   const isAdmin = permCan(currentUser, 'all') || false;
@@ -20,6 +23,8 @@ const MobileFleet = () => {
   const [auditExpanded, setAuditExpanded] = useState(false);
   const [saved, setSaved] = useState(false);
   const [view, setView] = useState('landing');
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
+  const [alertDialog, setAlertDialog] = useState({ open: false, title: '', message: '' });
   
   const { userAircraft, userFlights, updateData } = useData();
 
@@ -94,17 +99,24 @@ const MobileFleet = () => {
 
   const handleDelete = () => {
     if (!editForm) return;
-    if (!window.confirm(`Are you sure you want to delete ${editForm.id}?`)) return;
-    try {
-      const storedAircraft = [...(userAircraft || [])];
-      const updatedAircraft = storedAircraft.filter(a => a.id !== editForm.originalId && a.id !== editForm.id);
-      updateData('userAircraft', updatedAircraft);
-      setSelectedId(null);
-      setEditForm(null);
-      setView('landing');
-    } catch {
-      alert('Failed to delete aircraft.');
-    }
+    setConfirmDialog({
+      open: true,
+      title: 'Delete Aircraft',
+      message: `Are you sure you want to delete ${editForm.id}?`,
+      onConfirm: () => {
+        try {
+          const storedAircraft = [...(userAircraft || [])];
+          const updatedAircraft = storedAircraft.filter(a => a.id !== editForm.originalId && a.id !== editForm.id);
+          updateData('userAircraft', updatedAircraft);
+          setSelectedId(null);
+          setEditForm(null);
+          setView('landing');
+        } catch {
+          setAlertDialog({ open: true, title: 'Delete Failed', message: 'Failed to delete aircraft.' });
+        }
+        setConfirmDialog({ open: false, title: '', message: '', onConfirm: null });
+      }
+    });
   };
 
   const handleDeleteAuditEntry = (originalIndex) => {
@@ -242,6 +254,19 @@ const MobileFleet = () => {
             </div>
           )}
         </div>
+        <ConfirmDialog
+          isOpen={confirmDialog.open}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog({ open: false, title: '', message: '', onConfirm: null })}
+        />
+        <AlertDialog
+          isOpen={alertDialog.open}
+          title={alertDialog.title}
+          message={alertDialog.message}
+          onClose={() => setAlertDialog({ open: false, title: '', message: '' })}
+        />
       </div>
     );
   }
@@ -586,6 +611,19 @@ const MobileFleet = () => {
           </form>
         )}
       </div>
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ open: false, title: '', message: '', onConfirm: null })}
+      />
+      <AlertDialog
+        isOpen={alertDialog.open}
+        title={alertDialog.title}
+        message={alertDialog.message}
+        onClose={() => setAlertDialog({ open: false, title: '', message: '' })}
+      />
     </div>
   );
 };

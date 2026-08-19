@@ -5,6 +5,8 @@ import AIInvoiceUploader from './AIInvoiceUploader';
 import useIsMobile from '../hooks/useIsMobile';
 import MobileDropdownMenu from './MobileDropdownMenu';
 import { useData } from '../contexts/DataProvider';
+import ConfirmDialog from './ConfirmDialog';
+import AlertDialog from './AlertDialog';
 
 const ALL_CATEGORIES = [
   'Catering', 'Cleaning / Detailing', 'Crew Meal', 'Customs / Border Fees', 
@@ -90,6 +92,9 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [aiLoadingId, setAiLoadingId] = useState(null);
   const pendingDeletesRef = useRef([]);
+
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
+  const [alertDialog, setAlertDialog] = useState({ open: false, title: '', message: '' });
 
   const { userFlights, userVendors, updateData, saveFlight } = useData();
 
@@ -346,7 +351,7 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
           receiptFiles = [{ storagePath: result.storagePath, name: parsedData._originalFile.name, type: parsedData._originalFile.type, size: result.size, url: result.url }];
           receiptCount = 1;
           if (result.resizeFailed) {
-            alert(`Image compression failed for "${parsedData._originalFile.name}". The file was uploaded at full size, which may use more storage than expected.`);
+            setAlertDialog({open:true,title:'Compression Failed',message:`Image compression failed for "${parsedData._originalFile.name}". The file was uploaded at full size, which may use more storage than expected.`});
           }
         }
       } catch(e) { console.warn('Receipt upload error:', e); setUploadError(e.message); }
@@ -396,7 +401,7 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
           await FileStorageService.deleteReceipt(storagePath);
         } catch (err) {
           console.error("Failed to delete receipt", err);
-          alert(err.message || 'Failed to delete receipt from cloud storage. The file may still exist.');
+          setAlertDialog({open:true,title:'Delete Failed',message:err.message || 'Failed to delete receipt from cloud storage. The file may still exist.'});
         }
       }
     }
@@ -408,7 +413,7 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
         await FileStorageService.deleteReceipt(storagePath);
       } catch (err) {
         console.error("Failed to delete receipt", err);
-        alert(err.message || 'Failed to delete receipt from cloud storage. The file may still exist.');
+          setAlertDialog({open:true,title:'Delete Failed',message:err.message || 'Failed to delete receipt from cloud storage. The file may still exist.'});
       }
     }
 
@@ -487,7 +492,7 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
           }
           const result = await FileStorageService.saveReceipt(flightId, expId, f);
           if (result.resizeFailed) {
-            alert(`Image compression failed for "${f.name}". The file was uploaded at full size, which may use more storage than expected.`);
+            setAlertDialog({open:true,title:'Compression Failed',message:`Image compression failed for "${f.name}". The file was uploaded at full size, which may use more storage than expected.`});
           }
           return {
             storagePath: result.storagePath,
@@ -895,6 +900,24 @@ const ExpensesTab = ({ expenses, setExpenses, legs = [], aircraftId = '', vendor
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={() => {
+          setConfirmDialog(prev => ({ ...prev, open: false }));
+          if (confirmDialog.onConfirm) confirmDialog.onConfirm();
+        }}
+        onCancel={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+        danger
+      />
+      <AlertDialog
+        isOpen={alertDialog.open}
+        title={alertDialog.title}
+        message={alertDialog.message}
+        onClose={() => setAlertDialog(prev => ({ ...prev, open: false }))}
+      />
     </div>
   );
 };

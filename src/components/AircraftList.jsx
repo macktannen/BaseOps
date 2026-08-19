@@ -7,6 +7,9 @@ import SaveButton from './SaveButton';
 import { authService } from '../services/authService';
 import { can as permCan } from '../services/permissionService';
 
+import ConfirmDialog from './ConfirmDialog';
+import AlertDialog from './AlertDialog';
+
 const AircraftList = () => {
   const currentUser = authService.getCurrentUser();
   const isAdmin = permCan(currentUser, 'all') || false;
@@ -21,6 +24,8 @@ const AircraftList = () => {
 
   const [saved, setSaved] = useState(false);
   const [search, setSearch] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
+  const [alertDialog, setAlertDialog] = useState({ open: false, title: '', message: '' });
   const [selectedAircraft, setSelectedAircraft] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [auditExpanded, setAuditExpanded] = useState(false);
@@ -134,15 +139,22 @@ const AircraftList = () => {
 
   const handleDelete = () => {
     if (!editForm) return;
-    if (!window.confirm(`Are you sure you want to delete ${editForm.id}?`)) return;
-    try {
-      const updatedAircraft = userAircraft.filter(a => a.id !== editForm.originalId && a.id !== editForm.id);
-      updateData('userAircraft', updatedAircraft);
-      setSelectedAircraft(null);
-      setEditForm(null);
-    } catch {
-      alert('Failed to delete aircraft.');
-    }
+    setConfirmDialog({
+      open: true,
+      title: 'Delete Aircraft',
+      message: `Are you sure you want to delete ${editForm.id}?`,
+      onConfirm: () => {
+        try {
+          const updatedAircraft = userAircraft.filter(a => a.id !== editForm.originalId && a.id !== editForm.id);
+          updateData('userAircraft', updatedAircraft);
+          setSelectedAircraft(null);
+          setEditForm(null);
+        } catch {
+          setAlertDialog({ open: true, title: 'Delete Failed', message: 'Failed to delete aircraft.' });
+        }
+        setConfirmDialog({ open: false, title: '', message: '', onConfirm: null });
+      }
+    });
   };
 
   const handleSave = (e) => {
@@ -605,6 +617,19 @@ const AircraftList = () => {
           </form>
         )}
       </div>
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ open: false, title: '', message: '', onConfirm: null })}
+      />
+      <AlertDialog
+        isOpen={alertDialog.open}
+        title={alertDialog.title}
+        message={alertDialog.message}
+        onClose={() => setAlertDialog({ open: false, title: '', message: '' })}
+      />
     </div>
   );
 };

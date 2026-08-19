@@ -3,6 +3,9 @@ import { useData } from '../contexts/DataProvider';
 import { Search, Plus, Trash2, Users, Briefcase, HeartPulse } from 'lucide-react';
 import SaveButton from './SaveButton';
 
+import ConfirmDialog from './ConfirmDialog';
+import AlertDialog from './AlertDialog';
+
 const PassengersList = () => {
   const { data, updateData, updateDataBatch } = useData();
   const { userPassengers = [], crewSchedules = {} } = data;
@@ -11,6 +14,8 @@ const PassengersList = () => {
   const [selectedPassenger, setSelectedPassenger] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [saved, setSaved] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
+  const [alertDialog, setAlertDialog] = useState({ open: false, title: '', message: '' });
 
   useEffect(() => {
     if (userPassengers.length === 0) {
@@ -80,31 +85,38 @@ const PassengersList = () => {
 
   const handleDelete = () => {
     if (!editForm) return;
-    if (!window.confirm(`Are you sure you want to delete ${editForm.name}?`)) return;
-    try {
-      const updatedPassengers = userPassengers.filter(p => p.id !== editForm.originalId && p.id !== editForm.id);
+    setConfirmDialog({
+      open: true,
+      title: 'Delete Passenger',
+      message: `Are you sure you want to delete ${editForm.name}?`,
+      onConfirm: () => {
+        try {
+          const updatedPassengers = userPassengers.filter(p => p.id !== editForm.originalId && p.id !== editForm.id);
 
-      const targetId = editForm.originalId || editForm.id;
-      const newSchedules = { ...crewSchedules };
-      let changed = false;
-      Object.keys(newSchedules).forEach(k => {
-        if (k.startsWith(`${targetId}_`) || k.startsWith(`${editForm.name}_`)) {
-          delete newSchedules[k];
-          changed = true;
+          const targetId = editForm.originalId || editForm.id;
+          const newSchedules = { ...crewSchedules };
+          let changed = false;
+          Object.keys(newSchedules).forEach(k => {
+            if (k.startsWith(`${targetId}_`) || k.startsWith(`${editForm.name}_`)) {
+              delete newSchedules[k];
+              changed = true;
+            }
+          });
+
+          if (changed) {
+            updateDataBatch({ userPassengers: updatedPassengers, crewSchedules: newSchedules });
+          } else {
+            updateData('userPassengers', updatedPassengers);
+          }
+
+          setSelectedPassenger(null);
+          setEditForm(null);
+        } catch {
+          setAlertDialog({ open: true, title: 'Delete Failed', message: 'Failed to delete passenger.' });
         }
-      });
-
-      if (changed) {
-        updateDataBatch({ userPassengers: updatedPassengers, crewSchedules: newSchedules });
-      } else {
-        updateData('userPassengers', updatedPassengers);
+        setConfirmDialog({ open: false, title: '', message: '', onConfirm: null });
       }
-
-      setSelectedPassenger(null);
-      setEditForm(null);
-    } catch {
-      alert('Failed to delete passenger.');
-    }
+    });
   };
 
   const handleSave = (e) => {
@@ -369,6 +381,19 @@ const PassengersList = () => {
           </form>
         )}
       </div>
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ open: false, title: '', message: '', onConfirm: null })}
+      />
+      <AlertDialog
+        isOpen={alertDialog.open}
+        title={alertDialog.title}
+        message={alertDialog.message}
+        onClose={() => setAlertDialog({ open: false, title: '', message: '' })}
+      />
     </div>
   );
 };

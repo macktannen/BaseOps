@@ -3,6 +3,9 @@ import { useData } from '../contexts/DataProvider';
 import { Search, Plus, Trash2, Users, Briefcase, HeartPulse, UserCheck } from 'lucide-react';
 import SaveButton from './SaveButton';
 
+import ConfirmDialog from './ConfirmDialog';
+import AlertDialog from './AlertDialog';
+
 const CrewList = () => {
   const { data, updateData, updateDataBatch } = useData();
   const { userPassengers = [], crewSchedules = {} } = data;
@@ -11,6 +14,8 @@ const CrewList = () => {
   const [selectedCrew, setSelectedCrew] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [saved, setSaved] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
+  const [alertDialog, setAlertDialog] = useState({ open: false, title: '', message: '' });
 
   const crewMembers = useMemo(() => {
     const crewOnly = userPassengers.filter(p => p.isCrew);
@@ -60,31 +65,38 @@ const CrewList = () => {
 
   const handleDelete = () => {
     if (!editForm) return;
-    if (!window.confirm(`Are you sure you want to delete ${editForm.name}?`)) return;
-    try {
-      const updated = userPassengers.filter(p => p.id !== editForm.originalId && p.id !== editForm.id);
+    setConfirmDialog({
+      open: true,
+      title: 'Delete Crew Member',
+      message: `Are you sure you want to delete ${editForm.name}?`,
+      onConfirm: () => {
+        try {
+          const updated = userPassengers.filter(p => p.id !== editForm.originalId && p.id !== editForm.id);
 
-      const targetId = editForm.originalId || editForm.id;
-      let changed = false;
-      const newSchedules = { ...crewSchedules };
-      Object.keys(newSchedules).forEach(k => {
-        if (k.startsWith(`${targetId}_`) || k.startsWith(`${editForm.name}_`)) {
-          delete newSchedules[k];
-          changed = true;
+          const targetId = editForm.originalId || editForm.id;
+          let changed = false;
+          const newSchedules = { ...crewSchedules };
+          Object.keys(newSchedules).forEach(k => {
+            if (k.startsWith(`${targetId}_`) || k.startsWith(`${editForm.name}_`)) {
+              delete newSchedules[k];
+              changed = true;
+            }
+          });
+
+          if (changed) {
+            updateDataBatch({ userPassengers: updated, crewSchedules: newSchedules });
+          } else {
+            updateData('userPassengers', updated);
+          }
+
+          setSelectedCrew(null);
+          setEditForm(null);
+        } catch {
+          setAlertDialog({ open: true, title: 'Delete Failed', message: 'Failed to delete crew member.' });
         }
-      });
-
-      if (changed) {
-        updateDataBatch({ userPassengers: updated, crewSchedules: newSchedules });
-      } else {
-        updateData('userPassengers', updated);
+        setConfirmDialog({ open: false, title: '', message: '', onConfirm: null });
       }
-
-      setSelectedCrew(null);
-      setEditForm(null);
-    } catch {
-      alert('Failed to delete crew member.');
-    }
+    });
   };
 
   const handleSave = (e) => {
@@ -355,6 +367,19 @@ const CrewList = () => {
           </form>
         )}
       </div>
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ open: false, title: '', message: '', onConfirm: null })}
+      />
+      <AlertDialog
+        isOpen={alertDialog.open}
+        title={alertDialog.title}
+        message={alertDialog.message}
+        onClose={() => setAlertDialog({ open: false, title: '', message: '' })}
+      />
     </div>
   );
 };

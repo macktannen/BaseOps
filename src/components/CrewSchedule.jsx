@@ -10,6 +10,9 @@ import useIsMobile from '../hooks/useIsMobile';
 import MobileDropdownMenu from './MobileDropdownMenu';
 import { getPersonStatusForDate, setPersonStatusForDate } from '../services/scheduleService';
 
+import ConfirmDialog from './ConfirmDialog';
+import AlertDialog from './AlertDialog';
+
 const LEGEND = {
   'Off Duty': '#ef4444', 
   'On Duty': '#22c55e', 
@@ -155,6 +158,8 @@ const CrewSchedule = () => {
   const [genDays, setGenDays] = useState([1, 2, 3, 4, 5]); // Default Mon-Fri
   const [genStartDate, setGenStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [everyOtherWeek, setEveryOtherWeek] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
+  const [alertDialog, setAlertDialog] = useState({ open: false, title: '', message: '' });
 
   const saveSchedules = (newSched) => {
     updateData('crewSchedules', newSched);
@@ -224,19 +229,26 @@ const CrewSchedule = () => {
 
   const clearSchedule = () => {
     if (!genPilotId) return;
-    if (!window.confirm("Are you sure you want to clear ALL scheduled statuses for this person?")) return;
-    const targetPerson = personnel.find(p => String(p.id) === String(genPilotId) || p.name === genPilotId);
-    const targetId = targetPerson?.id ? String(targetPerson.id) : String(genPilotId);
-    const targetName = targetPerson?.name ? String(targetPerson.name) : '';
+    setConfirmDialog({
+      open: true,
+      title: 'Clear Schedule',
+      message: 'Are you sure you want to clear ALL scheduled statuses for this person?',
+      onConfirm: () => {
+        const targetPerson = personnel.find(p => String(p.id) === String(genPilotId) || p.name === genPilotId);
+        const targetId = targetPerson?.id ? String(targetPerson.id) : String(genPilotId);
+        const targetName = targetPerson?.name ? String(targetPerson.name) : '';
 
-    const newSched = { ...schedules };
-    Object.keys(newSched).forEach(k => {
-      if (k.startsWith(`${targetId}_`) || (targetName && k.startsWith(`${targetName}_`))) {
-        delete newSched[k];
+        const newSched = { ...schedules };
+        Object.keys(newSched).forEach(k => {
+          if (k.startsWith(`${targetId}_`) || (targetName && k.startsWith(`${targetName}_`))) {
+            delete newSched[k];
+          }
+        });
+        saveSchedules(newSched);
+        setGeneratorOpen(false);
+        setConfirmDialog({ open: false, title: '', message: '', onConfirm: null });
       }
     });
-    saveSchedules(newSched);
-    setGeneratorOpen(false);
   };
 
   const getFlightsForPersonAndDate = (personId, date) => {
@@ -894,6 +906,19 @@ const CrewSchedule = () => {
         />
       )}
 
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ open: false, title: '', message: '', onConfirm: null })}
+      />
+      <AlertDialog
+        isOpen={alertDialog.open}
+        title={alertDialog.title}
+        message={alertDialog.message}
+        onClose={() => setAlertDialog({ open: false, title: '', message: '' })}
+      />
     </div>
   );
 };

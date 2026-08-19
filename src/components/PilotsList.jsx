@@ -4,12 +4,17 @@ import SaveButton from './SaveButton';
 import { mockPilots } from '../data';
 import { useData } from '../contexts/DataProvider';
 
+import ConfirmDialog from './ConfirmDialog';
+import AlertDialog from './AlertDialog';
+
 const PilotsList = () => {
   const { userPilots, crewSchedules, userFlights, updateData, updateDataBatch } = useData();
   const [search, setSearch] = useState('');
   const [selectedPilot, setSelectedPilot] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [saved, setSaved] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
+  const [alertDialog, setAlertDialog] = useState({ open: false, title: '', message: '' });
 
   const pilots = React.useMemo(() => {
     const storedPilots = userPilots || [];
@@ -152,30 +157,37 @@ const PilotsList = () => {
 
   const handleDelete = () => {
     if (!editForm) return;
-    if (!window.confirm(`Are you sure you want to delete ${editForm.name}?`)) return;
-    try {
-      const storedPilots = [...(userPilots || [])];
-      const updatedPilots = storedPilots.filter(p => p.id !== editForm.id);
+    setConfirmDialog({
+      open: true,
+      title: 'Delete Pilot',
+      message: `Are you sure you want to delete ${editForm.name}?`,
+      onConfirm: () => {
+        try {
+          const storedPilots = [...(userPilots || [])];
+          const updatedPilots = storedPilots.filter(p => p.id !== editForm.id);
 
-      const schedules = { ...crewSchedules };
-      let changed = false;
-      Object.keys(schedules).forEach(k => {
-        if (k.startsWith(`${editForm.id}_`) || k.startsWith(`${editForm.name}_`)) {
-          delete schedules[k];
-          changed = true;
+          const schedules = { ...crewSchedules };
+          let changed = false;
+          Object.keys(schedules).forEach(k => {
+            if (k.startsWith(`${editForm.id}_`) || k.startsWith(`${editForm.name}_`)) {
+              delete schedules[k];
+              changed = true;
+            }
+          });
+
+          if (changed) {
+            updateDataBatch({ userPilots: updatedPilots, crewSchedules: schedules });
+          } else {
+            updateData('userPilots', updatedPilots);
+          }
+          setSelectedPilot(null);
+          setEditForm(null);
+        } catch {
+          setAlertDialog({ open: true, title: 'Delete Failed', message: 'Failed to delete pilot.' });
         }
-      });
-
-      if (changed) {
-        updateDataBatch({ userPilots: updatedPilots, crewSchedules: schedules });
-      } else {
-        updateData('userPilots', updatedPilots);
+        setConfirmDialog({ open: false, title: '', message: '', onConfirm: null });
       }
-      setSelectedPilot(null);
-      setEditForm(null);
-    } catch {
-      alert('Failed to delete pilot.');
-    }
+    });
   };
 
   const handleSave = (e) => {
@@ -488,6 +500,19 @@ const PilotsList = () => {
           </form>
         )}
       </div>
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ open: false, title: '', message: '', onConfirm: null })}
+      />
+      <AlertDialog
+        isOpen={alertDialog.open}
+        title={alertDialog.title}
+        message={alertDialog.message}
+        onClose={() => setAlertDialog({ open: false, title: '', message: '' })}
+      />
     </div>
   );
 };

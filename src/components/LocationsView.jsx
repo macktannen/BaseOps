@@ -7,6 +7,9 @@ import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 
+import ConfirmDialog from './ConfirmDialog';
+import AlertDialog from './AlertDialog';
+
 // Fix leaflet marker icons for react-leaflet in Vite
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -63,6 +66,8 @@ const LocationsView = () => {
   const [editForm, setEditForm] = useState(null);
   const [mapCenter, setMapCenter] = useState([39.8283, -98.5795]);
   const [saved, setSaved] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
+  const [alertDialog, setAlertDialog] = useState({ open: false, title: '', message: '' });
 
   // Autocomplete state
   const [addressQuery, setAddressQuery] = useState('');
@@ -223,13 +228,20 @@ const LocationsView = () => {
 
   const handleDelete = () => {
     if (!editForm || !editForm.isCustom) return;
-    if (!window.confirm(`Are you sure you want to delete ${editForm.title || editForm.id}?`)) return;
-    try {
-      const updatedZones = userCustomZones.filter(z => z.id !== editForm.id);
-      updateData('userCustomZones', updatedZones);
-      setSelectedLoc(null);
-      setEditForm(null);
-    } catch {}
+    setConfirmDialog({
+      open: true,
+      title: 'Delete Location',
+      message: `Are you sure you want to delete ${editForm.title || editForm.id}?`,
+      onConfirm: () => {
+        try {
+          const updatedZones = userCustomZones.filter(z => z.id !== editForm.id);
+          updateData('userCustomZones', updatedZones);
+          setSelectedLoc(null);
+          setEditForm(null);
+        } catch {}
+        setConfirmDialog({ open: false, title: '', message: '', onConfirm: null });
+      }
+    });
   };
 
   const handleSave = (e) => {
@@ -576,12 +588,18 @@ const LocationsView = () => {
                           className="btn btn-outline" 
                           style={{ color: '#b45309', borderColor: '#b45309', display: 'flex', alignItems: 'center', gap: '5px' }} 
                           onClick={() => {
-                            if (window.confirm(`Are you sure you want to remove all custom notes and revert ${editForm.id} back to its official database condition?`)) {
-                              const updatedZones = storedZones.filter(z => z.id !== editForm.id);
-                              updateData('userCustomZones', updatedZones);
-                              setSelectedLoc(null);
-                              setEditForm(null);
-                            }
+                            setConfirmDialog({
+                              open: true,
+                              title: 'Restore Official Data',
+                              message: `Are you sure you want to remove all custom notes and revert ${editForm.id} back to its official database condition?`,
+                              onConfirm: () => {
+                                const updatedZones = storedZones.filter(z => z.id !== editForm.id);
+                                updateData('userCustomZones', updatedZones);
+                                setSelectedLoc(null);
+                                setEditForm(null);
+                                setConfirmDialog({ open: false, title: '', message: '', onConfirm: null });
+                              }
+                            });
                           }}
                         >
                           Restore Official Data
@@ -619,6 +637,19 @@ const LocationsView = () => {
           </form>
         )}
       </div>
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ open: false, title: '', message: '', onConfirm: null })}
+      />
+      <AlertDialog
+        isOpen={alertDialog.open}
+        title={alertDialog.title}
+        message={alertDialog.message}
+        onClose={() => setAlertDialog({ open: false, title: '', message: '' })}
+      />
     </div>
   );
 };
