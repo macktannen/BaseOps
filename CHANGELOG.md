@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v1.3.4] - 2026-08-19
+
+### Fixed
+- **EventModal TDZ crash** — Reverted memoized list derivations (pilotsList, aircraftList, etc.) that caused "Cannot access before initialization" error
+
 ## [v1.3.3] - 2026-08-19
 
 ### Fixed

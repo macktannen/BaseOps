@@ -703,11 +703,11 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
 
   const { userPilots, userAircraft, userPassengers, userAccounts, userVendors, userFlights, userCustomZones, crewSchedules, locationUsage, updateData, saveFlight } = useData();
 
-  const pilotsList = useMemo(() => userPilots || [], [userPilots]);
-  const aircraftList = useMemo(() => userAircraft || [], [userAircraft]);
-  const passengersList = useMemo(() => userPassengers || [], [userPassengers]);
-  const accountsList = useMemo(() => userAccounts || [], [userAccounts]);
-  const vendorsList = useMemo(() => userVendors || [], [userVendors]);
+  const pilotsList = userPilots || [];
+  const aircraftList = userAircraft || [];
+  const passengersList = userPassengers || [];
+  const accountsList = userAccounts || [];
+  const vendorsList = userVendors || [];
 
   const sortedPassengersList = useMemo(() => {
     const allFlights = userFlights || [];
