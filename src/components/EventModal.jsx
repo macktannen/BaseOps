@@ -218,7 +218,7 @@ const NewPassengerModal = ({ isOpen, onClose, onSave, passenger }) => {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
             <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>Full Name *</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required placeholder="e.g. John Smith"
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required
               style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)' }} />
           </div>
 
@@ -230,26 +230,26 @@ const NewPassengerModal = ({ isOpen, onClose, onSave, passenger }) => {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>Phone</label>
-              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 123-4567"
+              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
                 style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)' }} />
             </div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
             <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="john.smith@company.com"
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
               style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)' }} />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>Company</label>
-              <input type="text" value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Acme Corp"
+              <input type="text" value={company} onChange={(e) => setCompany(e.target.value)}
                 style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)' }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>Title</label>
-              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="CEO"
+              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
                 style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)' }} />
             </div>
           </div>

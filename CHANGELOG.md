@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v1.2.3] - 2026-08-19
+
+### Changed
+- **Passenger modal placeholder text removed** — Cleaned up all placeholder/suggestion text from the Add/Edit Passenger modal fields (Name, Phone, Email, Company, Title). Fields are now blank fillable boxes.
+
 ## [v1.2.2] - 2026-08-19
 
 ### Changed
