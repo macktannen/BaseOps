@@ -349,6 +349,201 @@ const LocationSelect = ({ value, onChange, label, placeholder }) => {
 };
 
 
+// --- PASSENGER SELECT ---
+const PassengerSelect = ({ passengers, onAdd, onRemove, passengersList, onAddNew }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [showNewModal, setShowNewModal] = useState(false);
+  const [newPaxForm, setNewPaxForm] = useState({ name: '', weight: '', email: '', phone: '', company: '', title: '', emergencyContact: '', medicalNotes: '', notes: '' });
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+        setSearch('');
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const paxOnLeg = passengers || [];
+  const availablePax = passengersList.filter(p => !p.isCrew);
+
+  const filtered = search.trim()
+    ? availablePax.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.id.toLowerCase().includes(search.toLowerCase()) || (p.company && p.company.toLowerCase().includes(search.toLowerCase())))
+    : availablePax;
+
+  const selectedNames = paxOnLeg.map(id => passengersList.find(p => p.id === id)).filter(Boolean);
+
+  const handleAddPax = (paxId) => {
+    if (!paxOnLeg.includes(paxId)) {
+      onAdd(paxId);
+    }
+    setSearch('');
+  };
+
+  const handleCreateAndAdd = () => {
+    if (!newPaxForm.name.trim()) return;
+    const newId = `PAX-${Date.now().toString().slice(-4)}`;
+    const newPax = {
+      id: newId,
+      name: newPaxForm.name.trim(),
+      weight: newPaxForm.weight ? parseInt(newPaxForm.weight) : 0,
+      email: newPaxForm.email,
+      phone: newPaxForm.phone,
+      company: newPaxForm.company,
+      title: newPaxForm.title,
+      isCrew: false,
+      emergencyContact: newPaxForm.emergencyContact,
+      medicalNotes: newPaxForm.medicalNotes,
+      notes: newPaxForm.notes
+    };
+    onAddNew(newPax, newId);
+    setNewPaxForm({ name: '', weight: '', email: '', phone: '', company: '', title: '', emergencyContact: '', medicalNotes: '', notes: '' });
+    setShowNewModal(false);
+    setSearch('');
+    setIsOpen(false);
+  };
+
+  return (
+    <div ref={dropdownRef} style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-color)',
+          backgroundColor: 'white', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '3px',
+          minHeight: '30px', cursor: 'pointer', fontSize: '0.75rem'
+        }}
+      >
+        {selectedNames.length > 0 ? selectedNames.map(p => (
+          <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569', borderRadius: '3px', padding: '1px 5px', fontSize: '0.65rem', lineHeight: '1.4' }}>
+            {p.name}
+            <span onClick={(e) => { e.stopPropagation(); onRemove(p.id); }} style={{ cursor: 'pointer', marginLeft: '3px', fontWeight: 'bold', color: '#94a3b8' }}><X size={9} /></span>
+          </span>
+        )) : (
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Add Passenger...</span>
+        )}
+      </div>
+
+      {isOpen && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0,
+          backgroundColor: 'white', border: '1px solid var(--border-color)',
+          borderRadius: '4px', zIndex: 2000, maxHeight: '250px',
+          display: 'flex', flexDirection: 'column',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)', marginTop: '2px', minWidth: '220px'
+        }}>
+          <div style={{ padding: '6px 8px', borderBottom: '1px solid var(--border-color)' }}>
+            <input
+              type="text"
+              placeholder="Search passengers..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              autoFocus
+              style={{ width: '100%', padding: '5px 8px', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '0.8rem', boxSizing: 'border-box' }}
+            />
+          </div>
+          <div style={{ overflowY: 'auto', flex: 1 }}>
+            {filtered.length === 0 && !search && (
+              <div style={{ padding: '12px', color: 'var(--text-muted)', textAlign: 'center', fontSize: '0.8rem' }}>
+                No passengers available
+              </div>
+            )}
+            {filtered.map(p => (
+              <div
+                key={p.id}
+                onClick={() => handleAddPax(p.id)}
+                style={{
+                  padding: '7px 10px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0',
+                  backgroundColor: paxOnLeg.includes(p.id) ? '#f0f7ff' : 'white',
+                  fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                }}
+              >
+                <span>{p.name}{p.company ? ` (${p.company})` : ''}</span>
+                {paxOnLeg.includes(p.id) && <span style={{ fontSize: '0.65rem', color: 'var(--primary-color)', fontWeight: 600 }}>Added</span>}
+              </div>
+            ))}
+            <div
+              onClick={() => { setShowNewModal(true); }}
+              style={{
+                padding: '8px 10px', cursor: 'pointer',
+                backgroundColor: 'var(--primary-light)', color: 'var(--primary-color)',
+                fontWeight: 500, fontSize: '0.8rem',
+                display: 'flex', alignItems: 'center', gap: '6px',
+                borderTop: '1px solid var(--primary-color)'
+              }}
+            >
+              <Plus size={14} /> {search ? `Add "${search}" as new passenger...` : 'Add New Passenger...'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showNewModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: '20px' }} onClick={() => setShowNewModal(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: 'white', borderRadius: '8px', padding: '24px', width: '500px', maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 10px 25px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, fontSize: '1rem' }}>Add New Passenger</h3>
+              <button type="button" onClick={() => setShowNewModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color="var(--text-muted)" /></button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ flex: 2 }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Name *</label>
+                  <input type="text" value={newPaxForm.name} onChange={e => setNewPaxForm({ ...newPaxForm, name: e.target.value })} placeholder="Full name" style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Weight (lbs)</label>
+                  <input type="number" value={newPaxForm.weight} onChange={e => setNewPaxForm({ ...newPaxForm, weight: e.target.value })} placeholder="155" style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Email</label>
+                  <input type="email" value={newPaxForm.email} onChange={e => setNewPaxForm({ ...newPaxForm, email: e.target.value })} placeholder="email@example.com" style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Phone</label>
+                  <input type="tel" value={newPaxForm.phone} onChange={e => setNewPaxForm({ ...newPaxForm, phone: e.target.value })} placeholder="(555) 123-4567" style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Company</label>
+                  <input type="text" value={newPaxForm.company} onChange={e => setNewPaxForm({ ...newPaxForm, company: e.target.value })} placeholder="Company name" style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Title</label>
+                  <input type="text" value={newPaxForm.title} onChange={e => setNewPaxForm({ ...newPaxForm, title: e.target.value })} placeholder="Job title" style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Emergency Contact</label>
+                <input type="text" value={newPaxForm.emergencyContact} onChange={e => setNewPaxForm({ ...newPaxForm, emergencyContact: e.target.value })} placeholder="Name - Phone" style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Medical Notes</label>
+                <input type="text" value={newPaxForm.medicalNotes} onChange={e => setNewPaxForm({ ...newPaxForm, medicalNotes: e.target.value })} placeholder="Allergies, conditions, etc." style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Notes</label>
+                <textarea value={newPaxForm.notes} onChange={e => setNewPaxForm({ ...newPaxForm, notes: e.target.value })} placeholder="Any additional notes..." rows={2} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', boxSizing: 'border-box', resize: 'vertical' }} />
+              </div>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>
+                <button type="button" onClick={() => setShowNewModal(false)} style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border-color)', backgroundColor: 'white', cursor: 'pointer', fontSize: '0.85rem' }}>Cancel</button>
+                <button type="button" onClick={handleCreateAndAdd} disabled={!newPaxForm.name.trim()} style={{ padding: '8px 16px', borderRadius: '4px', border: 'none', backgroundColor: newPaxForm.name.trim() ? 'var(--primary-color)' : '#ccc', color: 'white', cursor: newPaxForm.name.trim() ? 'pointer' : 'not-allowed', fontSize: '0.85rem', fontWeight: 600 }}>Add Passenger</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
 // --- MOBILE SCROLL PICKER ---
 const TIME_ITEMS = (() => {
   const items = [];
@@ -565,10 +760,6 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const [expenses, setExpenses] = useState([]);
   const getExpensesPendingDeletesRef = useRef(null);
   const [pendingRemoteChanges, setPendingRemoteChanges] = useState(null);
-  const [paxSearch, setPaxSearch] = useState('');
-  const [paxSearchLegIdx, setPaxSearchLegIdx] = useState(null);
-  const [showNewPaxModal, setShowNewPaxModal] = useState(false);
-  const [newPaxForm, setNewPaxForm] = useState({ name: '', weight: '', email: '', phone: '', company: '', title: '', isCrew: false, emergencyContact: '', medicalNotes: '', notes: '' });
 
   const { userPilots, userAircraft, userPassengers, userAccounts, userVendors, userFlights, userCustomZones, crewSchedules, locationUsage, updateData, updateDataBatch, saveFlight, deleteFlight } = useData();
 
@@ -1181,33 +1372,9 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     return { mins: Math.max(1, minutes), nm: Math.round(distNM) };
   };
 
-  const handleAddNewPax = () => {
-    if (!newPaxForm.name.trim()) return;
-    const newId = `PAX-${Date.now().toString().slice(-4)}`;
-    const newPax = {
-      id: newId,
-      name: newPaxForm.name.trim(),
-      weight: newPaxForm.weight ? parseInt(newPaxForm.weight) : 0,
-      email: newPaxForm.email,
-      phone: newPaxForm.phone,
-      company: newPaxForm.company,
-      title: newPaxForm.title,
-      isCrew: false,
-      emergencyContact: newPaxForm.emergencyContact,
-      medicalNotes: newPaxForm.medicalNotes,
-      notes: newPaxForm.notes
-    };
+  const handleAddNewPax = (newPax, newId) => {
     const updatedPassengers = [...passengersList, newPax];
     updateData('userPassengers', updatedPassengers);
-    // Add to the leg
-    if (paxSearchLegIdx !== null) {
-      const current = legs[paxSearchLegIdx].passengers || [];
-      handleUpdateLeg(paxSearchLegIdx, 'passengers', [...current, newId]);
-    }
-    setNewPaxForm({ name: '', weight: '', email: '', phone: '', company: '', title: '', isCrew: false, emergencyContact: '', medicalNotes: '', notes: '' });
-    setShowNewPaxModal(false);
-    setPaxSearch('');
-    setPaxSearchLegIdx(null);
   };
 
   const handleUpdateLeg = (index, field, value) => {
@@ -2484,129 +2651,24 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                           )}
                         </div>
                         {/* Passengers */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', position: 'relative' }}>
-                          <label style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600 }}>Passengers ({leg.passengers.length})</label>
-                          {isMobile ? (
-                            <MobileDropdownMenu
-                              value=""
-                              onChange={val => {
-                                if (!val) return;
-                                if (val === '__add_new__') {
-                                  setPaxSearchLegIdx(index);
-                                  setShowNewPaxModal(true);
-                                  return;
-                                }
-                                const paxId = val;
-                                const current = leg.passengers || [];
-                                if (!current.includes(paxId)) {
-                                  handleUpdateLeg(index, 'passengers', [...current, paxId]);
-                                }
-                              }}
-                              options={[{ value: '__add_new__', label: '+ Add New Passenger...' }, ...passengersList.map(p => ({ value: p.id, label: p.name }))]}
-                              placeholder="Add Passenger..."
-                              style={{ fontSize: '0.75rem' }}
-                            />
-                          ) : (
-                            <div>
-                              <input
-                                type="text"
-                                placeholder="Search passengers..."
-                                value={paxSearchLegIdx === index ? paxSearch : ''}
-                                onFocus={() => { setPaxSearchLegIdx(index); setPaxSearch(''); }}
-                                onChange={e => setPaxSearch(e.target.value)}
-                                onBlur={() => { setTimeout(() => { setPaxSearchLegIdx(null); setPaxSearch(''); }, 200); }}
-                                style={{ padding: '4px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '0.75rem', backgroundColor: 'white', width: '100%', boxSizing: 'border-box' }}
-                              />
-                              {paxSearchLegIdx === index && (
-                                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', border: '1px solid var(--border-color)', borderRadius: '4px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 2000, maxHeight: '200px', overflowY: 'auto' }}>
-                                  <div
-                                    onMouseDown={(e) => { e.preventDefault(); setPaxSearchLegIdx(index); setShowNewPaxModal(true); setPaxSearch(''); }}
-                                    style={{ padding: '8px 10px', cursor: 'pointer', fontWeight: 600, color: 'var(--primary-color)', borderBottom: '1px solid var(--border-color)', fontSize: '0.8rem' }}
-                                  >
-                                    + Add New Passenger...
-                                  </div>
-                                  {passengersList
-                                    .filter(p => p.name.toLowerCase().includes(paxSearch.toLowerCase()) || p.id.toLowerCase().includes(paxSearch.toLowerCase()))
-                                    .map(p => (
-                                      <div
-                                        key={p.id}
-                                        onMouseDown={(e) => {
-                                          e.preventDefault();
-                                          const current = leg.passengers || [];
-                                          if (!current.includes(p.id)) {
-                                            handleUpdateLeg(index, 'passengers', [...current, p.id]);
-                                          }
-                                          setPaxSearchLegIdx(null);
-                                          setPaxSearch('');
-                                        }}
-                                        style={{ padding: '6px 10px', cursor: 'pointer', fontSize: '0.8rem', borderBottom: '1px solid #f0f0f0' }}
-                                      >
-                                        {p.name}
-                                      </div>
-                                    ))
-                                  }
-                                  {passengersList.filter(p => p.name.toLowerCase().includes(paxSearch.toLowerCase()) || p.id.toLowerCase().includes(paxSearch.toLowerCase())).length === 0 && paxSearch && (
-                                    <div
-                                      onMouseDown={(e) => { e.preventDefault(); setPaxSearchLegIdx(index); setShowNewPaxModal(true); }}
-                                      style={{ padding: '8px 10px', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.8rem' }}
-                                    >
-                                      No matches. Click to add "{paxSearch}" as new passenger.
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          {leg.passengers.length > 0 && (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: '2px' }}>
-                              {leg.passengers.map(pId => {
-                                const pax = passengersList.find(p => p.id === pId || p.name === pId);
-                                return (
-                                  <div 
-                                    key={pId} 
-                                    style={{ 
-                                      display: 'inline-flex', 
-                                      alignItems: 'center', 
-                                      backgroundColor: '#f1f5f9', 
-                                      border: '1px solid #cbd5e1', 
-                                      color: '#475569', 
-                                      borderRadius: '3px', 
-                                      fontSize: '0.62rem', 
-                                      lineHeight: '1.2', 
-                                      overflow: 'hidden', 
-                                      userSelect: 'none', 
-                                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)' 
-                                    }}
-                                  >
-                                    <span style={{ padding: '2px 5px', fontWeight: 'bold' }}>
-                                      {pax ? pax.name : pId}
-                                    </span>
-                                    <span
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        e.preventDefault();
-                                        handleUpdateLeg(index, 'passengers', leg.passengers.filter(p => p !== pId));
-                                      }}
-                                      title="Remove passenger from leg"
-                                      style={{
-                                        padding: '2px 4px',
-                                        cursor: 'pointer',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        borderLeft: '1px solid rgba(0,0,0,0.12)',
-                                        backgroundColor: 'rgba(0,0,0,0.05)',
-                                        color: '#475569'
-                                      }}
-                                    >
-                                      <X size={9} strokeWidth={2.5} />
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
+                        <PassengerSelect
+                          passengers={leg.passengers}
+                          passengersList={passengersList}
+                          onAdd={(paxId) => {
+                            const current = leg.passengers || [];
+                            if (!current.includes(paxId)) {
+                              handleUpdateLeg(index, 'passengers', [...current, paxId]);
+                            }
+                          }}
+                          onRemove={(paxId) => {
+                            handleUpdateLeg(index, 'passengers', leg.passengers.filter(p => p !== paxId));
+                          }}
+                          onAddNew={(newPax, newId) => {
+                            handleAddNewPax(newPax, newId);
+                            const current = leg.passengers || [];
+                            handleUpdateLeg(index, 'passengers', [...current, newId]);
+                          }}
+                        />
                        {!isFlightSigned && legs.length > 1 && (
                          <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'flex-end' }}>
                            <button onClick={() => handleRemoveLeg(index)} style={{ background: 'none', border: 'none', color: 'red', fontSize: '0.75rem', cursor: 'pointer', padding: '0', width: 'fit-content' }}>Remove Leg</button>
@@ -2920,65 +2982,6 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
               <a href={viewerFile.url} target="_blank" rel="noopener noreferrer" style={{ color: '#63b3ed', textDecoration: 'underline', fontSize: '0.85rem' }}>Open in new tab to download</a>
             </div>
           )}
-        </div>
-      </div>
-    )}
-    {/* New Passenger Modal */}
-    {showNewPaxModal && (
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: '20px' }} onClick={() => setShowNewPaxModal(false)}>
-        <div onClick={e => e.stopPropagation()} style={{ backgroundColor: 'white', borderRadius: '8px', padding: '24px', width: '500px', maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 10px 25px rgba(0,0,0,0.3)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ margin: 0, fontSize: '1rem' }}>Add New Passenger</h3>
-            <button type="button" onClick={() => setShowNewPaxModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color="var(--text-muted)" /></button>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <div style={{ flex: 2 }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Name *</label>
-                <input type="text" value={newPaxForm.name} onChange={e => setNewPaxForm({ ...newPaxForm, name: e.target.value })} placeholder="Full name" style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Weight (lbs)</label>
-                <input type="number" value={newPaxForm.weight} onChange={e => setNewPaxForm({ ...newPaxForm, weight: e.target.value })} placeholder="155" style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }} />
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Email</label>
-                <input type="email" value={newPaxForm.email} onChange={e => setNewPaxForm({ ...newPaxForm, email: e.target.value })} placeholder="email@example.com" style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Phone</label>
-                <input type="tel" value={newPaxForm.phone} onChange={e => setNewPaxForm({ ...newPaxForm, phone: e.target.value })} placeholder="(555) 123-4567" style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }} />
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Company</label>
-                <input type="text" value={newPaxForm.company} onChange={e => setNewPaxForm({ ...newPaxForm, company: e.target.value })} placeholder="Company name" style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Title</label>
-                <input type="text" value={newPaxForm.title} onChange={e => setNewPaxForm({ ...newPaxForm, title: e.target.value })} placeholder="Job title" style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }} />
-              </div>
-            </div>
-            <div>
-              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Emergency Contact</label>
-              <input type="text" value={newPaxForm.emergencyContact} onChange={e => setNewPaxForm({ ...newPaxForm, emergencyContact: e.target.value })} placeholder="Name - Phone" style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }} />
-            </div>
-            <div>
-              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Medical Notes</label>
-              <input type="text" value={newPaxForm.medicalNotes} onChange={e => setNewPaxForm({ ...newPaxForm, medicalNotes: e.target.value })} placeholder="Allergies, conditions, etc." style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }} />
-            </div>
-            <div>
-              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Notes</label>
-              <textarea value={newPaxForm.notes} onChange={e => setNewPaxForm({ ...newPaxForm, notes: e.target.value })} placeholder="Any additional notes..." rows={2} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color', boxSizing: 'border-box', resize: 'vertical' }} />
-            </div>
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>
-              <button type="button" onClick={() => setShowNewPaxModal(false)} style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border-color)', backgroundColor: 'white', cursor: 'pointer', fontSize: '0.85rem' }}>Cancel</button>
-              <button type="button" onClick={handleAddNewPax} disabled={!newPaxForm.name.trim()} style={{ padding: '8px 16px', borderRadius: '4px', border: 'none', backgroundColor: newPaxForm.name.trim() ? 'var(--primary-color)' : '#ccc', color: 'white', cursor: newPaxForm.name.trim() ? 'pointer' : 'not-allowed', fontSize: '0.85rem', fontWeight: 600 }}>Add Passenger</button>
-            </div>
-          </div>
         </div>
       </div>
     )}
