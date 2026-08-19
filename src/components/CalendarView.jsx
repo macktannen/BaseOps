@@ -599,7 +599,7 @@ const CalendarView = () => {
         }
 
         const updatedFlights = flights.map(f => f.id === id ? updatedFlight : f);
-        updateData('userFlights', updatedFlights);
+        saveFlight(updatedFlight);
       }
     }
   };
@@ -607,8 +607,7 @@ const CalendarView = () => {
   const applyDropFlight = () => {
     if (!dropConflictModal.pendingFlight) return;
     const pf = dropConflictModal.pendingFlight;
-    const updatedFlights = flights.map(f => f.id === pf.id ? pf : f);
-    updateData('userFlights', updatedFlights);
+    saveFlight(pf);
     setDropConflictModal({ open: false, pilotConflicts: [], aircraftConflicts: [], pendingFlight: null });
   };
 

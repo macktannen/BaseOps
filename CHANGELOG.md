@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v1.3.7] - 2026-08-19
+
+### Fixed
+- **Drag-and-drop flight revert** — Dragging a flight to a new day was using `updateData('userFlights', ...)` which writes to the org document. Since flights now live in a subcollection, the change was never persisted to Firestore. Changed to `saveFlight()` so the flight is properly saved to the subcollection.
+
 ## [v1.3.6] - 2026-08-19
 
 ### Fixed
