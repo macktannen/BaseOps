@@ -369,7 +369,9 @@ const PassengerSelect = ({ passengers, onAdd, onRemove, passengersList, onAddNew
   }, []);
 
   const paxOnLeg = passengers || [];
-  const availablePax = passengersList.filter(p => !p.isCrew);
+  const availablePax = passengersList
+    .filter(p => !p.isCrew)
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const filtered = search.trim()
     ? availablePax.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.id.toLowerCase().includes(search.toLowerCase()) || (p.company && p.company.toLowerCase().includes(search.toLowerCase())))
@@ -387,7 +389,7 @@ const PassengerSelect = ({ passengers, onAdd, onRemove, passengersList, onAddNew
 
   const handleCreateAndAdd = () => {
     if (!newPaxForm.name.trim()) return;
-    const newId = `PAX-${Date.now().toString().slice(-4)}`;
+    const newId = newPaxForm.name.trim();
     const newPax = {
       id: newId,
       name: newPaxForm.name.trim(),
@@ -409,29 +411,69 @@ const PassengerSelect = ({ passengers, onAdd, onRemove, passengersList, onAddNew
   };
 
   return (
-    <div ref={dropdownRef} style={{ position: 'relative', flex: 1, minWidth: 0 }}>
-      <select
-        value=""
-        onChange={e => {
-          if (!e.target.value) return;
-          if (e.target.value === '__add_new__') {
-            setShowNewModal(true);
-            return;
-          }
-          handleAddPax(e.target.value);
+    <div ref={dropdownRef} style={{ position: 'relative', flex: 1, minWidth: 0, zIndex: isOpen ? 2000 : 1 }}>
+      <div
+        onClick={() => { setIsOpen(!isOpen); setSearch(''); }}
+        style={{
+          padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-color)',
+          backgroundColor: 'white', display: 'flex', alignItems: 'center',
+          minHeight: '28px', cursor: 'pointer', fontSize: '0.75rem', gap: '4px'
         }}
-        onFocus={() => setIsOpen(true)}
-        onBlur={() => setTimeout(() => setIsOpen(false), 200)}
-        style={{ padding: '4px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '0.75rem', backgroundColor: 'white', width: '100%', boxSizing: 'border-box' }}
       >
-        <option value="">Add Passenger...</option>
-        {availablePax.map(p => (
-          <option key={p.id} value={p.id} disabled={paxOnLeg.includes(p.id)}>
-            {p.name}{paxOnLeg.includes(p.id) ? ' (added)' : ''}
-          </option>
-        ))}
-        <option value="__add_new__" style={{ fontWeight: 600, color: 'var(--primary-color)' }}>+ Add New Passenger...</option>
-      </select>
+        <input
+          type="text"
+          placeholder="Add Passenger..."
+          value={isOpen ? search : (selectedNames.length > 0 ? `${selectedNames.length} passenger${selectedNames.length > 1 ? 's' : ''}` : '')}
+          readOnly={!isOpen}
+          onFocus={() => setIsOpen(true)}
+          onChange={e => setSearch(e.target.value)}
+          style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', fontSize: '0.75rem', cursor: 'pointer', padding: 0 }}
+        />
+      </div>
+
+      {isOpen && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0,
+          backgroundColor: 'white', border: '1px solid var(--border-color)',
+          borderRadius: '4px', zIndex: 2001, maxHeight: '250px',
+          display: 'flex', flexDirection: 'column',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)', marginTop: '2px', minWidth: '220px'
+        }}>
+          <div style={{ overflowY: 'auto', flex: 1 }}>
+            {filtered.length === 0 && (
+              <div style={{ padding: '10px', color: 'var(--text-muted)', textAlign: 'center', fontSize: '0.8rem' }}>
+                {search ? 'No matches found' : 'No passengers available'}
+              </div>
+            )}
+            {filtered.map(p => (
+              <div
+                key={p.id}
+                onClick={() => handleAddPax(p.id)}
+                style={{
+                  padding: '7px 10px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0',
+                  backgroundColor: paxOnLeg.includes(p.id) ? '#f0f7ff' : 'white',
+                  fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                }}
+              >
+                <span>{p.name}{p.company ? ` (${p.company})` : ''}</span>
+                {paxOnLeg.includes(p.id) && <span style={{ fontSize: '0.65rem', color: 'var(--primary-color)', fontWeight: 600 }}>Added</span>}
+              </div>
+            ))}
+            <div
+              onClick={() => setShowNewModal(true)}
+              style={{
+                padding: '8px 10px', cursor: 'pointer',
+                backgroundColor: 'var(--primary-light)', color: 'var(--primary-color)',
+                fontWeight: 500, fontSize: '0.8rem',
+                display: 'flex', alignItems: 'center', gap: '6px',
+                borderTop: '1px solid var(--primary-color)'
+              }}
+            >
+              <Plus size={14} /> {search ? `Add "${search}" as new passenger...` : 'Add New Passenger...'}
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedNames.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: '4px' }}>
@@ -501,6 +543,89 @@ const PassengerSelect = ({ passengers, onAdd, onRemove, passengersList, onAddNew
                 <button type="button" onClick={handleCreateAndAdd} disabled={!newPaxForm.name.trim()} style={{ padding: '8px 16px', borderRadius: '4px', border: 'none', backgroundColor: newPaxForm.name.trim() ? 'var(--primary-color)' : '#ccc', color: 'white', cursor: newPaxForm.name.trim() ? 'pointer' : 'not-allowed', fontSize: '0.85rem', fontWeight: 600 }}>Add Passenger</button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+// --- PILOT SELECT ---
+const PilotSelect = ({ pilots, pilotsList, onAdd, onRemove, onToggleRole }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+        setSearch('');
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const pilotsOnLeg = pilots || [];
+  const sortedPilots = [...pilotsList].sort((a, b) => a.name.localeCompare(b.name));
+
+  const filtered = search.trim()
+    ? sortedPilots.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.id.toLowerCase().includes(search.toLowerCase()))
+    : sortedPilots;
+
+  const selectedPilots = pilotsOnLeg.map(id => pilotsList.find(p => p.id === id)).filter(Boolean);
+
+  return (
+    <div ref={dropdownRef} style={{ position: 'relative', flex: 1, minWidth: 0, zIndex: isOpen ? 2000 : 1 }}>
+      <div
+        onClick={() => { setIsOpen(!isOpen); setSearch(''); }}
+        style={{
+          padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-color)',
+          backgroundColor: 'white', display: 'flex', alignItems: 'center',
+          minHeight: '28px', cursor: 'pointer', fontSize: '0.75rem'
+        }}
+      >
+        <input
+          type="text"
+          placeholder="Add Pilot..."
+          value={isOpen ? search : (selectedPilots.length > 0 ? `${selectedPilots.length} pilot${selectedPilots.length > 1 ? 's' : ''}` : '')}
+          readOnly={!isOpen}
+          onFocus={() => setIsOpen(true)}
+          onChange={e => setSearch(e.target.value)}
+          style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', fontSize: '0.75rem', cursor: 'pointer', padding: 0 }}
+        />
+      </div>
+
+      {isOpen && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0,
+          backgroundColor: 'white', border: '1px solid var(--border-color)',
+          borderRadius: '4px', zIndex: 2001, maxHeight: '250px',
+          display: 'flex', flexDirection: 'column',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)', marginTop: '2px', minWidth: '220px'
+        }}>
+          <div style={{ overflowY: 'auto', flex: 1 }}>
+            {filtered.length === 0 && (
+              <div style={{ padding: '10px', color: 'var(--text-muted)', textAlign: 'center', fontSize: '0.8rem' }}>
+                {search ? 'No matches found' : 'No pilots available'}
+              </div>
+            )}
+            {filtered.map(p => (
+              <div
+                key={p.id}
+                onClick={() => { if (!pilotsOnLeg.includes(p.id)) onAdd(p.id); setSearch(''); setIsOpen(false); }}
+                style={{
+                  padding: '7px 10px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0',
+                  backgroundColor: pilotsOnLeg.includes(p.id) ? '#f0f7ff' : 'white',
+                  fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                }}
+              >
+                <span>{p.name}</span>
+                {pilotsOnLeg.includes(p.id) && <span style={{ fontSize: '0.65rem', color: 'var(--primary-color)', fontWeight: 600 }}>Added</span>}
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -2534,17 +2659,13 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                               style={{ fontSize: '0.75rem' }}
                             />
                           ) : (
-                            <select 
-                              value="" 
-                              onChange={e => {
-                                if (!e.target.value) return;
-                                handleAddPilotToLeg(index, e.target.value);
-                              }}
-                              style={{ padding: '4px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '0.75rem', backgroundColor: 'white' }}
-                            >
-                              <option value="">Add Pilot...</option>
-                              {pilotsList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                            </select>
+                            <PilotSelect
+                              pilots={leg.pilots || (leg.pilotId ? [leg.pilotId] : [])}
+                              pilotsList={pilotsList}
+                              onAdd={(pilotId) => handleAddPilotToLeg(index, pilotId)}
+                              onRemove={(pilotId) => handleRemovePilotFromLeg(index, pilotId)}
+                              onToggleRole={(pilotId) => handleTogglePilotRole(index, pilotId)}
+                            />
                           )}
                           {(leg.pilots || (leg.pilotId ? [leg.pilotId] : [])).length > 0 && (
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: '2px' }}>
