@@ -2,6 +2,20 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v1.3.0] - 2026-08-19
+
+### Fixed
+- **Critical: Conditional hook call** — Moved `usageAccumulatorRef` before early return to comply with Rules of Hooks
+- **Critical: Stale closure in remote sync** — Refactored flight sync useEffect to use refs instead of closing over state, eliminating stale closure bugs
+- **Performance: Memoized passengersList** — Prevents unnecessary recalculations in sorted passenger list
+- **Performance: Memoized DataProvider context** — Prevents unnecessary re-renders of all useData consumers
+- **DRY: Extracted getOrgName helper** — Single source of truth for dev/prod environment detection in DataProvider
+
+### Changed
+- **Code cleanup** — Removed unused imports (mockAccounts, mockVendors), unused variables (updateDataBatch, deleteFlight, saveFlightsBatch, updateGlobalAircraft), and console.log in DataProvider
+- **Magic numbers extracted** — LAYOVER_MINUTES and ALERT_DELAY_MS constants in EventModal
+- **Error boundary added** — Graceful crash handling with ErrorBoundary wrapper in main.jsx
+
 ## [v1.2.3] - 2026-08-19
 
 ### Changed

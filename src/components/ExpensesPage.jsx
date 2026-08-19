@@ -34,7 +34,7 @@ const getCategoryColor = (category) => {
 const DEPARTMENT_ID = '__DEPARTMENT__';
 
 const ExpensesPage = () => {
-  const { data, updateData, updateDataBatch, saveFlight, saveFlightsBatch, deleteFlight } = useData();
+  const { data, updateData, updateDataBatch, saveFlight, deleteFlight } = useData();
   const { userFlights = [], departmentExpenses = [], userVendors = [], userAccounts = [] } = data;
 
   const isMobile = useIsMobile();

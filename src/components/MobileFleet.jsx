@@ -39,7 +39,7 @@ const MobileFleet = () => {
         setView('landing');
       }
     }
-  }, [selectedId, view, userAircraft, userFlights, updateData]);
+  }, [selectedId, view, userAircraft, userFlights]);
 
   useEffect(() => {
     loadData();

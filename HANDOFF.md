@@ -32,6 +32,7 @@ Helicopter Scheduler Web App (`baseops`). Manages flights, crew schedules, expen
 13. **Edit Passenger from Flight Modal** — Clicking a passenger name badge in the flight leg opens the same modal in edit mode with pre-filled info. Changes persist to system-wide list.
 14. **Passenger dropdown sorted by usage** — Passenger selector now sorts by flight count (most used first), then alphabetically.
 15. **Passenger modal cleanup** — Removed placeholder text from all Add/Edit Passenger modal fields.
+16. **Code audit & cleanup (v1.3.0)** — Fixed 2 critical bugs (conditional hook, stale closure), 3 high issues (memoization, DRY, context perf), removed unused code, added ErrorBoundary, extracted magic numbers. Lint reduced from 14 issues to 3.
 
 ## Files Changed (Aug 18 session)
 - `src/contexts/DataProvider.jsx` — Flights subscription from subcollection, saveFlight/deleteFlight/saveFlightsBatch API

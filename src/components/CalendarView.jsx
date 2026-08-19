@@ -138,7 +138,7 @@ const CheckItem = ({ label, checked, onChange, disabled = false }) => (
 const viewSectionHeader = { fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', margin: '8px 0 6px 0' };
 
 const CalendarView = () => {
-  const { data, updateData, updateDataBatch, saveFlight, saveFlightsBatch, deleteFlight } = useData();
+  const { data, updateData, updateDataBatch, saveFlight, deleteFlight } = useData();
   const { 
     userFlights: flights = [], 
     userPilots: pilotsList = [], 

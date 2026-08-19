@@ -47,22 +47,21 @@ const DEFAULT_DATA = {
   gemini_api_key: ''
 };
 
-function getOrgDocRef() {
+function getOrgName() {
   const isDev = import.meta.env.DEV || (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'));
-  const orgName = isDev ? 'dev_sandbox' : 'default';
-  return doc(db, 'orgs', orgName);
+  return isDev ? 'dev_sandbox' : 'default';
+}
+
+function getOrgDocRef() {
+  return doc(db, 'orgs', getOrgName());
 }
 
 function getFlightsCollectionRef() {
-  const isDev = import.meta.env.DEV || (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'));
-  const orgName = isDev ? 'dev_sandbox' : 'default';
-  return collection(db, 'orgs', orgName, 'flights');
+  return collection(db, 'orgs', getOrgName(), 'flights');
 }
 
 function getFlightDocRef(flightId) {
-  const isDev = import.meta.env.DEV || (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'));
-  const orgName = isDev ? 'dev_sandbox' : 'default';
-  return doc(db, 'orgs', orgName, 'flights', String(flightId));
+  return doc(db, 'orgs', getOrgName(), 'flights', String(flightId));
 }
 
 function sanitizeForFirestore(val) {
@@ -111,7 +110,6 @@ async function migrateFlightsToSubcollection() {
 
     // Remove the legacy flights field from org doc
     await updateDoc(orgRef, { flights: null });
-    console.log(`Migrated ${legacyFlights.length} flights to subcollection`);
   } catch (err) {
     console.error('Flight migration failed:', err);
   }
@@ -342,8 +340,12 @@ export const DataProvider = ({ children }) => {
     }
   }, []);
 
+  const contextValue = useMemo(() => ({
+    ...data, data, updateData, updateDataBatch, saveFlight, saveFlightsBatch, deleteFlight, loading, error
+  }), [data, updateData, updateDataBatch, saveFlight, saveFlightsBatch, deleteFlight, loading, error]);
+
   return (
-    <DataContext.Provider value={{ ...data, data, updateData, updateDataBatch, saveFlight, saveFlightsBatch, deleteFlight, loading, error }}>
+    <DataContext.Provider value={contextValue}>
       {children}
     </DataContext.Provider>
   );

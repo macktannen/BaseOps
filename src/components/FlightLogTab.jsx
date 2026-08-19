@@ -8,7 +8,7 @@ import { useData } from '../contexts/DataProvider';
 const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign, onClearSignature, onToggleLock, aircraftId, aircraftList, pilotsList }) => {
   const isMobile = useIsMobile();
   const [auditExpanded, setAuditExpanded] = useState(false);
-  const { userAircraft, updateData } = useData();
+  const { userAircraft } = useData();
 
   const defaultLegsActuals = legs.map(() => ({
     flightHrs: '', blockHrs: '', hobbs: '', engineCycles: '', engine1Cycles: '', engine2Cycles: '', engine1Hrs: '', engine2Hrs: '', landings: '', landingType: '', fuelPurchased: ''
@@ -173,79 +173,6 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
         ? Math.max(0, parseInt(aircraft?.engine2Cycles || 0) - changeEngine2Cycles)
         : parseInt(aircraft?.engine2Cycles || 0));
 
-
-
-  const updateGlobalAircraft = (multiplier = 1) => {
-    if (!aircraftId) return;
-    try {
-      const storedAircraft = [...(userAircraft || [])];
-      const acIndex = storedAircraft.findIndex(a => a.id === aircraftId);
-      if (acIndex >= 0) {
-        const ac = { ...storedAircraft[acIndex] };
-        const dual = ac.dualEngine || isTwin;
-
-        // Idempotent guard: if hours already match expected after-values, skip update
-        // This prevents double-counting when handleSignFlight already committed hours
-        if (multiplier > 0) {
-          const expectedTotalHours = (Math.round((parseFloat(flightBefore || 0) + changeFlight) * 10) / 10).toFixed(1);
-          const expectedEngine1 = (Math.round((parseFloat(engine1Before || 0) + changeEngine1Hours) * 10) / 10).toFixed(1);
-          const alreadyCommitted = parseFloat(ac.totalHours) === parseFloat(expectedTotalHours)
-            && parseFloat(ac.engine1Hours || ac.engineHours || 0) === parseFloat(expectedEngine1);
-          if (alreadyCommitted) return;
-        }
-
-        // Idempotent assignment using exact baseline Before + Change figures
-        if (multiplier > 0) {
-          // Signing / Locking: set to exact After values
-          ac.totalHours = (Math.round((parseFloat(flightBefore || 0) + changeFlight) * 10) / 10).toFixed(1);
-          ac.landings = parseInt(landingsBefore || 0) + changeLandings;
-          ac.hobbs = (Math.round((parseFloat(hobbsBefore || 0) + changeHobbs) * 10) / 10).toFixed(1);
-
-          ac.engine1Hours = (Math.round((parseFloat(engine1Before || 0) + changeEngine1Hours) * 10) / 10).toFixed(1);
-          ac.engineHours = ac.engine1Hours;
-          ac.engine1Cycles = parseInt(cycles1Before || 0) + changeEngine1Cycles;
-          ac.engineCycles = ac.engine1Cycles;
-
-          if (dual) {
-            ac.engine2Hours = (Math.round((parseFloat(engine2Before || 0) + changeEngine2Hours) * 10) / 10).toFixed(1);
-            ac.engine2Cycles = parseInt(cycles2Before || 0) + changeEngine2Cycles;
-          }
-        } else {
-          // Reverting / Unlocking: revert to exact Before values
-          ac.totalHours = (Math.round(parseFloat(flightBefore || 0) * 10) / 10).toFixed(1);
-          ac.landings = parseInt(landingsBefore || 0);
-          ac.hobbs = (Math.round(parseFloat(hobbsBefore || 0) * 10) / 10).toFixed(1);
-
-          ac.engine1Hours = (Math.round(parseFloat(engine1Before || 0) * 10) / 10).toFixed(1);
-          ac.engineHours = ac.engine1Hours;
-          ac.engine1Cycles = parseInt(cycles1Before || 0);
-          ac.engineCycles = ac.engine1Cycles;
-
-          if (dual) {
-            ac.engine2Hours = (Math.round(parseFloat(engine2Before || 0) * 10) / 10).toFixed(1);
-            ac.engine2Cycles = parseInt(cycles2Before || 0);
-          }
-        }
-
-        // Maintain logbook audit trail on aircraft record for real-time cloud sync
-        if (!ac.auditLog) ac.auditLog = [];
-        const signAction = multiplier > 0 ? 'Signed flight log' : 'Reverted flight log signature';
-        const changesList = [];
-        if (changeFlight) changesList.push(`Flight: +${changeFlight}h`);
-        if (changeEngine1Hours) changesList.push(`Eng 1: +${changeEngine1Hours}h`);
-        if (dual && changeEngine2Hours) changesList.push(`Eng 2: +${changeEngine2Hours}h`);
-        if (changeLandings) changesList.push(`Landings: +${changeLandings}`);
-        if (changeHobbs) changesList.push(`Hobbs: +${changeHobbs}h`);
-        if (changesList.length > 0) {
-          ac.auditLog.push(`${signAction} (${currentUser?.name || 'Pilot'}) on ${new Date().toLocaleString()}: ${changesList.join(', ')}`);
-        }
-
-        storedAircraft[acIndex] = ac;
-        updateData('userAircraft', storedAircraft);
-        setAircraft(ac);
-      }
-    } catch(e) { console.error("Failed to update aircraft totals", e); }
-  };
 
   const handleSign = () => {
     const snapshottedTotals = {

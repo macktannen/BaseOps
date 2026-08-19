@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Trash2, MapPin, Plus, GripVertical, BookOpen, Clock, ChevronLeft, ChevronRight, ChevronDown, Upload, FileText, Download, Paperclip, Eye, Image, File } from 'lucide-react';
-import { mockPilots, mockCustomZones, mockAccounts, mockVendors } from '../data';
+import { mockPilots, mockCustomZones } from '../data';
 import airportsData from '../data/airports.json';
 import tzlookup from 'tz-lookup';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
@@ -636,6 +636,9 @@ const normalizeStatus = (s) => {
 };
 
 // --- EVENT MODAL ---
+const LAYOVER_MINUTES = 15;
+const ALERT_DELAY_MS = 100;
+
 const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate, hasPrev, hasNext, initialDate, flight, flightsCount, defaultActiveView = 'Plan' }) => {
   const isMobile = useIsMobile();
   const [isSaved, setIsSaved] = useState(false);
@@ -682,14 +685,35 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const [showNewPassengerModal, setShowNewPassengerModal] = useState(false);
   const [newPassengerLegIndex, setNewPassengerLegIndex] = useState(null);
   const [editingPassenger, setEditingPassenger] = useState(null);
+  const usageAccumulatorRef = useRef({});
 
-  const { userPilots, userAircraft, userPassengers, userAccounts, userVendors, userFlights, userCustomZones, crewSchedules, locationUsage, updateData, updateDataBatch, saveFlight, deleteFlight } = useData();
+  // Refs to avoid stale closures in sync useEffect
+  const expensesRef = useRef(expenses);
+  const uploadsRef = useRef(uploads);
+  const flightLogRef = useRef(flightLog);
+  const statusRef = useRef(status);
+  const legsRef = useRef(legs);
+  const titleRef = useRef(title);
+  const commentsRef = useRef(comments);
+  const opsNotesRef = useRef(opsNotes);
+  const flightRef = useRef(flight);
+  useEffect(() => { expensesRef.current = expenses; }, [expenses]);
+  useEffect(() => { uploadsRef.current = uploads; }, [uploads]);
+  useEffect(() => { flightLogRef.current = flightLog; }, [flightLog]);
+  useEffect(() => { statusRef.current = status; }, [status]);
+  useEffect(() => { legsRef.current = legs; }, [legs]);
+  useEffect(() => { titleRef.current = title; }, [title]);
+  useEffect(() => { commentsRef.current = comments; }, [comments]);
+  useEffect(() => { opsNotesRef.current = opsNotes; }, [opsNotes]);
+  useEffect(() => { flightRef.current = flight; }, [flight]);
 
-  const pilotsList = userPilots || [];
-  const aircraftList = userAircraft || [];
-  const passengersList = userPassengers || [];
-  const accountsList = userAccounts || [];
-  const vendorsList = userVendors || [];
+  const { userPilots, userAircraft, userPassengers, userAccounts, userVendors, userFlights, userCustomZones, crewSchedules, locationUsage, updateData, saveFlight } = useData();
+
+  const pilotsList = useMemo(() => userPilots || [], [userPilots]);
+  const aircraftList = useMemo(() => userAircraft || [], [userAircraft]);
+  const passengersList = useMemo(() => userPassengers || [], [userPassengers]);
+  const accountsList = useMemo(() => userAccounts || [], [userAccounts]);
+  const vendorsList = useMemo(() => userVendors || [], [userVendors]);
 
   const sortedPassengersList = useMemo(() => {
     const allFlights = userFlights || [];
@@ -749,15 +773,15 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
 
   // Sync open flight with global data changes automatically
   useEffect(() => {
-    if (!flight || !flight.id) return;
+    if (!flightRef.current || !flightRef.current.id) return;
     if (suppressSyncRef.current) return;
     
-    const updatedFlight = (userFlights || []).find(f => String(f.id) === String(flight.id) || (flight.flightNumber && String(f.flightNumber) === String(flight.flightNumber)));
+    const updatedFlight = (userFlights || []).find(f => String(f.id) === String(flightRef.current.id) || (flightRef.current.flightNumber && String(f.flightNumber) === String(flightRef.current.flightNumber)));
     if (!updatedFlight) return;
 
     // Always auto-sync if a flight log signature was added (authoritative, locks the flight)
     const remoteSigned = !!(updatedFlight.flightLog?.signature);
-    const localSigned = !!(flightLog?.signature);
+    const localSigned = !!(flightLogRef.current?.signature);
     if (remoteSigned && !localSigned) {
       if (updatedFlight.expenses) setExpenses(updatedFlight.expenses);
       if (updatedFlight.uploads) setUploads(updatedFlight.uploads);
@@ -770,7 +794,6 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     // On first sync, auto-sync silently (no banner) since state was just initialized
     if (!hasInitialSyncedRef.current) {
       hasInitialSyncedRef.current = true;
-      // Auto-sync to ensure state matches Firestore exactly
       if (updatedFlight.expenses) setExpenses(updatedFlight.expenses);
       if (updatedFlight.uploads) setUploads(updatedFlight.uploads);
       if (updatedFlight.flightLog) setFlightLog(updatedFlight.flightLog);
@@ -778,18 +801,28 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       return;
     }
 
-    // Check if we have unsaved local changes
-    if (hasUnsavedChanges()) {
-      // Detect what changed
+    // Check if we have unsaved local changes (read from refs to avoid stale closure)
+    const hasLocalChanges = (() => {
+      if (!flightRef.current || !flightRef.current.id) return false;
+      if (expensesRef.current.some(e => e._dirty)) return true;
+      const orig = flightRef.current;
+      if (titleRef.current !== (orig.title || '')) return true;
+      if (commentsRef.current !== (orig.comments || '')) return true;
+      if (opsNotesRef.current !== (orig.opsNotes || '')) return true;
+      if (JSON.stringify(legsRef.current) !== JSON.stringify(orig.legs || [])) return true;
+      return false;
+    })();
+
+    if (hasLocalChanges) {
       const changes = [];
-      if (JSON.stringify(updatedFlight.expenses) !== JSON.stringify(expenses)) changes.push('Expenses');
-      if (JSON.stringify(updatedFlight.uploads) !== JSON.stringify(uploads)) changes.push('Uploads');
-      if (JSON.stringify(updatedFlight.flightLog) !== JSON.stringify(flightLog)) changes.push('Flight Log');
-      if (normalizeStatus(updatedFlight.status || '') !== status) changes.push('Status');
-      if (JSON.stringify(updatedFlight.legs) !== JSON.stringify(legs)) changes.push('Route/Legs');
-      if ((updatedFlight.title || '') !== title) changes.push('Title');
-      if ((updatedFlight.comments || '') !== comments) changes.push('Comments');
-      if ((updatedFlight.opsNotes || '') !== opsNotes) changes.push('Ops Notes');
+      if (JSON.stringify(updatedFlight.expenses) !== JSON.stringify(expensesRef.current)) changes.push('Expenses');
+      if (JSON.stringify(updatedFlight.uploads) !== JSON.stringify(uploadsRef.current)) changes.push('Uploads');
+      if (JSON.stringify(updatedFlight.flightLog) !== JSON.stringify(flightLogRef.current)) changes.push('Flight Log');
+      if (normalizeStatus(updatedFlight.status || '') !== statusRef.current) changes.push('Status');
+      if (JSON.stringify(updatedFlight.legs) !== JSON.stringify(legsRef.current)) changes.push('Route/Legs');
+      if ((updatedFlight.title || '') !== titleRef.current) changes.push('Title');
+      if ((updatedFlight.comments || '') !== commentsRef.current) changes.push('Comments');
+      if ((updatedFlight.opsNotes || '') !== opsNotesRef.current) changes.push('Ops Notes');
       
       if (changes.length > 0) {
         setPendingRemoteChanges({ changes, updatedFlight });
@@ -802,7 +835,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     if (updatedFlight.uploads) setUploads(updatedFlight.uploads);
     if (updatedFlight.flightLog) setFlightLog(updatedFlight.flightLog);
     if (updatedFlight.status) setStatus(normalizeStatus(updatedFlight.status));
-  }, [flight, userFlights]);
+  }, [userFlights]);
 
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
@@ -1509,7 +1542,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     if (lastLeg.landTime) {
       const arrTz = getLocationTimeZone(lastLeg.destination);
       const arrAbs = toDate(`${lastLeg.arrDate || lastLeg.date}T${lastLeg.landTime}:00`, { timeZone: arrTz });
-      const nextDepAbs = new Date(arrAbs.getTime() + 15 * 60000);
+      const nextDepAbs = new Date(arrAbs.getTime() + LAYOVER_MINUTES * 60000);
       if (!isNaN(nextDepAbs.getTime())) {
         newTakeoff = formatInTimeZone(nextDepAbs, arrTz, 'HH:mm');
         newDate = formatInTimeZone(nextDepAbs, arrTz, 'yyyy-MM-dd');
@@ -1543,8 +1576,6 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     }
     setLegs(newLegs);
   };
-
-  const usageAccumulatorRef = useRef({});
 
   const accumulateUsage = (locationId) => {
     if (!locationId) return;
@@ -1628,7 +1659,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       // Prompt admin that flight is open and needs to be signed
       setTimeout(() => {
         alert(`Aircraft changed to ${newAcId}.\n\nThe flight is now OPEN and needs to be signed once complete. Committed meter hours on ${aircraftId} have been reverted.`);
-      }, 100);
+      }, ALERT_DELAY_MS);
     }
 
     setAircraftId(newAcId);
