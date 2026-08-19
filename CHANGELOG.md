@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v1.3.6] - 2026-08-19
+
+### Fixed
+- **EventModal crash** — Reverted all code audit changes to EventModal.jsx (refs, stale closure fix, memoizations). Restored to pre-audit version with passenger features intact. The stale closure fix and memoizations will be re-applied carefully in a future release.
+
 ## [v1.3.5] - 2026-08-19
 
 ### Fixed

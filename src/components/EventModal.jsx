@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Trash2, MapPin, Plus, GripVertical, BookOpen, Clock, ChevronLeft, ChevronRight, ChevronDown, Upload, FileText, Download, Paperclip, Eye, Image, File } from 'lucide-react';
-import { mockPilots, mockCustomZones } from '../data';
+import { mockPilots, mockCustomZones, mockAccounts, mockVendors } from '../data';
 import airportsData from '../data/airports.json';
 import tzlookup from 'tz-lookup';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
@@ -17,7 +17,7 @@ import { useData } from '../contexts/DataProvider';
 
 const getDefaultPilotForDate = (dateStr, schedules, storedPilots) => {
   if (!dateStr || !schedules) return '';
-  const allPilots = storedPilots || [];
+  const allPilots = storedPilots?.length > 0 ? storedPilots : mockPilots;
 
   for (const [key, status] of Object.entries(schedules)) {
     if (key.endsWith(`_${dateStr}`) && (status === 'On Duty' || status === 'Duty/Training')) {
@@ -298,7 +298,12 @@ const LocationSelect = ({ value, onChange, label, placeholder }) => {
   const storedZones = userCustomZones || [];
 
   const allLocations = [
-    ...storedZones.filter(sz => sz.type === 'custom').map(cz => {
+    ...mockCustomZones.map(cz => {
+      const override = storedZones.find(s => s.id === cz.id);
+      const data = override || cz;
+      return { ...data, isCustom: true, displayName: data.title, searchString: `${data.title} ${data.address || ''}`.toLowerCase(), usageCount: getUsageCount(data.id) };
+    }),
+    ...storedZones.filter(sz => sz.type === 'custom' && !mockCustomZones.find(c => c.id === sz.id)).map(cz => {
       return { ...cz, isCustom: true, displayName: cz.title, searchString: `${cz.title} ${cz.address || ''}`.toLowerCase(), usageCount: getUsageCount(cz.id) };
     }),
     ...airportsData.map(ap => {
@@ -312,7 +317,7 @@ const LocationSelect = ({ value, onChange, label, placeholder }) => {
     if (!value) return placeholder || 'Select...';
     
     // First check custom zones or overrides
-    const cz = storedZones.find(c => c.id === value.id);
+    const cz = [...mockCustomZones, ...storedZones].find(c => c.id === value.id);
     if (cz) return cz.title || cz.name || cz.id;
 
     // Then check raw airports
@@ -631,9 +636,6 @@ const normalizeStatus = (s) => {
 };
 
 // --- EVENT MODAL ---
-const LAYOVER_MINUTES = 15;
-const ALERT_DELAY_MS = 100;
-
 const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate, hasPrev, hasNext, initialDate, flight, flightsCount, defaultActiveView = 'Plan' }) => {
   const isMobile = useIsMobile();
   const [isSaved, setIsSaved] = useState(false);
@@ -680,29 +682,8 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const [showNewPassengerModal, setShowNewPassengerModal] = useState(false);
   const [newPassengerLegIndex, setNewPassengerLegIndex] = useState(null);
   const [editingPassenger, setEditingPassenger] = useState(null);
-  const usageAccumulatorRef = useRef({});
 
-  // Refs to avoid stale closures in sync useEffect
-  const expensesRef = useRef(expenses);
-  const uploadsRef = useRef(uploads);
-  const flightLogRef = useRef(flightLog);
-  const statusRef = useRef(status);
-  const legsRef = useRef(legs);
-  const titleRef = useRef(title);
-  const commentsRef = useRef(comments);
-  const opsNotesRef = useRef(opsNotes);
-  const flightRef = useRef(flight);
-  useEffect(() => { expensesRef.current = expenses; }, [expenses]);
-  useEffect(() => { uploadsRef.current = uploads; }, [uploads]);
-  useEffect(() => { flightLogRef.current = flightLog; }, [flightLog]);
-  useEffect(() => { statusRef.current = status; }, [status]);
-  useEffect(() => { legsRef.current = legs; }, [legs]);
-  useEffect(() => { titleRef.current = title; }, [title]);
-  useEffect(() => { commentsRef.current = comments; }, [comments]);
-  useEffect(() => { opsNotesRef.current = opsNotes; }, [opsNotes]);
-  useEffect(() => { flightRef.current = flight; }, [flight]);
-
-  const { userPilots, userAircraft, userPassengers, userAccounts, userVendors, userFlights, userCustomZones, crewSchedules, locationUsage, updateData, saveFlight } = useData();
+  const { userPilots, userAircraft, userPassengers, userAccounts, userVendors, userFlights, userCustomZones, crewSchedules, locationUsage, updateData, updateDataBatch, saveFlight, deleteFlight } = useData();
 
   const pilotsList = userPilots || [];
   const aircraftList = userAircraft || [];
@@ -768,15 +749,15 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
 
   // Sync open flight with global data changes automatically
   useEffect(() => {
-    if (!flightRef.current || !flightRef.current.id) return;
+    if (!flight || !flight.id) return;
     if (suppressSyncRef.current) return;
     
-    const updatedFlight = (userFlights || []).find(f => String(f.id) === String(flightRef.current.id) || (flightRef.current.flightNumber && String(f.flightNumber) === String(flightRef.current.flightNumber)));
+    const updatedFlight = (userFlights || []).find(f => String(f.id) === String(flight.id) || (flight.flightNumber && String(f.flightNumber) === String(flight.flightNumber)));
     if (!updatedFlight) return;
 
     // Always auto-sync if a flight log signature was added (authoritative, locks the flight)
     const remoteSigned = !!(updatedFlight.flightLog?.signature);
-    const localSigned = !!(flightLogRef.current?.signature);
+    const localSigned = !!(flightLog?.signature);
     if (remoteSigned && !localSigned) {
       if (updatedFlight.expenses) setExpenses(updatedFlight.expenses);
       if (updatedFlight.uploads) setUploads(updatedFlight.uploads);
@@ -789,6 +770,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     // On first sync, auto-sync silently (no banner) since state was just initialized
     if (!hasInitialSyncedRef.current) {
       hasInitialSyncedRef.current = true;
+      // Auto-sync to ensure state matches Firestore exactly
       if (updatedFlight.expenses) setExpenses(updatedFlight.expenses);
       if (updatedFlight.uploads) setUploads(updatedFlight.uploads);
       if (updatedFlight.flightLog) setFlightLog(updatedFlight.flightLog);
@@ -796,28 +778,18 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       return;
     }
 
-    // Check if we have unsaved local changes (read from refs to avoid stale closure)
-    const hasLocalChanges = (() => {
-      if (!flightRef.current || !flightRef.current.id) return false;
-      if (expensesRef.current.some(e => e._dirty)) return true;
-      const orig = flightRef.current;
-      if (titleRef.current !== (orig.title || '')) return true;
-      if (commentsRef.current !== (orig.comments || '')) return true;
-      if (opsNotesRef.current !== (orig.opsNotes || '')) return true;
-      if (JSON.stringify(legsRef.current) !== JSON.stringify(orig.legs || [])) return true;
-      return false;
-    })();
-
-    if (hasLocalChanges) {
+    // Check if we have unsaved local changes
+    if (hasUnsavedChanges()) {
+      // Detect what changed
       const changes = [];
-      if (JSON.stringify(updatedFlight.expenses) !== JSON.stringify(expensesRef.current)) changes.push('Expenses');
-      if (JSON.stringify(updatedFlight.uploads) !== JSON.stringify(uploadsRef.current)) changes.push('Uploads');
-      if (JSON.stringify(updatedFlight.flightLog) !== JSON.stringify(flightLogRef.current)) changes.push('Flight Log');
-      if (normalizeStatus(updatedFlight.status || '') !== statusRef.current) changes.push('Status');
-      if (JSON.stringify(updatedFlight.legs) !== JSON.stringify(legsRef.current)) changes.push('Route/Legs');
-      if ((updatedFlight.title || '') !== titleRef.current) changes.push('Title');
-      if ((updatedFlight.comments || '') !== commentsRef.current) changes.push('Comments');
-      if ((updatedFlight.opsNotes || '') !== opsNotesRef.current) changes.push('Ops Notes');
+      if (JSON.stringify(updatedFlight.expenses) !== JSON.stringify(expenses)) changes.push('Expenses');
+      if (JSON.stringify(updatedFlight.uploads) !== JSON.stringify(uploads)) changes.push('Uploads');
+      if (JSON.stringify(updatedFlight.flightLog) !== JSON.stringify(flightLog)) changes.push('Flight Log');
+      if (normalizeStatus(updatedFlight.status || '') !== status) changes.push('Status');
+      if (JSON.stringify(updatedFlight.legs) !== JSON.stringify(legs)) changes.push('Route/Legs');
+      if ((updatedFlight.title || '') !== title) changes.push('Title');
+      if ((updatedFlight.comments || '') !== comments) changes.push('Comments');
+      if ((updatedFlight.opsNotes || '') !== opsNotes) changes.push('Ops Notes');
       
       if (changes.length > 0) {
         setPendingRemoteChanges({ changes, updatedFlight });
@@ -830,7 +802,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     if (updatedFlight.uploads) setUploads(updatedFlight.uploads);
     if (updatedFlight.flightLog) setFlightLog(updatedFlight.flightLog);
     if (updatedFlight.status) setStatus(normalizeStatus(updatedFlight.status));
-  }, [userFlights]);
+  }, [flight, userFlights]);
 
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
@@ -1317,7 +1289,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       return ap ? { lat: ap.lat, lon: ap.lon } : null;
     } else {
       const storedZones = userCustomZones || [];
-      const cz = storedZones.find(c => c.id === locationVal.id);
+      const cz = [...mockCustomZones, ...storedZones].find(c => c.id === locationVal.id);
       if (!cz) return null;
       if (cz.lat && cz.lon) return { lat: parseFloat(cz.lat), lon: parseFloat(cz.lon) };
       if (cz.coordinates) {
@@ -1537,7 +1509,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     if (lastLeg.landTime) {
       const arrTz = getLocationTimeZone(lastLeg.destination);
       const arrAbs = toDate(`${lastLeg.arrDate || lastLeg.date}T${lastLeg.landTime}:00`, { timeZone: arrTz });
-      const nextDepAbs = new Date(arrAbs.getTime() + LAYOVER_MINUTES * 60000);
+      const nextDepAbs = new Date(arrAbs.getTime() + 15 * 60000);
       if (!isNaN(nextDepAbs.getTime())) {
         newTakeoff = formatInTimeZone(nextDepAbs, arrTz, 'HH:mm');
         newDate = formatInTimeZone(nextDepAbs, arrTz, 'yyyy-MM-dd');
@@ -1571,6 +1543,8 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     }
     setLegs(newLegs);
   };
+
+  const usageAccumulatorRef = useRef({});
 
   const accumulateUsage = (locationId) => {
     if (!locationId) return;
@@ -1654,7 +1628,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       // Prompt admin that flight is open and needs to be signed
       setTimeout(() => {
         alert(`Aircraft changed to ${newAcId}.\n\nThe flight is now OPEN and needs to be signed once complete. Committed meter hours on ${aircraftId} have been reverted.`);
-      }, ALERT_DELAY_MS);
+      }, 100);
     }
 
     setAircraftId(newAcId);
@@ -1906,7 +1880,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       return ap ? { display: ap.id, city: `${ap.municipality || ap.name}, ${ap.state}`, name: ap.name } : { display: locVal.id, city: '' };
     } else {
       const storedZones = userCustomZones || [];
-      const cz = storedZones.find(c => c.id === locVal.id);
+      const cz = [...mockCustomZones, ...storedZones].find(c => c.id === locVal.id);
       if (!cz) return { display: locVal.id, city: '' };
       return { display: cz.title, city: cz.address || 'Custom LZ', name: cz.title };
     }
