@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Trash2, MapPin, Plus, GripVertical, BookOpen, Clock, ChevronLeft, ChevronRight, ChevronDown, Upload, FileText, Download, Paperclip, Eye, Image, File } from 'lucide-react';
 import { mockPilots, mockCustomZones, mockAccounts, mockVendors } from '../data';
 import airportsData from '../data/airports.json';
@@ -690,6 +690,27 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const passengersList = userPassengers || [];
   const accountsList = userAccounts || [];
   const vendorsList = userVendors || [];
+
+  const sortedPassengersList = useMemo(() => {
+    const allFlights = userFlights || [];
+    const usageCount = {};
+    passengersList.forEach(p => { usageCount[p.id] = 0; });
+    allFlights.forEach(f => {
+      (f.legs || []).forEach(leg => {
+        (leg.passengers || []).forEach(pId => {
+          if (usageCount[pId] !== undefined) {
+            usageCount[pId]++;
+          }
+        });
+      });
+    });
+    return [...passengersList].sort((a, b) => {
+      const countA = usageCount[a.id] || 0;
+      const countB = usageCount[b.id] || 0;
+      if (countB !== countA) return countB - countA;
+      return a.name.localeCompare(b.name);
+    });
+  }, [passengersList, userFlights]);
 
   const [legs, setLegs] = useState([
     { departure: null, destination: null, takeoffTime: '08:00', landTime: '09:00', duration: 60, passengers: [], pilotId: getDefaultPilotForDate(initialDateStr, crewSchedules, pilotsList), date: initialDateStr }
@@ -2605,7 +2626,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                                    handleUpdateLeg(index, 'passengers', [...current, paxId]);
                                  }
                                }}
-                               options={[{ value: '', label: 'Add Passenger...' }, ...passengersList.map(p => ({ value: p.id, label: p.name })), { value: '__new__', label: '+ Add New Passenger...' }]}
+                               options={[{ value: '', label: 'Add Passenger...' }, ...sortedPassengersList.map(p => ({ value: p.id, label: p.name })), { value: '__new__', label: '+ Add New Passenger...' }]}
                                placeholder="Add Passenger..."
                                style={{ fontSize: '0.75rem' }}
                              />
@@ -2628,7 +2649,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                                style={{ padding: '4px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '0.75rem', backgroundColor: 'white' }}
                              >
                                <option value="">Add Passenger...</option>
-                               {passengersList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                               {sortedPassengersList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                <option value="__new__">+ Add New Passenger...</option>
                              </select>
                            )}

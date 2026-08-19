@@ -30,6 +30,7 @@ Helicopter Scheduler Web App (`baseops`). Manages flights, crew schedules, expen
 ## What Was Just Completed (Aug 19)
 12. **Add New Passenger from Flight Modal** — "+ Add New Passenger..." option in passenger dropdown opens a modal to create a new passenger (Name, Weight, Phone, Email, Company, Title). Saves to system-wide `userPassengers` list and adds to current flight leg. Works on both desktop and mobile. Passenger ID = Name.
 13. **Edit Passenger from Flight Modal** — Clicking a passenger name badge in the flight leg opens the same modal in edit mode with pre-filled info. Changes persist to system-wide list.
+14. **Passenger dropdown sorted by usage** — Passenger selector now sorts by flight count (most used first), then alphabetically.
 
 ## Files Changed (Aug 18 session)
 - `src/contexts/DataProvider.jsx` — Flights subscription from subcollection, saveFlight/deleteFlight/saveFlightsBatch API

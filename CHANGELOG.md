@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v1.2.2] - 2026-08-19
+
+### Changed
+- **Passenger dropdown sorted by usage frequency** — Passenger selector in flight modal now sorts by number of flights used (most frequent first), then alphabetically for ties. Most-used passengers appear at the top for quick access.
+
 ## [v1.2.1] - 2026-08-19
 
 ### Added
