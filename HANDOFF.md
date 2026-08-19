@@ -34,6 +34,7 @@ Helicopter Scheduler Web App (`baseops`). Manages flights, crew schedules, expen
 15. **Passenger modal cleanup** — Removed placeholder text from all Add/Edit Passenger modal fields.
 16. **Code audit & cleanup (v1.3.0)** — Fixed 2 critical bugs (conditional hook, stale closure), 3 high issues (memoization, DRY, context perf), removed unused code, added ErrorBoundary, extracted magic numbers. Lint reduced from 14 issues to 3.
 17. **Removed dead mock data (v1.3.1)** — Deleted `data.js` and cleaned up all mock data imports/references across 9 files.
+18. **Styled ConfirmDialog (v1.4.0)** — New ConfirmDialog component replaces native window.confirm(). First use: unsaved changes prompt in EventModal.
 
 ## Files Changed (Aug 18 session)
 - `src/contexts/DataProvider.jsx` — Flights subscription from subcollection, saveFlight/deleteFlight/saveFlightsBatch API

@@ -2,6 +2,12 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v1.4.0] - 2026-08-19
+
+### Added
+- **Styled ConfirmDialog component** — Replaced native `window.confirm()` with a themed React modal that matches the app's design system. Includes title, message, confirm/cancel buttons, and optional danger styling.
+- **Unsaved changes dialog** — The "You have unsaved changes" prompt now uses the new styled ConfirmDialog instead of the browser's native alert.
+
 ## [v1.3.7] - 2026-08-19
 
 ### Fixed

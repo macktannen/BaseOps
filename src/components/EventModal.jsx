@@ -8,6 +8,7 @@ import FlightLogTab from './FlightLogTab';
 import ExpensesTab from './ExpensesTab';
 import SaveButton from './SaveButton';
 import ConflictWarningModal from './ConflictWarningModal';
+import ConfirmDialog from './ConfirmDialog';
 import { detectConflicts } from '../services/schedulingConflicts';
 import { FileStorageService } from '../services/FileStorageService';
 import { authService } from '../services/authService';
@@ -682,6 +683,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const [showNewPassengerModal, setShowNewPassengerModal] = useState(false);
   const [newPassengerLegIndex, setNewPassengerLegIndex] = useState(null);
   const [editingPassenger, setEditingPassenger] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
 
   const { userPilots, userAircraft, userPassengers, userAccounts, userVendors, userFlights, userCustomZones, crewSchedules, locationUsage, updateData, updateDataBatch, saveFlight, deleteFlight } = useData();
 
@@ -1845,9 +1847,13 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
 
   const handleClose = () => {
     if (hasUnsavedChanges()) {
-      if (!window.confirm('You have unsaved changes. Are you sure you want to close?')) {
-        return;
-      }
+      setConfirmDialog({
+        open: true,
+        title: 'Unsaved Changes',
+        message: 'You have unsaved changes. Are you sure you want to close?',
+        onConfirm: () => { setConfirmDialog({ open: false, title: '', message: '', onConfirm: null }); onClose(); }
+      });
+      return;
     }
     onClose();
   };
@@ -2992,6 +2998,14 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
         passenger={editingPassenger}
       />
     )}
+
+    <ConfirmDialog
+      isOpen={confirmDialog.open}
+      title={confirmDialog.title}
+      message={confirmDialog.message}
+      onConfirm={confirmDialog.onConfirm}
+      onCancel={() => setConfirmDialog({ open: false, title: '', message: '', onConfirm: null })}
+    />
 
     {/* FILE VIEWER MODAL */}
     {viewerFile && (
