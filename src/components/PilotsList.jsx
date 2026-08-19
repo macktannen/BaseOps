@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Search, User, Plus, Trash2, Users as UsersIcon, Helicopter } from 'lucide-react';
 import SaveButton from './SaveButton';
 import { useData } from '../contexts/DataProvider';

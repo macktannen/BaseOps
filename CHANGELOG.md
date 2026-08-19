@@ -2,6 +2,11 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v1.3.2] - 2026-08-19
+
+### Fixed
+- **Missing useMemo imports** — Added missing `useMemo` to React imports in MobileCrew, MobileExpenses, PilotsList, and DataProvider (caused runtime crash)
+
 ## [v1.3.1] - 2026-08-19
 
 ### Removed

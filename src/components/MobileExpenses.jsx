@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Search, Calendar, FileText, Check, X, Plus, Sparkles, Loader2 } from 'lucide-react';
 import MobileDropdownMenu from './MobileDropdownMenu';
 import AIInvoiceUploader from './AIInvoiceUploader';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, User, Helicopter } from 'lucide-react';
 import { getColorForKey, getAccountColor, TAG_COLORS } from '../services/gridColors';
