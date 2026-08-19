@@ -5,6 +5,8 @@ import { authService } from '../services/authService';
 import { ROLES, ROLE_LABELS, ROLE_COLORS, getUserRoles } from '../services/permissionService';
 import useIsMobile from '../hooks/useIsMobile';
 import { Menu } from 'lucide-react';
+import ConfirmDialog from './ConfirmDialog';
+import AlertDialog from './AlertDialog';
 
 const RoleBadge = ({ role }) => {
   const colors = ROLE_COLORS[role] || { bg: '#e2e8f0', text: '#4a5568' };
@@ -80,6 +82,8 @@ const SettingsView = () => {
   const [editUserName, setEditUserName] = useState('');
   const [editUserEmail, setEditUserEmail] = useState('');
   const [editUserPassword, setEditUserPassword] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
+  const [alertDialog, setAlertDialog] = useState({ open: false, title: '', message: '' });
   const [editUserRoles, setEditUserRoles] = useState([]);
 
   useEffect(() => {
@@ -93,11 +97,15 @@ const SettingsView = () => {
   };
 
   const handleDeleteUser = async (id) => {
-    if (id === currentUser.id) { alert('You cannot delete yourself.'); return; }
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      await authService.deleteUser(id);
-      refreshUsers();
-    }
+    if (id === currentUser.id) { setAlertDialog({ open: true, title: 'Cannot Delete', message: 'You cannot delete yourself.' }); return; }
+    setConfirmDialog({
+      open: true, title: 'Delete User', message: 'Are you sure you want to delete this user?',
+      onConfirm: async () => {
+        setConfirmDialog({ open: false, title: '', message: '', onConfirm: null });
+        await authService.deleteUser(id);
+        refreshUsers();
+      }
+    });
   };
 
   const startEditUser = (user) => {
@@ -158,10 +166,10 @@ const SettingsView = () => {
 
   const handleRolesChange = async (userId, newRoles) => {
     if (userId === currentUser.id && !newRoles.includes('admin')) {
-      alert('You cannot remove your own admin privileges.');
+      setAlertDialog({ open: true, title: 'Admin Required', message: 'You cannot remove your own admin privileges.' });
       return;
     }
-    if (newRoles.length === 0) { alert('A user must have at least one role.'); return; }
+    if (newRoles.length === 0) { setAlertDialog({ open: true, title: 'Role Required', message: 'A user must have at least one role.' }); return; }
     await authService.updateUserRoles(userId, newRoles);
     refreshUsers();
   };
@@ -190,10 +198,14 @@ const SettingsView = () => {
   };
 
   const handleResetAirportHistory = () => {
-    if (window.confirm('Are you sure you want to clear your airport search history?')) {
-      updateData('locationUsage', {});
-      alert('Airport search history cleared!');
-    }
+    setConfirmDialog({
+      open: true, title: 'Clear History', message: 'Are you sure you want to clear your airport search history?',
+      onConfirm: () => {
+        setConfirmDialog({ open: false, title: '', message: '', onConfirm: null });
+        updateData('locationUsage', {});
+        setAlertDialog({ open: true, title: 'Cleared', message: 'Airport search history cleared!' });
+      }
+    });
   };
 
   const currentUserRoles = getUserRoles(currentUser);
@@ -283,6 +295,7 @@ const SettingsView = () => {
   };
 
   return (
+    <>
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: isMobile ? '10px' : '20px', gap: isMobile ? '10px' : '20px' }}>
       {/* Mobile Hamburger Header */}
       {isMobile && (
@@ -647,12 +660,16 @@ const SettingsView = () => {
                 type="button"
                 className="btn"
                 onClick={() => {
-                  if (window.confirm('⚠️ Are you sure you want to delete ALL flights from the database? This cannot be undone.')) {
-                    for (const flight of (userFlights || [])) {
-                      deleteFlight(flight.id);
+                  setConfirmDialog({
+                    open: true, title: 'Delete All Flights', message: 'Are you sure you want to delete ALL flights from the database? This cannot be undone.', danger: true,
+                    onConfirm: () => {
+                      setConfirmDialog({ open: false, title: '', message: '', onConfirm: null });
+                      for (const flight of (userFlights || [])) {
+                        deleteFlight(flight.id);
+                      }
+                      setAlertDialog({ open: true, title: 'Cleared', message: 'All flight records cleared!' });
                     }
-                    alert('All flight records cleared!');
-                  }
+                  });
                 }}
                 style={{ backgroundColor: '#e53e3e', color: 'white', fontWeight: 600, padding: '6px 12px', fontSize: '0.8rem' }}
               >
@@ -669,16 +686,20 @@ const SettingsView = () => {
                 type="button"
                 className="btn"
                 onClick={() => {
-                  if (window.confirm('🚨 DANGER: This will wipe all application data (flights, crew schedules, aircraft, notes). Continue?')) {
-                    const keysToClear = [
-                      'userFlights', 'userAircraft', 'crewSchedules', 'calendarNotes',
-                      'userAccounts', 'userVendors', 'userPassengers', 'globalContacts'
-                    ];
-                    keysToClear.forEach(k => {
-                      updateData(k, []);
-                    });
-                    alert('Database successfully reset!');
-                  }
+                  setConfirmDialog({
+                    open: true, title: 'Wipe All Data', message: 'DANGER: This will wipe all application data (flights, crew schedules, aircraft, notes). Continue?', danger: true,
+                    onConfirm: () => {
+                      setConfirmDialog({ open: false, title: '', message: '', onConfirm: null });
+                      const keysToClear = [
+                        'userFlights', 'userAircraft', 'crewSchedules', 'calendarNotes',
+                        'userAccounts', 'userVendors', 'userPassengers', 'globalContacts'
+                      ];
+                      keysToClear.forEach(k => {
+                        updateData(k, []);
+                      });
+                      setAlertDialog({ open: true, title: 'Reset Complete', message: 'Database successfully reset!' });
+                    }
+                  });
                 }}
                 style={{ backgroundColor: '#9b2c2c', color: 'white', fontWeight: 600, padding: '6px 12px', fontSize: '0.8rem' }}
               >
@@ -690,6 +711,22 @@ const SettingsView = () => {
         </div>
       </div>
     </div>
+
+    <ConfirmDialog
+      isOpen={confirmDialog.open}
+      title={confirmDialog.title}
+      message={confirmDialog.message}
+      onConfirm={confirmDialog.onConfirm}
+      onCancel={() => setConfirmDialog({ open: false, title: '', message: '', onConfirm: null })}
+      danger={confirmDialog.danger}
+    />
+    <AlertDialog
+      isOpen={alertDialog.open}
+      title={alertDialog.title}
+      message={alertDialog.message}
+      onClose={() => setAlertDialog({ open: false, title: '', message: '' })}
+    />
+    </>
   );
 };
 

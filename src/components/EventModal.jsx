@@ -9,6 +9,7 @@ import ExpensesTab from './ExpensesTab';
 import SaveButton from './SaveButton';
 import ConflictWarningModal from './ConflictWarningModal';
 import ConfirmDialog from './ConfirmDialog';
+import AlertDialog from './AlertDialog';
 import { detectConflicts } from '../services/schedulingConflicts';
 import { FileStorageService } from '../services/FileStorageService';
 import { authService } from '../services/authService';
@@ -684,6 +685,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const [newPassengerLegIndex, setNewPassengerLegIndex] = useState(null);
   const [editingPassenger, setEditingPassenger] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
+  const [alertDialog, setAlertDialog] = useState({ open: false, title: '', message: '' });
 
   const { userPilots, userAircraft, userPassengers, userAccounts, userVendors, userFlights, userCustomZones, crewSchedules, locationUsage, updateData, updateDataBatch, saveFlight, deleteFlight } = useData();
 
@@ -1040,14 +1042,14 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       const resizeFailures = results.filter(r => r.resizeFailed);
       if (resizeFailures.length > 0) {
         const names = resizeFailures.map(r => r.name).join(', ');
-        alert(`Image compression failed for: ${names}. Files were uploaded at full size, which may use more storage than expected.`);
+        setAlertDialog({ open: true, title: 'Compression Failed', message: `Image compression failed for: ${names}. Files were uploaded at full size, which may use more storage than expected.` });
       }
       const nextUploads = [...uploads, ...results];
       setUploads(nextUploads);
       persistUploadsToFlight(nextUploads);
     } catch (err) {
       console.error('Upload failed:', err);
-      alert('Upload failed: ' + (err.message || 'Unknown error'));
+      setAlertDialog({ open: true, title: 'Upload Failed', message: 'Upload failed: ' + (err.message || 'Unknown error') });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -1055,16 +1057,21 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   };
 
   const handleDeleteUpload = async (upload) => {
-    if (!window.confirm(`Delete "${upload.name}"?`)) return;
-    try {
-      await FileStorageService.deleteFile(upload.storagePath);
-      const nextUploads = uploads.filter(u => u.id !== upload.id);
-      setUploads(nextUploads);
-      persistUploadsToFlight(nextUploads);
-    } catch (err) {
-      console.error('Delete failed:', err);
-      alert(err.message || 'Failed to delete file. The file may still exist in cloud storage.');
-    }
+    setConfirmDialog({
+      open: true, title: 'Delete File', message: `Delete "${upload.name}"?`,
+      onConfirm: async () => {
+        setConfirmDialog({ open: false, title: '', message: '', onConfirm: null });
+        try {
+          await FileStorageService.deleteFile(upload.storagePath);
+          const nextUploads = uploads.filter(u => u.id !== upload.id);
+          setUploads(nextUploads);
+          persistUploadsToFlight(nextUploads);
+        } catch (err) {
+          console.error('Delete failed:', err);
+          setAlertDialog({ open: true, title: 'Delete Failed', message: err.message || 'Failed to delete file. The file may still exist in cloud storage.' });
+        }
+      }
+    });
   };
 
   const handleDownloadUpload = async (upload) => {
@@ -1555,82 +1562,85 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
 
   const allFlights = userFlights || [];
 
+  const performAircraftChange = (newAcId) => {
+    const oldAircraftId = aircraftId;
+    try {
+      const storedAircraft = [...(userAircraft || [])];
+      const oldAcIndex = storedAircraft.findIndex(a => a.id === oldAircraftId);
+      if (oldAcIndex >= 0 && flightLog?.aircraftTotals) {
+        const ac = { ...storedAircraft[oldAcIndex] };
+        const totals = flightLog.aircraftTotals;
+        if (totals.flightBefore !== undefined) ac.totalHours = parseFloat(totals.flightBefore).toFixed(1);
+        if (totals.landingsBefore !== undefined) ac.landings = parseInt(totals.landingsBefore);
+        if (totals.hobbsBefore !== undefined) ac.hobbs = parseFloat(totals.hobbsBefore).toFixed(1);
+        if (totals.engine1Before !== undefined) {
+          ac.engine1Hours = parseFloat(totals.engine1Before).toFixed(1);
+          ac.engineHours = ac.engine1Hours;
+        }
+        if (totals.cycles1Before !== undefined) {
+          ac.engine1Cycles = parseInt(totals.cycles1Before);
+          ac.engineCycles = ac.engine1Cycles;
+        }
+        if (totals.dualEngine && totals.engine2Before !== undefined) {
+          ac.engine2Hours = parseFloat(totals.engine2Before).toFixed(1);
+          ac.engine2Cycles = parseInt(totals.cycles2Before || 0);
+        }
+        if (!ac.auditLog) ac.auditLog = [];
+        ac.auditLog.push(
+          `Flight log unsigned & meters reverted due to aircraft change to ${newAcId || 'unassigned'} by Admin (${currentUser?.name || 'Admin'}) on ${new Date().toLocaleString()}`
+        );
+        storedAircraft[oldAcIndex] = ac;
+        updateData('userAircraft', storedAircraft);
+      }
+    } catch (e) {
+      console.error("Failed to revert old aircraft hours:", e);
+    }
+
+    const updatedAudit = [
+      ...(flightLog.auditLog || []),
+      `Flight log unsigned and ${oldAircraftId} hours reverted due to aircraft change to ${newAcId || 'none'} by Admin (${currentUser?.name || 'Admin'}) on ${new Date().toLocaleString()}`
+    ];
+    const nextFlightLog = {
+      ...flightLog,
+      signature: null,
+      isLocked: false,
+      aircraftTotals: null,
+      auditLog: updatedAudit
+    };
+    setFlightLog(nextFlightLog);
+    setStatus('confirmed');
+    persistFlightLogToFlight(nextFlightLog);
+
+    setTimeout(() => {
+      setAlertDialog({ open: true, title: 'Aircraft Changed', message: `Aircraft changed to ${newAcId}.\n\nThe flight is now OPEN and needs to be signed once complete. Committed meter hours on ${oldAircraftId} have been reverted.` });
+    }, 100);
+  };
+
   const handleAircraftChange = (newAcId) => {
     if (newAcId === aircraftId) return;
 
     if (isFlightSigned) {
       if (!isAdmin) {
-        alert("The aircraft cannot be changed on a signed flight.");
+        setAlertDialog({ open: true, title: 'Aircraft Locked', message: 'The aircraft cannot be changed on a signed flight.' });
         return;
       }
 
-      const confirmed = window.confirm(
-        `This flight has a signed flight log for aircraft ${aircraftId || 'assigned'}.\n\n` +
+      const changeMsg = `This flight has a signed flight log for aircraft ${aircraftId || 'assigned'}.\n\n` +
         `Changing the aircraft to ${newAcId || 'none'} will:\n` +
         `• Un-sign the flight log\n` +
         `• Unlock the log\n` +
         `• Revert committed meter numbers from ${aircraftId}\n` +
         `• Reopen the flight for review and signature\n\n` +
-        `Do you want to proceed?`
-      );
+        `Do you want to proceed?`;
 
-      if (!confirmed) {
-        return;
-      }
-
-      // 1. Revert committed meter hours from old aircraft
-      try {
-        const storedAircraft = [...(userAircraft || [])];
-        const oldAcIndex = storedAircraft.findIndex(a => a.id === aircraftId);
-        if (oldAcIndex >= 0 && flightLog?.aircraftTotals) {
-          const ac = { ...storedAircraft[oldAcIndex] };
-          const totals = flightLog.aircraftTotals;
-          if (totals.flightBefore !== undefined) ac.totalHours = parseFloat(totals.flightBefore).toFixed(1);
-          if (totals.landingsBefore !== undefined) ac.landings = parseInt(totals.landingsBefore);
-          if (totals.hobbsBefore !== undefined) ac.hobbs = parseFloat(totals.hobbsBefore).toFixed(1);
-          if (totals.engine1Before !== undefined) {
-            ac.engine1Hours = parseFloat(totals.engine1Before).toFixed(1);
-            ac.engineHours = ac.engine1Hours;
-          }
-          if (totals.cycles1Before !== undefined) {
-            ac.engine1Cycles = parseInt(totals.cycles1Before);
-            ac.engineCycles = ac.engine1Cycles;
-          }
-          if (totals.dualEngine && totals.engine2Before !== undefined) {
-            ac.engine2Hours = parseFloat(totals.engine2Before).toFixed(1);
-            ac.engine2Cycles = parseInt(totals.cycles2Before || 0);
-          }
-          if (!ac.auditLog) ac.auditLog = [];
-          ac.auditLog.push(
-            `Flight log unsigned & meters reverted due to aircraft change to ${newAcId || 'unassigned'} by Admin (${currentUser?.name || 'Admin'}) on ${new Date().toLocaleString()}`
-          );
-          storedAircraft[oldAcIndex] = ac;
-          updateData('userAircraft', storedAircraft);
+      setConfirmDialog({
+        open: true, title: 'Change Aircraft', message: changeMsg, danger: true,
+        onConfirm: () => {
+          setConfirmDialog({ open: false, title: '', message: '', onConfirm: null });
+          performAircraftChange(newAcId);
         }
-      } catch (e) {
-        console.error("Failed to revert old aircraft hours:", e);
-      }
-
-      // 2. Un-sign flightLog and reset lock & totals
-      const updatedAudit = [
-        ...(flightLog.auditLog || []),
-        `Flight log unsigned and ${aircraftId} hours reverted due to aircraft change to ${newAcId || 'none'} by Admin (${currentUser?.name || 'Admin'}) on ${new Date().toLocaleString()}`
-      ];
-      const nextFlightLog = {
-        ...flightLog,
-        signature: null,
-        isLocked: false,
-        aircraftTotals: null,
-        auditLog: updatedAudit
-      };
-      setFlightLog(nextFlightLog);
-      setStatus('confirmed');
-      persistFlightLogToFlight(nextFlightLog);
-
-      // Prompt admin that flight is open and needs to be signed
-      setTimeout(() => {
-        alert(`Aircraft changed to ${newAcId}.\n\nThe flight is now OPEN and needs to be signed once complete. Committed meter hours on ${aircraftId} have been reverted.`);
-      }, 100);
+      });
+      return;
     }
 
     setAircraftId(newAcId);
@@ -1671,7 +1681,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
               await FileStorageService.deleteReceipt(storagePath);
             } catch (err) {
               console.error("Failed to delete receipt", err);
-              alert(err.message || 'Failed to delete receipt from cloud storage. The file may still exist.');
+              setAlertDialog({ open: true, title: 'Delete Failed', message: err.message || 'Failed to delete receipt from cloud storage. The file may still exist.' });
             }
           }
         }
@@ -1686,7 +1696,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
             await FileStorageService.deleteReceipt(storagePath);
           } catch (err) {
             console.error("Failed to delete receipt", err);
-            alert(err.message || 'Failed to delete receipt from cloud storage. The file may still exist.');
+            setAlertDialog({ open: true, title: 'Delete Failed', message: err.message || 'Failed to delete receipt from cloud storage. The file may still exist.' });
           }
         }
       }
@@ -1756,7 +1766,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       }, 50);
     } catch (err) {
       console.error("performSave error:", err);
-      alert("Failed to save flight: " + err.message);
+      setAlertDialog({ open: true, title: 'Save Failed', message: 'Failed to save flight: ' + err.message });
     }
   };
 
@@ -1767,7 +1777,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     // Check route legs
     const invalidLegIndex = legs.findIndex(l => !l.departure || !l.destination);
     if (invalidLegIndex !== -1) {
-      alert(`Please select both an Origin (Departure) and Destination for Leg ${invalidLegIndex + 1} before saving.`);
+      setAlertDialog({ open: true, title: 'Missing Information', message: `Please select both an Origin (Departure) and Destination for Leg ${invalidLegIndex + 1} before saving.` });
       setActiveView('Plan');
       return;
     }
@@ -2868,7 +2878,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
              onClick={() => {
                if (!flight) return;
                if (isFlightSigned && !isAdmin) {
-                 alert('This flight has a signed flight log and can only be deleted by an administrator.');
+                 setAlertDialog({ open: true, title: 'Admin Required', message: 'This flight has a signed flight log and can only be deleted by an administrator.' });
                  return;
                }
                setDeleteConfirmOpen(true);
@@ -2962,7 +2972,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
               type="button"
               onClick={() => {
                 if (isFlightSigned && !isAdmin) {
-                  alert('This flight has a signed flight log and can only be deleted by an administrator.');
+                   setAlertDialog({ open: true, title: 'Admin Required', message: 'This flight has a signed flight log and can only be deleted by an administrator.' });
                   return;
                 }
                 setDeleteConfirmOpen(false);
@@ -3005,6 +3015,13 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       message={confirmDialog.message}
       onConfirm={confirmDialog.onConfirm}
       onCancel={() => setConfirmDialog({ open: false, title: '', message: '', onConfirm: null })}
+    />
+
+    <AlertDialog
+      isOpen={alertDialog.open}
+      title={alertDialog.title}
+      message={alertDialog.message}
+      onClose={() => setAlertDialog({ open: false, title: '', message: '' })}
     />
 
     {/* FILE VIEWER MODAL */}

@@ -2,6 +2,12 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v1.4.1] - 2026-08-19
+
+### Changed
+- **Replaced native dialogs in EventModal** — All window.confirm() and alert() calls in EventModal.jsx now use styled ConfirmDialog/AlertDialog components
+- **Replaced native dialogs in SettingsView** — All window.confirm() and alert() calls in SettingsView.jsx now use styled ConfirmDialog/AlertDialog components
+
 ## [v1.4.0] - 2026-08-19
 
 ### Added
