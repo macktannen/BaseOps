@@ -152,15 +152,13 @@ const CalendarView = () => {
   const viewSettings = { ...DEFAULT_VIEW_SETTINGS, ...(viewSettingsData || {}), fields: { ...DEFAULT_VIEW_SETTINGS.fields, ...(viewSettingsData?.fields || {}) } };
 
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [isModalOpen, setIsModalOpen] = useState(() => {
-    return !!sessionStorage.getItem('baseops_open_flight_id');
-  });
-  const [selectedDate, setSelectedDate] = useState(null);
   const [editingFlight, setEditingFlight] = useState(() => {
     const openId = sessionStorage.getItem('baseops_open_flight_id');
     if (!openId) return null;
     return flights.find(f => String(f.id) === String(openId)) || null;
   });
+  const [isModalOpen, setIsModalOpen] = useState(() => editingFlight !== null);
+  const [selectedDate, setSelectedDate] = useState(null);
   const [, setDraggableFlightId] = useState(null);
   const [pendingDuplicateFlight, setPendingDuplicateFlight] = useState(null);
   const [showViewPanel, setShowViewPanel] = useState(false);
