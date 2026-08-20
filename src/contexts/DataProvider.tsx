@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
 import { doc, collection, onSnapshot, setDoc, updateDoc, deleteDoc, writeBatch, getDocs, DocumentData } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuth } from './useAuth';
@@ -20,7 +20,6 @@ interface DataContextValue {
   schedulesGridColorBy: string;
   locationUsage: Record<string, number>;
   departmentExpenses: DocumentData[];
-  gemini_api_key: string;
   data: DataContextState;
   updateData: (key: string, value: unknown) => Promise<void>;
   updateDataBatch: (updates: Record<string, unknown>) => Promise<void>;
@@ -47,10 +46,20 @@ interface DataContextState {
   schedulesGridColorBy: string;
   locationUsage: Record<string, number>;
   departmentExpenses: DocumentData[];
-  gemini_api_key: string;
 }
 
-export const DataContext = createContext<DataContextValue | null>(null);
+interface DataProviderValue {
+  data: DataContextState;
+  updateData: (key: string, value: unknown) => Promise<void>;
+  updateDataBatch: (updates: Record<string, unknown>) => Promise<void>;
+  saveFlight: (flightData: DocumentData & { id: string | number }) => Promise<void>;
+  saveFlightsBatch: (flightsArray: (DocumentData & { id: string | number })[]) => Promise<void>;
+  deleteFlight: (flightId: string | number) => Promise<void>;
+  loading: boolean;
+  error: Error | null;
+}
+
+export const DataContext = createContext<DataProviderValue | null>(null);
 
 const FIRESTORE_KEY_MAP: Record<string, string> = {
   'userAircraft': 'aircraft',
@@ -67,7 +76,6 @@ const FIRESTORE_KEY_MAP: Record<string, string> = {
   'schedulesGridColorBy': 'schedulesGridColorBy',
   'locationUsage': 'locationUsage',
   'departmentExpenses': 'departmentExpenses',
-  'gemini_api_key': 'geminiApiKey',
 };
 
 const LOCAL_KEY_MAP: Record<string, string> = Object.entries(FIRESTORE_KEY_MAP).reduce((acc, [local, firestore]) => {
@@ -90,8 +98,7 @@ const DEFAULT_DATA: DataContextState = {
   crewOrder: [],
   schedulesGridColorBy: 'tag',
   locationUsage: {},
-  departmentExpenses: [],
-  gemini_api_key: ''
+  departmentExpenses: []
 };
 
 function getOrgName(): string {
@@ -380,8 +387,19 @@ export const DataProvider = ({ children }: DataProviderProps) => {
     }
   }, []);
 
+  const contextValue = useMemo(() => ({
+    data,
+    updateData,
+    updateDataBatch,
+    saveFlight,
+    saveFlightsBatch,
+    deleteFlight,
+    loading,
+    error
+  }), [data, updateData, updateDataBatch, saveFlight, saveFlightsBatch, deleteFlight, loading, error]);
+
   return (
-    <DataContext.Provider value={{ ...data, data, updateData, updateDataBatch, saveFlight, saveFlightsBatch, deleteFlight, loading, error }}>
+    <DataContext.Provider value={contextValue}>
       {children}
     </DataContext.Provider>
   );
@@ -392,5 +410,5 @@ export const useData = (): DataContextValue => {
   if (context === null) {
     throw new Error('useData must be used within a DataProvider');
   }
-  return context;
+  return useMemo(() => ({ ...context.data, ...context }), [context]);
 };

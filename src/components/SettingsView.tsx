@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/useAuth';
 import { useData } from '../contexts/DataProvider';
 import { authService } from '../services/authService';
@@ -55,7 +55,7 @@ const RoleCheckboxGroup = ({ value = [], onChange, disabled = false }) => (
 
 const SettingsView = () => {
   const { currentUser, isAdmin, updateProfile } = useAuth();
-  const { updateData, userFlights, deleteFlight, gemini_api_key } = useData();
+  const { updateData, userFlights, deleteFlight } = useData();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('account');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -211,66 +211,6 @@ const SettingsView = () => {
   const currentUserRoles = getUserRoles(currentUser);
   const isViewOnly = currentUserRoles.length === 1 && currentUserRoles[0] === 'view_only';
 
-  const [geminiKey, setGeminiKey] = useState(gemini_api_key || import.meta.env.VITE_GEMINI_API_KEY || '');
-  const [aiMsg, setAiMsg] = useState('');
-  const [testingKey, setTestingKey] = useState(false);
-
-  const handleSaveGeminiKey = (e) => {
-    e.preventDefault();
-    const cleanKey = geminiKey.trim();
-    updateData('gemini_api_key', cleanKey);
-    setAiMsg({ type: 'success', text: 'Gemini API Key saved to browser storage!' });
-  };
-
-  const handleTestGeminiKey = async () => {
-    const keyToTest = geminiKey.trim() || import.meta.env.VITE_GEMINI_API_KEY;
-    if (!keyToTest) {
-      setAiMsg({ type: 'error', text: 'Please enter an API key first.' });
-      return;
-    }
-    setTestingKey(true);
-    setAiMsg('');
-    try {
-      const candidateEndpoints = [
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent',
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent',
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
-      ];
-      let res = null;
-      let lastErrText = '';
-      for (const ep of candidateEndpoints) {
-        const testRes = await fetch(`${ep}?key=${keyToTest}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: 'Ping' }] }] })
-        });
-        if (testRes.status === 404 || testRes.status === 429) {
-          const errBody = await testRes.clone().text().catch(() => '');
-          if (testRes.status === 404 || errBody.includes('limit: 0')) {
-            lastErrText = errBody || `Model unavailable at ${ep}`;
-            continue;
-          }
-        }
-        res = testRes;
-        break;
-      }
-
-      if (res && res.ok) {
-        setAiMsg({ type: 'success', text: '✅ API Key Connection Verified Successfully!' });
-      } else if (res) {
-        const errData = await res.json().catch(() => ({}));
-        const msg = errData.error?.message || 'Invalid or revoked API key';
-        setAiMsg({ type: 'error', text: `❌ API Key Error (${res.status}): ${msg}. Please generate a new key at aistudio.google.com.` });
-      } else {
-        setAiMsg({ type: 'error', text: `❌ API Key Error: Please check your key from aistudio.google.com (${lastErrText || 'All models unavailable'})` });
-      }
-    } catch(err) {
-      setAiMsg({ type: 'error', text: `❌ Connection failed: ${err.message}` });
-    } finally {
-      setTestingKey(false);
-    }
-  };
-
   const tabStyle = (tab) => ({
     padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid var(--border-color)',
     fontWeight: activeTab === tab ? 600 : 400,
@@ -356,64 +296,21 @@ const SettingsView = () => {
         {/* AI & INTEGRATIONS */}
         {activeTab === 'ai' && (
           <div style={{ maxWidth: '650px' }}>
-            <h3 style={{ marginTop: 0, marginBottom: '8px', fontSize: '1.1rem' }}>AI Integrations & API Keys</h3>
+            <h3 style={{ marginTop: 0, marginBottom: '8px', fontSize: '1.1rem' }}>AI Integrations</h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-              Configure your AI key to enable <strong>AI PDF Invoice & Receipt Reading</strong> across the application.
+              AI PDF Invoice & Receipt Reading is configured at the server level and available to all users.
             </p>
-
-            {aiMsg && (
-              <div style={{ padding: '10px 14px', borderRadius: '6px', marginBottom: '20px', fontSize: '0.85rem', fontWeight: 500, backgroundColor: aiMsg.type === 'success' ? '#c6f6d5' : '#fed7d7', color: aiMsg.type === 'success' ? '#2f855a' : '#c53030' }}>
-                {aiMsg.text}
-              </div>
-            )}
 
             <div style={{ backgroundColor: '#f8fafc', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <h4 style={{ margin: 0, fontSize: '0.95rem' }}>Google Gemini AI (Vision Engine)</h4>
-                {geminiKey ? (
-                  <span style={{ fontSize: '0.72rem', backgroundColor: '#c6f6d5', color: '#22543d', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>
-                    Key Saved
-                  </span>
-                ) : (
-                  <span style={{ fontSize: '0.72rem', backgroundColor: '#feebc8', color: '#744210', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>
-                    Not Configured
-                  </span>
-                )}
+                <span style={{ fontSize: '0.72rem', backgroundColor: '#c6f6d5', color: '#22543d', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>
+                  Enabled
+                </span>
               </div>
-
-              <p style={{ fontSize: '0.82rem', color: '#4a5568', lineHeight: '1.4', marginBottom: '16px' }}>
-                Google AI Studio provides <strong>1,500 free invoice scans per day</strong> at $0 cost. Get a free API key instantly at <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" style={{ color: '#8b5cf6', fontWeight: 'bold' }}>aistudio.google.com</a>.
+              <p style={{ fontSize: '0.82rem', color: '#4a5568', lineHeight: '1.4', marginBottom: 0 }}>
+                The Gemini API key is managed securely on the server. No per-user key configuration is required.
               </p>
-
-              <form onSubmit={handleSaveGeminiKey}>
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '6px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                    Gemini API Key
-                  </label>
-                  <input
-                    type="password"
-                    value={geminiKey}
-                    onChange={e => setGeminiKey(e.target.value)}
-                    placeholder="AIzaSy..."
-                    className="form-control"
-                    style={{ fontFamily: 'monospace' }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button type="submit" className="btn btn-primary">
-                    Save Key
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleTestGeminiKey}
-                    disabled={testingKey}
-                    className="btn btn-outline"
-                  >
-                    {testingKey ? 'Testing Connection...' : 'Test Connection'}
-                  </button>
-                </div>
-              </form>
             </div>
           </div>
         )}

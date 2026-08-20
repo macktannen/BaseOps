@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Trash2, MapPin, Plus, GripVertical, BookOpen, Clock, ChevronLeft, ChevronRight, ChevronDown, Upload, FileText, Download, Paperclip, Eye, Image, File } from 'lucide-react';
-import airportsData from '../data/airports.json';
+import { getAirportById, airports } from '../data/airportsIndex';
 import tzlookup from 'tz-lookup';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
 import FlightLogTab from './FlightLogTab';
@@ -302,7 +302,7 @@ const LocationSelect = ({ value, onChange, label, placeholder }) => {
     ...storedZones.filter(sz => sz.type === 'custom').map(cz => {
       return { ...cz, isCustom: true, displayName: cz.title, searchString: `${cz.title} ${cz.address || ''}`.toLowerCase(), usageCount: getUsageCount(cz.id) };
     }),
-    ...airportsData.map(ap => {
+    ...airports.map(ap => {
       const override = storedZones.find(s => s.id === ap.id);
       const data = override || ap;
       return { ...data, isCustom: false, displayName: `${data.id} - ${data.title || data.name}`, searchString: `${data.id} ${data.title || data.name} ${data.address || data.municipality}`.toLowerCase(), usageCount: getUsageCount(data.id) };
@@ -318,7 +318,7 @@ const LocationSelect = ({ value, onChange, label, placeholder }) => {
 
     // Then check raw airports
     if (value.type === 'airport') {
-      const ap = airportsData.find(a => a.id === value.id);
+      const ap = getAirportById(value.id);
       return ap ? `${ap.id} - ${ap.name}` : value.id;
     }
     
@@ -1290,7 +1290,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const getLocationCoords = (locationVal) => {
     if (!locationVal || !locationVal.id) return null;
     if (locationVal.type === 'airport') {
-      const ap = airportsData.find(a => a.id === locationVal.id);
+      const ap = getAirportById(locationVal.id);
       return ap ? { lat: ap.lat, lon: ap.lon } : null;
     } else {
       const storedZones = userCustomZones || [];
@@ -1891,7 +1891,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const getLocationDetails = (locVal) => {
     if (!locVal || !locVal.id) return { display: '', city: '' };
     if (locVal.type === 'airport') {
-      const ap = airportsData.find(a => a.id === locVal.id);
+      const ap = getAirportById(locVal.id);
       return ap ? { display: ap.id, city: `${ap.municipality || ap.name}, ${ap.state}`, name: ap.name } : { display: locVal.id, city: '' };
     } else {
       const storedZones = userCustomZones || [];

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { useData } from '../contexts/DataProvider';
 import { DollarSign, Search, Calendar, FileText, Building, Plus, Trash2, Edit2, Check, X, BarChart3, Paperclip, Download, CheckSquare, Clock } from 'lucide-react';
 import EventModal from './EventModal';
@@ -259,7 +259,7 @@ const ExpensesPage = () => {
     }
   };
 
-  const handleSaveFlight = async (flightData, shouldClose = false, extraUpdates = null) => {
+  const handleSaveFlight = async (flightData, _shouldClose = false, extraUpdates = null) => {
     try {
       const existingFlight = userFlights.find(f =>
         String(f.id) === String(flightData.id) ||

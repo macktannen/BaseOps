@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useData } from '../contexts/DataProvider';
 import { ChevronLeft, ChevronRight, ChevronDown, Settings, Settings2, Helicopter, X, GripVertical, Moon } from 'lucide-react';
 import { startOfWeek, addDays, format, subWeeks, addWeeks } from 'date-fns';
-import airportsData from '../data/airports.json';
+import { getAirportById } from '../data/airportsIndex';
 import { getColorForKey, getAccountColor, TAG_COLORS } from '../services/gridColors';
 import EventModal from './EventModal';
 import useIsMobile from '../hooks/useIsMobile';
@@ -272,7 +272,7 @@ const CrewSchedule = () => {
   const getName = (loc) => {
     if (!loc) return '?';
     if (loc.type === 'airport') {
-      const ap = airportsData.find(a => a.id === loc.id);
+      const ap = getAirportById(loc.id);
       return ap ? ap.id : loc.id;
     } else {
       let storedZones = userCustomZones || [];

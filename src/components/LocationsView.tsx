@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useData } from '../contexts/DataProvider';
 import { Search, MapPin, Map as MapIcon, Plus, Trash2, Loader } from 'lucide-react';
 import SaveButton from './SaveButton';
-import airportsData from '../data/airports.json';
+import { airports } from '../data/airportsIndex';
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -80,7 +80,7 @@ const LocationsView = () => {
     const usageData = locationUsage || {};
     const storedCustomZones = userCustomZones || [];
 
-    const usedAirports = airportsData
+    const usedAirports = airports
       .filter(ap => usageData[ap.id] > 0)
       .map(ap => ({
         ...ap,

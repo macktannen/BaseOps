@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Lock, Unlock, PenTool, Trash2, ChevronDown, ChevronUp, History } from 'lucide-react';
 import { authService } from '../services/authService';
 import useIsMobile from '../hooks/useIsMobile';

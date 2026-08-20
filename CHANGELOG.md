@@ -2,6 +2,18 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v1.7.0] - 2026-08-20
+
+### Added
+- **Gemini API key proxy** — Moved the Gemini API key off the client. Added a Vercel serverless function (`api/parse-invoice.js`) that injects the key server-side. The key is no longer bundled into client JS, stored in Firestore, or sent in URL query strings
+- **Component tests** — Added 27 component tests covering AlertDialog, ConfirmDialog, SaveButton, Logo, ConflictWarningModal, MobileDropdownMenu, and ProtectedRoute (65 total tests across 10 files)
+- **Airport index module** — Added `src/data/airportsIndex.ts` with a `Map<id, Airport>` for O(1) lookups
+
+### Changed
+- **Airport dataset reduced** — Filtered `airports.json` from 16,169 airports (entire US) to 8,208 airports east of Kansas City (-94.58° W). Reduced the airports chunk from 2.3 MB to 1.2 MB
+- **TypeScript dead code cleanup** — Enabled `noUnusedLocals` and `noUnusedParameters`. Removed 26 unused React imports and 2 unused parameters
+- **Settings AI tab** — Simplified to reflect server-side key management (no per-user key input)
+
 ## [v1.6.0] - 2026-08-20
 
 ### Changed

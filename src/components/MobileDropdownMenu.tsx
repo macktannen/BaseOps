@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, CSSProperties } from 'react';
+import { useState, useRef, useEffect, CSSProperties } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 interface DropdownOption {

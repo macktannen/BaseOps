@@ -1,6 +1,11 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isAdmin(userId) {
+      let user = get(/databases/$(database)/documents/users/$(userId)).data;
+      return ('roles' in user && user.roles is list && user.roles.hasAny(['admin'])) || user.role == 'admin';
+    }
+
     match /orgs/{orgId} {
       allow read, write: if request.auth != null;
 
@@ -11,9 +16,7 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null;
-      allow delete: if false;
+      allow write: if request.auth != null && (request.auth.uid == userId || isAdmin(request.auth.uid));
 
       match /{document=**} {
         allow read, write: if request.auth != null && request.auth.uid == userId;

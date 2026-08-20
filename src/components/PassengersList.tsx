@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useData } from '../contexts/DataProvider';
 import { Search, Plus, Trash2, Users, Briefcase, HeartPulse } from 'lucide-react';
 import SaveButton from './SaveButton';

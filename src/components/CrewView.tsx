@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import PilotsList from './PilotsList';
 import CrewList from './CrewList';
 import PassengersList from './PassengersList';

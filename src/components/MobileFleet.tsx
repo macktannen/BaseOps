@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Helicopter, Wrench, Trash2, Save, X, ChevronRight, ChevronDown, ChevronUp, History } from 'lucide-react';
 import { authService } from '../services/authService';
 import { can as permCan } from '../services/permissionService';

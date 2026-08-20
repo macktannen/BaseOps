@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useData } from '../contexts/DataProvider';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, addDays, startOfMonth, endOfMonth, isSameMonth, isSameDay, parseISO, differenceInCalendarDays } from 'date-fns';
 import { ChevronLeft, ChevronRight, ChevronDown, Plus, GripVertical, Moon, Filter, RotateCcw, MessageSquare, Helicopter, X } from 'lucide-react';
-import airportsData from '../data/airports.json';
+import { getAirportById } from '../data/airportsIndex';
 import EventModal from './EventModal';
 import ConflictWarningModal from './ConflictWarningModal';
 import { detectConflicts } from '../services/schedulingConflicts';
@@ -640,7 +640,7 @@ const CalendarView = () => {
   const getName = (loc) => {
     if (!loc) return '?';
     if (loc.type === 'airport') {
-      const ap = airportsData.find(a => a.id === loc.id);
+      const ap = getAirportById(loc.id);
       return ap ? ap.id : loc.id;
     } else {
       const storedZones = getStoredCustomZones();
@@ -1235,7 +1235,7 @@ const CalendarView = () => {
 
         const getName = (val) => {
           if (!val) return '';
-          if (airportsData[val]) return val;
+          if (getAirportById(val)) return val;
           return val;
         };
 

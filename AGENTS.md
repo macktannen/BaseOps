@@ -15,10 +15,11 @@ Never create new project folders outside of `C:\Users\chadm\.gemini\antigravity\
 ## Current State
 - Last updated: 2026-08-20
 - Last tool: opencode
-- Last commit: v1.6.0
+- Last commit: v1.7.0
 - In progress: nothing
-- Next planned: none
+- Next planned: TypeScript strict mode rollout (Phases C/D — type large components, flip strict: true)
 - Known issues: Firestore writes blocked client-side by ad-blocker/extension (v0.3.6 offline queue handles this gracefully)
+- Last action: added Gemini API serverless proxy, filtered airports to eastern US, added component tests, enabled noUnusedLocals/Parameters
 
 ## Project Overview
 Helicopter scheduling app built with React + Vite. Uses Leaflet for maps, date-fns for time handling, Firebase for auth/Firestore/Storage.

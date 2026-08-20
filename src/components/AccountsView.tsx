@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useData } from '../contexts/DataProvider';
 import { Plus, X, Pencil, Trash2, Building, GripVertical } from 'lucide-react';
 

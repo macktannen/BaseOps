@@ -184,7 +184,7 @@ export const authService = {
     return profile;
   },
 
-  updatePassword: async (uid: string, currentPassword: string, newPassword: string): Promise<boolean> => {
+  updatePassword: async (_uid: string, currentPassword: string, newPassword: string): Promise<boolean> => {
     const fbUser = auth.currentUser;
     if (!fbUser) throw new Error('Not authenticated');
     const credential = EmailAuthProvider.credential(fbUser.email!, currentPassword);

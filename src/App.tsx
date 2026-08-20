@@ -7,16 +7,16 @@ import './index.css';
 import './App.css';
 import './mobile.css';
 import { can as permCan } from './services/permissionService';
-import CalendarView from './components/CalendarView';
-import LocationsView from './components/LocationsView';
-import AircraftList from './components/AircraftList';
-import CrewView from './components/CrewView';
 const APP_VERSION = `v${packageJson.version}`;
-import AccountsContactsView from './components/AccountsContactsView';
-import ExpensesPage from './components/ExpensesPage';
-import SettingsView from './components/SettingsView';
 const Login = lazy(() => import('./pages/Login'));
 const Signup = lazy(() => import('./pages/Signup'));
+const CalendarView = lazy(() => import('./components/CalendarView'));
+const LocationsView = lazy(() => import('./components/LocationsView'));
+const AircraftList = lazy(() => import('./components/AircraftList'));
+const CrewView = lazy(() => import('./components/CrewView'));
+const AccountsContactsView = lazy(() => import('./components/AccountsContactsView'));
+const ExpensesPage = lazy(() => import('./components/ExpensesPage'));
+const SettingsView = lazy(() => import('./components/SettingsView'));
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './contexts/useAuth';
 import { DollarSign } from 'lucide-react';
@@ -191,13 +191,41 @@ function DashboardLayout({ activeTab, setActiveTab }) {
         </div>
 
         <div className="content-area">
-          {activeTab === 'calendar' && <CalendarView />}
-          {activeTab === 'crew' && <CrewView />}
-          {activeTab === 'airports' && <LocationsView />}
-          {activeTab === 'aircraft' && <AircraftList />}
-          {activeTab === 'accounts' && <AccountsContactsView />}
-          {activeTab === 'expenses' && <ExpensesPage />}
-          {activeTab === 'settings' && <SettingsView />}
+          {activeTab === 'calendar' && (
+            <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading...</div>}>
+              <CalendarView />
+            </Suspense>
+          )}
+          {activeTab === 'crew' && (
+            <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading...</div>}>
+              <CrewView />
+            </Suspense>
+          )}
+          {activeTab === 'airports' && (
+            <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading...</div>}>
+              <LocationsView />
+            </Suspense>
+          )}
+          {activeTab === 'aircraft' && (
+            <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading...</div>}>
+              <AircraftList />
+            </Suspense>
+          )}
+          {activeTab === 'accounts' && (
+            <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading...</div>}>
+              <AccountsContactsView />
+            </Suspense>
+          )}
+          {activeTab === 'expenses' && (
+            <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading...</div>}>
+              <ExpensesPage />
+            </Suspense>
+          )}
+          {activeTab === 'settings' && (
+            <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading...</div>}>
+              <SettingsView />
+            </Suspense>
+          )}
         </div>
       </div>
     </div>
