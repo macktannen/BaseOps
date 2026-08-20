@@ -2,6 +2,28 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v1.6.0] - 2026-08-20
+
+### Changed
+- **TypeScript migration** — Converted all 56 source files from JavaScript (.js/.jsx) to TypeScript (.ts/.tsx). Added `tsconfig.json` with strict mode enabled for services/contexts/hooks, loose mode for large components
+- **Bundle optimization** — Removed unused dependencies (`localforage`, `csv-parse`). Split heavy libraries into separate chunks: Firebase (567 kB), Leaflet (169 kB), date-fns (33 kB), PDF.js (427 kB). Main bundle reduced from 4,263 kB to 3,130 kB (-27%)
+- **PDF.js lazy loading** — PDF parser service now dynamically imports pdfjs-dist only when a PDF is opened, reducing initial load
+- **ExpensesDashboard lazy loaded** — Recharts-based dashboard now loads on demand when the dashboard tab is activated
+- **Entry point fixes** — Corrected `index.html` and `main.tsx` references after TypeScript migration
+
+### Added
+- **TypeScript configuration** — `tsconfig.json` with `allowJs: true`, `strict: false` (services use strict types, components use loose types for gradual migration)
+- **Vite env types** — `src/vite-env.d.ts` for `import.meta.env` support
+- **Typecheck script** — `npm run typecheck` runs `tsc --noEmit`
+- **Zod validation** — Added `src/services/validation.ts` with schemas for Flight, Aircraft, Pilot, Passenger, Account, Vendor, and Expense data. `saveFlight` now validates before Firestore write
+
+## [v1.5.2] - 2026-08-19
+
+### Changed
+- **Lint cleanup** — Reduced warnings from 24 to 3 by removing unused imports, unused variables, and memoizing unstable references
+- **Memoization fixes** — Added `useMemo` to `flights`, `schedules`, `pilotsList`, `aircraftList`, `passengersList`, `accountsList`, and `vendorsList` to prevent unnecessary re-renders
+- **Version sync** — Fixed version mismatch between AGENTS.md (was v0.3.48) and package.json (was v1.5.1), now both at v1.5.2
+
 ## [v1.5.1] - 2026-08-19
 
 ### Fixed

@@ -13,9 +13,9 @@ If you are ever working in a different directory (e.g., `C:\Users\chadm\Projects
 Never create new project folders outside of `C:\Users\chadm\.gemini\antigravity\scratch\` without explicit permission.
 
 ## Current State
-- Last updated: 2026-08-10
+- Last updated: 2026-08-20
 - Last tool: opencode
-- Last commit: v0.3.36 - Mobile expenses bottom action bar with manual expense and auto-fill invoice popups
+- Last commit: v1.6.0
 - In progress: nothing
 - Next planned: none
 - Known issues: Firestore writes blocked client-side by ad-blocker/extension (v0.3.6 offline queue handles this gracefully)
@@ -28,22 +28,27 @@ Helicopter scheduling app built with React + Vite. Uses Leaflet for maps, date-f
 - Leaflet / React-Leaflet for maps
 - date-fns + date-fns-tz for scheduling logic
 - Firebase Auth, Firestore, Cloud Storage
-- localforage for IndexedDB (legacy, being migrated to Cloud Storage)
 - recharts for expense dashboard charts
 - oxlint for linting
+- vitest for testing
+- zod for data validation
 
 ## Commands
 - `npm run dev` - start dev server
 - `npm run build` - production build
 - `npm run lint` - run oxlint
+- `npm run test` - run vitest
+- `npm run test:watch` - run vitest in watch mode
 
 ## Conventions
 - No comments unless asked
 - Small, focused commits
 - Update this file's "Current State" section after every change
-- Bump `APP_VERSION` in `src/App.jsx` (shown in the main menu) and add a CHANGELOG entry for every release
+- Bump `APP_VERSION` in `src/App.tsx` (derived from `package.json` version field; shown in the main menu) and add a CHANGELOG entry for every release
+- Run `npm run lint`, `npm run typecheck`, `npm run test`, and `npm run build` before committing
 
 ## Versioning
-- `APP_VERSION` lives in `src/App.jsx` and `src/components/MobileLayout.jsx` (both must match).
-- It MUST match the latest CHANGELOG version. Current: v0.3.48.
+- `APP_VERSION` is derived from `package.json` version field (shown in the main menu)
+- `APP_VERSION` lives in `src/App.tsx` and `src/components/MobileLayout.tsx` (both must match)
+- It MUST match the latest CHANGELOG version. Current: v1.6.0.
 
