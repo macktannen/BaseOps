@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Plane, Clock, Trophy, Fuel, Tag } from 'lucide-react';
+import { Helicopter, Clock, Trophy, Fuel, Tag } from 'lucide-react';
 import {
   BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, LineChart, Line, PieChart, Pie
@@ -127,15 +127,15 @@ const AircraftUsageDashboard = () => {
     return { startStr, endStr, label };
   }, [period, customStart, customEnd, referenceDate]);
 
-  const stats = useMemo(
-    () => computeAircraftUsage(userFlights as Flight[], userAircraft as Aircraft[], dateBounds, true, (userAccounts || []) as { id: string; name: string }[]),
-    [userFlights, userAircraft, userAccounts, dateBounds]
-  );
+  const filteredFlights = useMemo(() => {
+    if (!selectedAircraft) return userFlights as Flight[];
+    return (userFlights as Flight[]).filter(f => f.aircraftId === selectedAircraft);
+  }, [userFlights, selectedAircraft]);
 
-  const selectedAcStats = useMemo(() => {
-    if (!selectedAircraft) return null;
-    return stats.aircraft.find(a => a.aircraftId === selectedAircraft) || null;
-  }, [stats, selectedAircraft]);
+  const stats = useMemo(
+    () => computeAircraftUsage(filteredFlights, userAircraft as Aircraft[], dateBounds, true, (userAccounts || []) as { id: string; name: string }[]),
+    [filteredFlights, userAircraft, userAccounts, dateBounds]
+  );
 
   const hoursData = useMemo(
     () => [...stats.fleet.byAircraft]
@@ -218,8 +218,6 @@ const AircraftUsageDashboard = () => {
     }
   };
 
-  const showFleetView = !selectedAircraft;
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -294,7 +292,7 @@ const AircraftUsageDashboard = () => {
               <option key={ac.id} value={ac.id}>{ac.tailNumber || ac.id}</option>
             ))}
           </select>
-          {selectedAcStats && (
+          {selectedAircraft && (
             <button type="button" className="btn btn-outline" style={{ padding: '4px 10px', fontSize: '0.78rem' }} onClick={() => setSelectedAircraft('')}>Clear Selection</button>
           )}
         </div>
@@ -308,11 +306,9 @@ const AircraftUsageDashboard = () => {
         </div>
       ) : (
         <>
-          {showFleetView ? (
-            <>
               <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
                 <div className="card" style={{ flex: 1, minWidth: '180px', display: 'flex', alignItems: 'center', gap: '15px' }}>
-                  <div style={{ padding: '15px', backgroundColor: '#e6fffa', borderRadius: '50%', color: '#319795' }}><Plane size={24} /></div>
+                  <div style={{ padding: '15px', backgroundColor: '#e6fffa', borderRadius: '50%', color: '#319795' }}><Helicopter size={24} /></div>
                   <div>
                     <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Total Missions</div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{fmtCount(stats.fleet.totalMissions)}</div>
@@ -425,62 +421,6 @@ const AircraftUsageDashboard = () => {
                   </ResponsiveContainer>
                 </ChartCard>
               </div>
-            </>
-          ) : selectedAcStats && (
-            <>
-              <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#2d3748' }}>
-                  {selectedAcStats.tailNumber}
-                  {selectedAcStats.make && <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: '8px', fontSize: '0.85rem' }}>{selectedAcStats.make} {selectedAcStats.model}</span>}
-                </div>
-                <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', flex: 1 }}>
-                  <div><span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Missions</span><div style={{ fontSize: '1.2rem', fontWeight: 700 }}>{fmtCount(selectedAcStats.missionCount)}</div></div>
-                  <div><span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Hours</span><div style={{ fontSize: '1.2rem', fontWeight: 700 }}>{fmtHours(selectedAcStats.totalHours)}</div></div>
-                  <div><span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Fuel (Gal)</span><div style={{ fontSize: '1.2rem', fontWeight: 700 }}>{fmtGallons(selectedAcStats.totalFuel)}</div></div>
-                  <div><span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Fleet Share</span><div style={{ fontSize: '1.2rem', fontWeight: 700 }}>{stats.fleet.totalHours > 0 ? ((selectedAcStats.totalHours / stats.fleet.totalHours) * 100).toFixed(1) : 0}%</div></div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-                <ChartCard title="Monthly Flight Hours" subtitle={`${selectedAcStats.tailNumber} hours by month`}>
-                  <ResponsiveContainer width="100%" height={280}>
-                    <BarChart data={Object.entries(selectedAcStats.hoursByMonth).sort((a, b) => a[0].localeCompare(b[0])).map(([m, h]) => ({ month: monthLabel(m), hours: h }))} margin={{ top: 8, right: 16, bottom: 8, left: 8 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                      <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#718096' }} axisLine={false} tickLine={false} />
-                      <YAxis tickFormatter={fmtHours} tick={{ fontSize: 11, fill: '#718096' }} axisLine={false} tickLine={false} />
-                      <Tooltip formatter={fmtHours} />
-                      <Bar dataKey="hours" fill="#0f4c81" radius={[4, 4, 0, 0]} isAnimationActive={false} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartCard>
-                <ChartCard title="Monthly Missions" subtitle={`${selectedAcStats.tailNumber} missions by month`}>
-                  <ResponsiveContainer width="100%" height={280}>
-                    <BarChart data={Object.entries(selectedAcStats.missionsByMonth).sort((a, b) => a[0].localeCompare(b[0])).map(([m, c]) => ({ month: monthLabel(m), missions: c }))} margin={{ top: 8, right: 16, bottom: 8, left: 8 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                      <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#718096' }} axisLine={false} tickLine={false} />
-                      <YAxis tickFormatter={fmtCount} tick={{ fontSize: 11, fill: '#718096' }} axisLine={false} tickLine={false} />
-                      <Tooltip formatter={fmtCount} />
-                      <Bar dataKey="missions" fill="#2a9d8f" radius={[4, 4, 0, 0]} isAnimationActive={false} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartCard>
-              </div>
-
-              {Object.keys(selectedAcStats.byTag).length > 0 && (
-                <div className="card">
-                  <h3 style={{ margin: '0 0 12px', fontSize: '1rem', fontWeight: 600, color: '#2d3748' }}>Usage by Tag — {selectedAcStats.tailNumber}</h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
-                    {Object.entries(selectedAcStats.byTag).sort((a, b) => b[1] - a[1]).map(([tag, hours]) => (
-                      <div key={tag} style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'white' }}>
-                        <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#2d3748', textTransform: 'capitalize', marginBottom: '4px' }}>{tag}</div>
-                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{fmtHours(hours)} hrs / {fmtGallons(selectedAcStats.fuelByTag[tag] || 0)} gal</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
         </>
       )}
     </div>
