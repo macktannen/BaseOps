@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Plane, Clock, Trophy, Gauge } from 'lucide-react';
+import { Plane, Clock, Trophy, Gauge, Fuel, Tag, Building } from 'lucide-react';
 import {
   BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, LineChart, Line
+  ResponsiveContainer, LineChart, Line, PieChart, Pie
 } from 'recharts';
 import {
   startOfMonth, endOfMonth, startOfQuarter, endOfQuarter,
@@ -31,6 +31,7 @@ const PERIODS = [
 
 const fmtHours = (n: number) => (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const fmtCount = (n: number) => (Number(n) || 0).toLocaleString('en-US');
+const fmtGallons = (n: number) => (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
 const monthLabel = (ym: string) => {
   const parts = ym.split('-');
@@ -83,6 +84,7 @@ const AircraftUsageDashboard = () => {
   const [referenceDate, setReferenceDate] = useState(new Date());
   const [customStart, setCustomStart] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
   const [customEnd, setCustomEnd] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [selectedAircraft, setSelectedAircraft] = useState<string>('');
 
   const dateBounds = useMemo(() => {
     const toStr = (x: Date) => format(x, 'yyyy-MM-dd');
@@ -130,15 +132,30 @@ const AircraftUsageDashboard = () => {
     [userFlights, userAircraft, dateBounds]
   );
 
+  const selectedAcStats = useMemo(() => {
+    if (!selectedAircraft) return null;
+    return stats.aircraft.find(a => a.aircraftId === selectedAircraft) || null;
+  }, [stats, selectedAircraft]);
+
   const hoursData = useMemo(
     () => [...stats.fleet.byAircraft]
+      .filter(a => a.totalHours > 0)
       .sort((a, b) => b.totalHours - a.totalHours)
       .map((a) => ({ name: a.tailNumber, value: a.totalHours })),
     [stats]
   );
 
+  const fuelData = useMemo(
+    () => [...stats.fleet.byAircraft]
+      .filter(a => a.totalFuel > 0)
+      .sort((a, b) => b.totalFuel - a.totalFuel)
+      .map((a) => ({ name: a.tailNumber, value: a.totalFuel })),
+    [stats]
+  );
+
   const missionsData = useMemo(
     () => [...stats.fleet.byAircraft]
+      .filter(a => a.missionCount > 0)
       .sort((a, b) => b.missionCount - a.missionCount)
       .map((a) => ({ name: a.tailNumber, value: a.missionCount })),
     [stats]
@@ -156,6 +173,20 @@ const AircraftUsageDashboard = () => {
       .map(([month, hours]) => ({ month, label: monthLabel(month), hours }));
   }, [stats]);
 
+  const accountData = useMemo(() => {
+    return Object.entries(stats.fleet.byAccount)
+      .map(([name, data]) => ({ name, value: data.hours }))
+      .filter(d => d.value > 0)
+      .sort((a, b) => b.value - a.value);
+  }, [stats]);
+
+  const tagData = useMemo(() => {
+    return Object.entries(stats.fleet.byTag)
+      .map(([name, data]) => ({ name, value: data.hours, missions: data.missions, fuel: data.fuel }))
+      .filter(d => d.value > 0)
+      .sort((a, b) => b.value - a.value);
+  }, [stats]);
+
   const busiest = useMemo(() => {
     if (stats.fleet.byAircraft.length === 0) return null;
     return [...stats.fleet.byAircraft].sort((a, b) => b.totalHours - a.totalHours)[0];
@@ -163,6 +194,11 @@ const AircraftUsageDashboard = () => {
 
   const avgHours = useMemo(
     () => (stats.fleet.totalAircraft > 0 ? stats.fleet.totalHours / stats.fleet.totalAircraft : 0),
+    [stats]
+  );
+
+  const gallonsPerHour = useMemo(
+    () => (stats.fleet.totalHours > 0 ? stats.fleet.totalFuel / stats.fleet.totalHours : 0),
     [stats]
   );
 
@@ -181,6 +217,8 @@ const AircraftUsageDashboard = () => {
         break;
     }
   };
+
+  const showFleetView = !selectedAircraft;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -232,127 +270,189 @@ const AircraftUsageDashboard = () => {
 
         {period !== 'all' && period !== 'custom' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              style={{ padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px' }}
-              onClick={() => shiftReference(-1)}
-            >
-              Prev
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              style={{ padding: '4px 12px' }}
-              onClick={() => setReferenceDate(new Date())}
-            >
-              Current
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              style={{ padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px' }}
-              onClick={() => shiftReference(1)}
-            >
-              Next
-            </button>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-color)', marginLeft: '10px' }}>
-              {dateBounds.label}
-            </span>
+            <button type="button" className="btn btn-secondary" style={{ padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => shiftReference(-1)}>Prev</button>
+            <button type="button" className="btn btn-secondary" style={{ padding: '4px 12px' }} onClick={() => setReferenceDate(new Date())}>Current</button>
+            <button type="button" className="btn btn-secondary" style={{ padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => shiftReference(1)}>Next</button>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-color)', marginLeft: '10px' }}>{dateBounds.label}</span>
           </div>
         )}
         {(period === 'all' || period === 'custom') && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-color)' }}>
-              {dateBounds.label}
-            </span>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-color)' }}>{dateBounds.label}</span>
           </div>
         )}
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#2d3748' }}>Aircraft:</span>
+          <select
+            value={selectedAircraft}
+            onChange={(e) => setSelectedAircraft(e.target.value)}
+            style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '0.82rem', backgroundColor: 'white' }}
+          >
+            <option value="">All Aircraft (Fleet View)</option>
+            {userAircraft.map((ac: Aircraft) => (
+              <option key={ac.id} value={ac.id}>{ac.tailNumber || ac.id}</option>
+            ))}
+          </select>
+          {selectedAcStats && (
+            <button type="button" className="btn btn-outline" style={{ padding: '4px 10px', fontSize: '0.78rem' }} onClick={() => setSelectedAircraft('')}>Clear Selection</button>
+          )}
+        </div>
       </div>
 
       {stats.fleet.totalMissions === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
           {userFlights.length === 0
-            ? 'No flight data to visualize yet. Add flights to see the dashboard.'
-            : 'No flights fall within the selected date range.'}
+            ? 'No completed flight data to visualize yet. Sign flight logbooks to see the dashboard.'
+            : 'No completed flights fall within the selected date range.'}
         </div>
       ) : (
         <>
-          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-            <div className="card" style={{ flex: 1, minWidth: '200px', display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <div style={{ padding: '15px', backgroundColor: '#e6fffa', borderRadius: '50%', color: '#319795' }}>
-                <Plane size={24} />
-              </div>
-              <div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Total Missions</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{fmtCount(stats.fleet.totalMissions)}</div>
-              </div>
-            </div>
-            <div className="card" style={{ flex: 1, minWidth: '200px', display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <div style={{ padding: '15px', backgroundColor: '#e0f2fe', borderRadius: '50%', color: '#0f4c81' }}>
-                <Clock size={24} />
-              </div>
-              <div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Total Flight Hours</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{fmtHours(stats.fleet.totalHours)}</div>
-              </div>
-            </div>
-            <div className="card" style={{ flex: 1, minWidth: '200px', display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <div style={{ padding: '15px', backgroundColor: '#fffbeb', borderRadius: '50%', color: '#d69e2e' }}>
-                <Trophy size={24} />
-              </div>
-              <div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Busiest Aircraft</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{busiest ? busiest.tailNumber : '—'}</div>
-                {busiest && (
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    {fmtHours(busiest.totalHours)} hrs / {fmtCount(busiest.missionCount)} missions
+          {showFleetView ? (
+            <>
+              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                <div className="card" style={{ flex: 1, minWidth: '180px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                  <div style={{ padding: '15px', backgroundColor: '#e6fffa', borderRadius: '50%', color: '#319795' }}><Plane size={24} /></div>
+                  <div>
+                    <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Total Missions</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{fmtCount(stats.fleet.totalMissions)}</div>
                   </div>
-                )}
+                </div>
+                <div className="card" style={{ flex: 1, minWidth: '180px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                  <div style={{ padding: '15px', backgroundColor: '#e0f2fe', borderRadius: '50%', color: '#0f4c81' }}><Clock size={24} /></div>
+                  <div>
+                    <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Total Flight Hours</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{fmtHours(stats.fleet.totalHours)}</div>
+                  </div>
+                </div>
+                <div className="card" style={{ flex: 1, minWidth: '180px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                  <div style={{ padding: '15px', backgroundColor: '#fef3c7', borderRadius: '50%', color: '#d97706' }}><Fuel size={24} /></div>
+                  <div>
+                    <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Total Fuel (Gal)</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{fmtGallons(stats.fleet.totalFuel)}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{fmtGallons(gallonsPerHour)} gal/hr avg</div>
+                  </div>
+                </div>
+                <div className="card" style={{ flex: 1, minWidth: '180px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                  <div style={{ padding: '15px', backgroundColor: '#fffbeb', borderRadius: '50%', color: '#d69e2e' }}><Trophy size={24} /></div>
+                  <div>
+                    <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Busiest Aircraft</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{busiest ? busiest.tailNumber : '—'}</div>
+                    {busiest && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{fmtHours(busiest.totalHours)} hrs / {fmtCount(busiest.missionCount)} missions</div>}
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="card" style={{ flex: 1, minWidth: '200px', display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <div style={{ padding: '15px', backgroundColor: '#f3e8ff', borderRadius: '50%', color: '#7c3aed' }}>
-                <Gauge size={24} />
+
+              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                <ChartCard title="Flight Hours by Aircraft" subtitle="Completed flight hours per tail number">
+                  <HorizontalBars data={hoursData} formatter={fmtHours} />
+                </ChartCard>
+                <ChartCard title="Missions by Aircraft" subtitle="Completed missions per tail number">
+                  <HorizontalBars data={missionsData} formatter={fmtCount} />
+                </ChartCard>
               </div>
-              <div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Average Hours / Aircraft</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{fmtHours(avgHours)}</div>
+
+              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                <ChartCard title="Fuel Usage by Aircraft" subtitle="Total gallons per tail number">
+                  <HorizontalBars data={fuelData} formatter={fmtGallons} />
+                </ChartCard>
+                <ChartCard title="Account Usage" subtitle="Flight hours by account">
+                  {accountData.length > 0 ? (
+                    <HorizontalBars data={accountData} formatter={fmtHours} />
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>No account data available</div>
+                  )}
+                </ChartCard>
               </div>
-            </div>
-          </div>
 
-          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-            <ChartCard title="Flight Hours by Aircraft" subtitle="Total hours flown per tail number">
-              <HorizontalBars data={hoursData} formatter={fmtHours} />
-            </ChartCard>
+              {tagData.length > 0 && (
+                <div className="card">
+                  <h3 style={{ margin: '0 0 12px', fontSize: '1rem', fontWeight: 600, color: '#2d3748' }}>Usage by Tag</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
+                    {tagData.map((t) => (
+                      <div key={t.name} style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'white' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                          <Tag size={14} color="var(--text-muted)" />
+                          <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#2d3748', textTransform: 'capitalize' }}>{t.name}</span>
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                          {fmtHours(t.value)} hrs / {fmtCount(t.missions)} missions / {fmtGallons(t.fuel)} gal
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-            <ChartCard title="Missions by Aircraft" subtitle="Number of missions per tail number">
-              <HorizontalBars data={missionsData} formatter={fmtCount} />
-            </ChartCard>
-          </div>
+              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                <ChartCard title="Monthly Flight Hours Trend" subtitle="Total completed hours per month">
+                  <ResponsiveContainer width="100%" height={280}>
+                    <LineChart data={monthlyData} margin={{ top: 8, right: 16, bottom: 8, left: 8 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#718096' }} axisLine={false} tickLine={false} />
+                      <YAxis tickFormatter={fmtHours} tick={{ fontSize: 11, fill: '#718096' }} axisLine={false} tickLine={false} />
+                      <Tooltip formatter={fmtHours} />
+                      <Line type="monotone" dataKey="hours" stroke="#0f4c81" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} isAnimationActive={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              </div>
+            </>
+          ) : selectedAcStats && (
+            <>
+              <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#2d3748' }}>
+                  {selectedAcStats.tailNumber}
+                  {selectedAcStats.make && <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: '8px', fontSize: '0.85rem' }}>{selectedAcStats.make} {selectedAcStats.model}</span>}
+                </div>
+                <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', flex: 1 }}>
+                  <div><span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Missions</span><div style={{ fontSize: '1.2rem', fontWeight: 700 }}>{fmtCount(selectedAcStats.missionCount)}</div></div>
+                  <div><span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Hours</span><div style={{ fontSize: '1.2rem', fontWeight: 700 }}>{fmtHours(selectedAcStats.totalHours)}</div></div>
+                  <div><span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Fuel (Gal)</span><div style={{ fontSize: '1.2rem', fontWeight: 700 }}>{fmtGallons(selectedAcStats.totalFuel)}</div></div>
+                  <div><span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Fleet Share</span><div style={{ fontSize: '1.2rem', fontWeight: 700 }}>{stats.fleet.totalHours > 0 ? ((selectedAcStats.totalHours / stats.fleet.totalHours) * 100).toFixed(1) : 0}%</div></div>
+                </div>
+              </div>
 
-          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-            <ChartCard title="Monthly Flight Hours Trend" subtitle="Total hours flown per month">
-              <ResponsiveContainer width="100%" height={280}>
-                <LineChart data={monthlyData} margin={{ top: 8, right: 16, bottom: 8, left: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#718096' }} axisLine={false} tickLine={false} />
-                  <YAxis tickFormatter={fmtHours} tick={{ fontSize: 11, fill: '#718096' }} axisLine={false} tickLine={false} />
-                  <Tooltip formatter={fmtHours} />
-                  <Line
-                    type="monotone"
-                    dataKey="hours"
-                    stroke="#0f4c81"
-                    strokeWidth={2}
-                    dot={{ r: 3 }}
-                    activeDot={{ r: 5 }}
-                    isAnimationActive={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          </div>
+              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                <ChartCard title="Monthly Flight Hours" subtitle={`${selectedAcStats.tailNumber} hours by month`}>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={Object.entries(selectedAcStats.hoursByMonth).sort((a, b) => a[0].localeCompare(b[0])).map(([m, h]) => ({ month: monthLabel(m), hours: h }))} margin={{ top: 8, right: 16, bottom: 8, left: 8 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#718096' }} axisLine={false} tickLine={false} />
+                      <YAxis tickFormatter={fmtHours} tick={{ fontSize: 11, fill: '#718096' }} axisLine={false} tickLine={false} />
+                      <Tooltip formatter={fmtHours} />
+                      <Bar dataKey="hours" fill="#0f4c81" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+                <ChartCard title="Monthly Missions" subtitle={`${selectedAcStats.tailNumber} missions by month`}>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={Object.entries(selectedAcStats.missionsByMonth).sort((a, b) => a[0].localeCompare(b[0])).map(([m, c]) => ({ month: monthLabel(m), missions: c }))} margin={{ top: 8, right: 16, bottom: 8, left: 8 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#718096' }} axisLine={false} tickLine={false} />
+                      <YAxis tickFormatter={fmtCount} tick={{ fontSize: 11, fill: '#718096' }} axisLine={false} tickLine={false} />
+                      <Tooltip formatter={fmtCount} />
+                      <Bar dataKey="missions" fill="#2a9d8f" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              </div>
+
+              {Object.keys(selectedAcStats.byTag).length > 0 && (
+                <div className="card">
+                  <h3 style={{ margin: '0 0 12px', fontSize: '1rem', fontWeight: 600, color: '#2d3748' }}>Usage by Tag — {selectedAcStats.tailNumber}</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
+                    {Object.entries(selectedAcStats.byTag).sort((a, b) => b[1] - a[1]).map(([tag, hours]) => (
+                      <div key={tag} style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'white' }}>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#2d3748', textTransform: 'capitalize', marginBottom: '4px' }}>{tag}</div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{fmtHours(hours)} hrs / {fmtGallons(selectedAcStats.fuelByTag[tag] || 0)} gal</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </>
       )}
     </div>

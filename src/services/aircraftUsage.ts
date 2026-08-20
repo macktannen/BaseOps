@@ -14,6 +14,16 @@ interface FlightLeg {
   duration?: number;
 }
 
+interface LegActual {
+  fuelPurchased?: number | string;
+  flightHrs?: number | string;
+}
+
+interface FlightLog {
+  legsActuals?: LegActual[];
+  signature?: unknown;
+}
+
 export interface AircraftUsageStats {
   aircraftId: string;
   tailNumber: string;
@@ -23,10 +33,14 @@ export interface AircraftUsageStats {
   missionCount: number;
   totalLegs: number;
   totalHours: number;
+  totalFuel: number;
   hoursByMonth: Record<string, number>;
   missionsByMonth: Record<string, number>;
+  fuelByMonth: Record<string, number>;
   byStatus: Record<string, number>;
   byTag: Record<string, number>;
+  byAccount: Record<string, number>;
+  fuelByTag: Record<string, number>;
 }
 
 export interface FleetAircraftShare {
@@ -34,6 +48,7 @@ export interface FleetAircraftShare {
   tailNumber: string;
   totalHours: number;
   missionCount: number;
+  totalFuel: number;
   utilization: number;
 }
 
@@ -42,7 +57,10 @@ export interface FleetUsageStats {
   totalMissions: number;
   totalLegs: number;
   totalHours: number;
+  totalFuel: number;
   byAircraft: FleetAircraftShare[];
+  byAccount: Record<string, { hours: number; missions: number; fuel: number }>;
+  byTag: Record<string, { hours: number; missions: number; fuel: number }>;
 }
 
 const timeToMinutes = (timeStr?: string | null): number | null => {
@@ -61,6 +79,14 @@ const normalizeStatus = (status?: string | null): string => {
   if (lower === 'cancelled') return 'canceled';
   if (lower === 'onhold') return 'on hold';
   return lower;
+};
+
+const isCompletedFlight = (flight: Flight): boolean => {
+  const status = normalizeStatus(flight.status);
+  if (status === 'completed') return true;
+  const log = flight.flightLog as FlightLog | undefined;
+  if (log?.signature) return true;
+  return false;
 };
 
 const getFlightDateString = (flight: Flight): string | null => {
@@ -106,10 +132,14 @@ const createEmptyAircraftStats = (aircraft: Aircraft): AircraftUsageStats => ({
   missionCount: 0,
   totalLegs: 0,
   totalHours: 0,
+  totalFuel: 0,
   hoursByMonth: {},
   missionsByMonth: {},
+  fuelByMonth: {},
   byStatus: {},
   byTag: {},
+  byAccount: {},
+  fuelByTag: {},
 });
 
 export const filterFlightsByDate = (
@@ -132,11 +162,15 @@ export const filterFlightsByDate = (
 export const computeAircraftUsage = (
   flights: Flight[],
   aircraft: Aircraft[],
-  dateBounds?: DateBounds | null
+  dateBounds?: DateBounds | null,
+  completedOnly: boolean = true
 ): { aircraft: AircraftUsageStats[]; fleet: FleetUsageStats } => {
-  const filtered = filterFlightsByDate(flights, dateBounds);
-  const statsMap = new Map<string, AircraftUsageStats>();
+  let filtered = filterFlightsByDate(flights, dateBounds);
+  if (completedOnly) {
+    filtered = filtered.filter(isCompletedFlight);
+  }
 
+  const statsMap = new Map<string, AircraftUsageStats>();
   aircraft.forEach((ac) => {
     statsMap.set(ac.id, createEmptyAircraftStats(ac));
   });
@@ -144,41 +178,65 @@ export const computeAircraftUsage = (
   let totalMissions = 0;
   let totalLegs = 0;
   let totalHours = 0;
+  let totalFuel = 0;
+  const fleetByAccount: Record<string, { hours: number; missions: number; fuel: number }> = {};
+  const fleetByTag: Record<string, { hours: number; missions: number; fuel: number }> = {};
 
   filtered.forEach((flight) => {
     const acId = flight.aircraftId;
     if (!acId) return;
-
     const stats = statsMap.get(acId);
     if (!stats) return;
 
     const monthKey = getMonthKey(flight);
     const statusKey = normalizeStatus(flight.status);
     const tagKey = flight.tag || 'untagged';
+    const accountName = (flight as Record<string, unknown>).accountId as string || 'unassigned';
     const legs = (flight.legs || []) as FlightLeg[];
     const legCount = legs.length;
+
+    const log = flight.flightLog as FlightLog | undefined;
+    const legsActuals = log?.legsActuals || [];
+    let flightFuel = 0;
+    legsActuals.forEach((la) => {
+      const gal = parseFloat(String(la.fuelPurchased || '0'));
+      if (!Number.isNaN(gal)) flightFuel += gal;
+    });
+    flightFuel = Math.round(flightFuel * 10) / 10;
+
+    let flightHours = 0;
+    legs.forEach((leg) => {
+      const minutes = computeLegMinutes(leg);
+      const hours = Math.round((minutes / 60) * 100) / 100;
+      flightHours = Math.round((flightHours + hours) * 100) / 100;
+    });
 
     stats.missionCount += 1;
     stats.missionsByMonth[monthKey] = (stats.missionsByMonth[monthKey] || 0) + 1;
     stats.totalLegs += legCount;
+    stats.totalHours = Math.round((stats.totalHours + flightHours) * 100) / 100;
+    stats.totalFuel = Math.round((stats.totalFuel + flightFuel) * 10) / 10;
+    stats.hoursByMonth[monthKey] = Math.round(((stats.hoursByMonth[monthKey] || 0) + flightHours) * 100) / 100;
+    stats.fuelByMonth[monthKey] = Math.round(((stats.fuelByMonth[monthKey] || 0) + flightFuel) * 10) / 10;
+    stats.byStatus[statusKey] = Math.round(((stats.byStatus[statusKey] || 0) + flightHours) * 100) / 100;
+    stats.byTag[tagKey] = Math.round(((stats.byTag[tagKey] || 0) + flightHours) * 100) / 100;
+    stats.fuelByTag[tagKey] = Math.round(((stats.fuelByTag[tagKey] || 0) + flightFuel) * 10) / 10;
+    stats.byAccount[accountName] = Math.round(((stats.byAccount[accountName] || 0) + flightHours) * 100) / 100;
 
     totalMissions += 1;
     totalLegs += legCount;
+    totalHours = Math.round((totalHours + flightHours) * 100) / 100;
+    totalFuel = Math.round((totalFuel + flightFuel) * 10) / 10;
 
-    if (!stats.byStatus[statusKey]) stats.byStatus[statusKey] = 0;
-    if (!stats.byTag[tagKey]) stats.byTag[tagKey] = 0;
+    if (!fleetByAccount[accountName]) fleetByAccount[accountName] = { hours: 0, missions: 0, fuel: 0 };
+    fleetByAccount[accountName].hours = Math.round((fleetByAccount[accountName].hours + flightHours) * 100) / 100;
+    fleetByAccount[accountName].missions += 1;
+    fleetByAccount[accountName].fuel = Math.round((fleetByAccount[accountName].fuel + flightFuel) * 10) / 10;
 
-    legs.forEach((leg) => {
-      const minutes = computeLegMinutes(leg);
-      const hours = Math.round((minutes / 60) * 100) / 100;
-
-      stats.totalHours = Math.round((stats.totalHours + hours) * 100) / 100;
-      stats.hoursByMonth[monthKey] = Math.round(((stats.hoursByMonth[monthKey] || 0) + hours) * 100) / 100;
-      stats.byStatus[statusKey] = Math.round((stats.byStatus[statusKey] + hours) * 100) / 100;
-      stats.byTag[tagKey] = Math.round((stats.byTag[tagKey] + hours) * 100) / 100;
-
-      totalHours = Math.round((totalHours + hours) * 100) / 100;
-    });
+    if (!fleetByTag[tagKey]) fleetByTag[tagKey] = { hours: 0, missions: 0, fuel: 0 };
+    fleetByTag[tagKey].hours = Math.round((fleetByTag[tagKey].hours + flightHours) * 100) / 100;
+    fleetByTag[tagKey].missions += 1;
+    fleetByTag[tagKey].fuel = Math.round((fleetByTag[tagKey].fuel + flightFuel) * 10) / 10;
   });
 
   const aircraftStats = aircraft
@@ -190,6 +248,7 @@ export const computeAircraftUsage = (
     tailNumber: s.tailNumber,
     totalHours: s.totalHours,
     missionCount: s.missionCount,
+    totalFuel: s.totalFuel,
     utilization: totalHours > 0 ? Math.round((s.totalHours / totalHours) * 10000) / 10000 : 0,
   }));
 
@@ -200,7 +259,10 @@ export const computeAircraftUsage = (
       totalMissions,
       totalLegs,
       totalHours,
+      totalFuel,
       byAircraft,
+      byAccount: fleetByAccount,
+      byTag: fleetByTag,
     },
   };
 };

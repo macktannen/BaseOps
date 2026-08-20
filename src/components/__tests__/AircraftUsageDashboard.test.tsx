@@ -26,8 +26,8 @@ const aircraft: Aircraft[] = [
 ];
 
 const flights: Flight[] = [
-  { id: 'f1', aircraftId: 'N123', date: '2026-03-10', status: 'confirmed', tag: '', legs: [{ duration: 90 }, { duration: 30 }] } as Flight,
-  { id: 'f2', aircraftId: 'N123', date: '2026-03-12', status: 'confirmed', tag: '', legs: [{ duration: 60 }] } as Flight
+  { id: 'f1', aircraftId: 'N123', date: '2026-03-10', status: 'completed', tag: '', legs: [{ duration: 90 }, { duration: 30 }] } as Flight,
+  { id: 'f2', aircraftId: 'N123', date: '2026-03-12', status: 'completed', tag: '', legs: [{ duration: 60 }] } as Flight
 ];
 
 let mockFlights: Flight[] = flights;
@@ -51,7 +51,7 @@ describe('AircraftUsageDashboard', () => {
     expect(screen.getByText('Total Missions').nextElementSibling).toHaveTextContent('2');
     expect(screen.getByText('Total Flight Hours').nextElementSibling).toHaveTextContent('3.0');
     expect(screen.getByText('Busiest Aircraft').nextElementSibling).toHaveTextContent('N123');
-    expect(screen.getByText('Average Hours / Aircraft').nextElementSibling).toHaveTextContent('1.5');
+    expect(screen.getByText('Total Fuel (Gal)')).toBeInTheDocument();
 
     expect(screen.getByText('Flight Hours by Aircraft')).toBeInTheDocument();
     expect(screen.getByText('Missions by Aircraft')).toBeInTheDocument();
@@ -60,13 +60,13 @@ describe('AircraftUsageDashboard', () => {
 
   it('shows empty state when no flights fall in the selected range', () => {
     mockFlights = [
-      { id: 'f1', aircraftId: 'N123', date: '2026-02-10', status: 'confirmed', tag: '', legs: [{ duration: 60 }] } as Flight
+      { id: 'f1', aircraftId: 'N123', date: '2026-02-10', status: 'completed', tag: '', legs: [{ duration: 60 }] } as Flight
     ];
     render(<AircraftUsageDashboard />);
 
     fireEvent.click(screen.getByRole('button', { name: /Month/i }));
 
-    expect(screen.getByText('No flights fall within the selected date range.')).toBeInTheDocument();
+    expect(screen.getByText('No completed flights fall within the selected date range.')).toBeInTheDocument();
   });
 
   it('shows onboarding message when there is no flight data at all', () => {
@@ -74,6 +74,6 @@ describe('AircraftUsageDashboard', () => {
     mockAircraft = [];
     render(<AircraftUsageDashboard />);
 
-    expect(screen.getByText('No flight data to visualize yet. Add flights to see the dashboard.')).toBeInTheDocument();
+    expect(screen.getByText('No completed flight data to visualize yet. Sign flight logbooks to see the dashboard.')).toBeInTheDocument();
   });
 });
