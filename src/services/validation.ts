@@ -16,7 +16,7 @@ export const FlightLegSchema = z.object({
 
 export const FlightSchema = z.object({
   id: z.union([z.string(), z.number()]),
-  flightNumber: z.string().optional(),
+  flightNumber: z.union([z.string(), z.number()]).optional(),
   title: z.string().optional(),
   date: z.string().optional(),
   status: z.string().optional(),
