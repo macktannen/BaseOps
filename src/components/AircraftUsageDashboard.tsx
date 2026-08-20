@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Plane, Clock, Trophy, Gauge, Fuel, Tag, Building } from 'lucide-react';
+import { Plane, Clock, Trophy, Fuel, Tag } from 'lucide-react';
 import {
   BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, LineChart, Line, PieChart, Pie
+  ResponsiveContainer, LineChart, Line
 } from 'recharts';
 import {
   startOfMonth, endOfMonth, startOfQuarter, endOfQuarter,
@@ -191,11 +191,6 @@ const AircraftUsageDashboard = () => {
     if (stats.fleet.byAircraft.length === 0) return null;
     return [...stats.fleet.byAircraft].sort((a, b) => b.totalHours - a.totalHours)[0];
   }, [stats]);
-
-  const avgHours = useMemo(
-    () => (stats.fleet.totalAircraft > 0 ? stats.fleet.totalHours / stats.fleet.totalAircraft : 0),
-    [stats]
-  );
 
   const gallonsPerHour = useMemo(
     () => (stats.fleet.totalHours > 0 ? stats.fleet.totalFuel / stats.fleet.totalHours : 0),
