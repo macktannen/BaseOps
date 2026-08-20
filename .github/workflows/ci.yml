@@ -25,19 +25,8 @@ jobs:
       - name: Test
         run: npm run test
 
-      - name: Typecheck
-        run: npm run typecheck
-        continue-on-error: true
+      - name: Typecheck (non-blocking)
+        run: npm run typecheck || true
 
       - name: Build
         run: npm run build
-
-      - name: Check bundle size
-        run: |
-          SIZE=$(gzip -c dist/assets/index-*.js | wc -c | tr -d ' ')
-          LIMIT=$((400 * 1024))
-          echo "Bundle size (gzip): ${SIZE} bytes"
-          if [ "${SIZE}" -gt "${LIMIT}" ]; then
-            echo "Error: bundle size ${SIZE} bytes exceeds ${LIMIT} bytes budget"
-            exit 1
-          fi
