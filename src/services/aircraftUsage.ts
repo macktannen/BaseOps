@@ -205,7 +205,15 @@ export const computeAircraftUsage = (
     flightFuel = Math.round(flightFuel * 10) / 10;
 
     let flightHours = 0;
-    legs.forEach((leg) => {
+    legs.forEach((leg, idx) => {
+      const actual = legsActuals[idx];
+      if (actual?.flightHrs !== undefined && actual.flightHrs !== '' && actual.flightHrs !== null) {
+        const hrs = parseFloat(String(actual.flightHrs));
+        if (!Number.isNaN(hrs)) {
+          flightHours = Math.round((flightHours + hrs) * 100) / 100;
+          return;
+        }
+      }
       const minutes = computeLegMinutes(leg);
       const hours = Math.round((minutes / 60) * 100) / 100;
       flightHours = Math.round((flightHours + hours) * 100) / 100;
