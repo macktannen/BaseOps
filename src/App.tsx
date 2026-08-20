@@ -10,7 +10,7 @@ import { can as permCan } from './services/permissionService';
 const APP_VERSION = `v${packageJson.version}`;
 const Login = lazy(() => import('./pages/Login'));
 const Signup = lazy(() => import('./pages/Signup'));
-const CalendarView = lazy(() => import('./components/CalendarView'));
+import CalendarView from './components/CalendarView';
 const LocationsView = lazy(() => import('./components/LocationsView'));
 const AircraftList = lazy(() => import('./components/AircraftList'));
 const CrewView = lazy(() => import('./components/CrewView'));
@@ -191,11 +191,7 @@ function DashboardLayout({ activeTab, setActiveTab }) {
         </div>
 
         <div className="content-area">
-          {activeTab === 'calendar' && (
-            <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading...</div>}>
-              <CalendarView />
-            </Suspense>
-          )}
+          {activeTab === 'calendar' && <CalendarView />}
           {activeTab === 'crew' && (
             <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading...</div>}>
               <CrewView />
