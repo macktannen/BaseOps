@@ -53,16 +53,21 @@ export async function fileToBase64Image(file: File): Promise<Base64Result> {
       const pdf = await lib.getDocument({ data: arrayBuffer }).promise;
       const page = await pdf.getPage(1);
 
-      const viewport = page.getViewport({ scale: 2.0 });
+      const naturalViewport = page.getViewport({ scale: 1.0 });
+      let scale = 2.0;
+      if (naturalViewport.width * scale > 1024 || naturalViewport.height * scale > 1024) {
+        scale = 1024 / Math.max(naturalViewport.width, naturalViewport.height);
+      }
+      const viewport = page.getViewport({ scale });
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d')!;
       canvas.height = viewport.height;
       canvas.width = viewport.width;
 
       await page.render({ canvasContext: context, viewport }).promise;
-      const dataUrl = canvas.toDataURL('image/png');
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
       const base64 = dataUrl.split(',')[1];
-      return { base64, mimeType: 'image/png' };
+      return { base64, mimeType: 'image/jpeg' };
     } catch (pdfErr) {
       console.warn("PDF.js render failed, trying FileReader text fallback", pdfErr);
       return new Promise((resolve, reject) => {
