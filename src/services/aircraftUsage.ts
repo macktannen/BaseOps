@@ -163,7 +163,8 @@ export const computeAircraftUsage = (
   flights: Flight[],
   aircraft: Aircraft[],
   dateBounds?: DateBounds | null,
-  completedOnly: boolean = true
+  completedOnly: boolean = true,
+  accounts: { id: string; name: string }[] = []
 ): { aircraft: AircraftUsageStats[]; fleet: FleetUsageStats } => {
   let filtered = filterFlightsByDate(flights, dateBounds);
   if (completedOnly) {
@@ -191,7 +192,9 @@ export const computeAircraftUsage = (
     const monthKey = getMonthKey(flight);
     const statusKey = normalizeStatus(flight.status);
     const tagKey = flight.tag || 'untagged';
-    const accountName = (flight as Record<string, unknown>).accountId as string || 'unassigned';
+    const rawAccountId = (flight as Record<string, unknown>).accountId as string || '';
+    const matchedAccount = rawAccountId ? accounts.find(a => a.id === rawAccountId) : null;
+    const accountName = matchedAccount?.name || rawAccountId || 'unassigned';
     const legs = (flight.legs || []) as FlightLeg[];
     const legCount = legs.length;
 

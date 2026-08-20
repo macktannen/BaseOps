@@ -4,7 +4,7 @@ import AircraftUsageDashboard from '../AircraftUsageDashboard';
 import type { Flight, Aircraft } from '../../data';
 
 vi.mock('../../contexts/DataProvider', () => ({
-  useData: () => ({ userFlights: mockFlights, userAircraft: mockAircraft })
+  useData: () => ({ userFlights: mockFlights, userAircraft: mockAircraft, userAccounts: mockAccounts })
 }));
 
 vi.mock('recharts', () => ({
@@ -13,6 +13,8 @@ vi.mock('recharts', () => ({
   Bar: () => <div data-testid="bar" />,
   LineChart: ({ children }) => <div data-testid="line-chart">{children}</div>,
   Line: () => <div data-testid="line" />,
+  PieChart: ({ children }) => <div data-testid="pie-chart">{children}</div>,
+  Pie: () => <div data-testid="pie" />,
   XAxis: () => <div data-testid="x-axis" />,
   YAxis: () => <div data-testid="y-axis" />,
   CartesianGrid: () => <div data-testid="cartesian-grid" />,
@@ -25,6 +27,11 @@ const aircraft: Aircraft[] = [
   { id: 'N456', tailNumber: 'N456', make: 'Airbus', model: 'H125', status: 'active' }
 ];
 
+const accounts = [
+  { id: 'acc-1', name: 'Flight Operations' },
+  { id: 'acc-2', name: 'Maintenance' }
+];
+
 const flights: Flight[] = [
   { id: 'f1', aircraftId: 'N123', date: '2026-03-10', status: 'completed', tag: '', legs: [{ duration: 90 }, { duration: 30 }] } as Flight,
   { id: 'f2', aircraftId: 'N123', date: '2026-03-12', status: 'completed', tag: '', legs: [{ duration: 60 }] } as Flight
@@ -32,6 +39,7 @@ const flights: Flight[] = [
 
 let mockFlights: Flight[] = flights;
 let mockAircraft: Aircraft[] = aircraft;
+let mockAccounts: { id: string; name: string }[] = accounts;
 
 describe('AircraftUsageDashboard', () => {
   beforeEach(() => {
@@ -39,6 +47,7 @@ describe('AircraftUsageDashboard', () => {
     vi.setSystemTime(new Date('2026-03-15'));
     mockFlights = flights;
     mockAircraft = aircraft;
+    mockAccounts = accounts;
   });
 
   afterEach(() => {

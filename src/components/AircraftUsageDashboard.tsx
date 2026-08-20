@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { Plane, Clock, Trophy, Fuel, Tag } from 'lucide-react';
 import {
   BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, LineChart, Line
+  ResponsiveContainer, LineChart, Line, PieChart, Pie
 } from 'recharts';
 import {
   startOfMonth, endOfMonth, startOfQuarter, endOfQuarter,
@@ -79,7 +79,7 @@ const HorizontalBars = ({ data, formatter }: HorizontalBarsProps) => {
 };
 
 const AircraftUsageDashboard = () => {
-  const { userFlights, userAircraft } = useData();
+  const { userFlights, userAircraft, userAccounts } = useData();
   const [period, setPeriod] = useState('all');
   const [referenceDate, setReferenceDate] = useState(new Date());
   const [customStart, setCustomStart] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
@@ -128,8 +128,8 @@ const AircraftUsageDashboard = () => {
   }, [period, customStart, customEnd, referenceDate]);
 
   const stats = useMemo(
-    () => computeAircraftUsage(userFlights as Flight[], userAircraft as Aircraft[], dateBounds),
-    [userFlights, userAircraft, dateBounds]
+    () => computeAircraftUsage(userFlights as Flight[], userAircraft as Aircraft[], dateBounds, true, (userAccounts || []) as { id: string; name: string }[]),
+    [userFlights, userAircraft, userAccounts, dateBounds]
   );
 
   const selectedAcStats = useMemo(() => {
@@ -174,8 +174,13 @@ const AircraftUsageDashboard = () => {
   }, [stats]);
 
   const accountData = useMemo(() => {
+    const total = Object.values(stats.fleet.byAccount).reduce((sum, d) => sum + d.hours, 0);
     return Object.entries(stats.fleet.byAccount)
-      .map(([name, data]) => ({ name, value: data.hours }))
+      .map(([name, data]) => ({
+        name,
+        value: data.hours,
+        percentage: total > 0 ? ((data.hours / total) * 100).toFixed(1) : '0',
+      }))
       .filter(d => d.value > 0)
       .sort((a, b) => b.value - a.value);
   }, [stats]);
@@ -353,7 +358,35 @@ const AircraftUsageDashboard = () => {
                 </ChartCard>
                 <ChartCard title="Account Usage" subtitle="Flight hours by account">
                   {accountData.length > 0 ? (
-                    <HorizontalBars data={accountData} formatter={fmtHours} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                      <ResponsiveContainer width="50%" height={200}>
+                        <PieChart>
+                          <Pie
+                            data={accountData}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={80}
+                            isAnimationActive={false}
+                          >
+                            {accountData.map((entry, i) => (
+                              <Cell key={`cell-${entry.name}-${i}`} fill={PALETTE[i % PALETTE.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(value: number) => fmtHours(value)} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div style={{ flex: 1, minWidth: '150px' }}>
+                        {accountData.map((entry, i) => (
+                          <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                            <div style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: PALETTE[i % PALETTE.length], flexShrink: 0 }} />
+                            <span style={{ fontSize: '0.8rem', color: '#4a5568', flex: 1 }}>{entry.name}</span>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#2d3748' }}>{entry.percentage}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   ) : (
                     <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>No account data available</div>
                   )}
