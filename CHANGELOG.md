@@ -2,6 +2,16 @@
 
 All notable changes to the BaseOps application will be documented in this file.
 
+## [v1.8.0] - 2026-08-20
+
+### Added
+- **Aircraft Usage Dashboard** — New usage analytics dashboard on the Fleet page (`AircraftUsageDashboard.tsx`) with period filters (All Time, Month, Quarter, Year, Custom) and date navigation. Includes stat cards for total missions, total flight hours, busiest aircraft, and average hours per aircraft, plus charts for flight hours by aircraft, missions by aircraft, and a monthly flight hours trend
+- **Aircraft usage service** — Added `src/services/aircraftUsage.ts` with `computeAircraftUsage` and `filterFlightsByDate` for per-aircraft and fleet-wide aggregation (mission/leg/hour totals, monthly breakdowns, status and tag splits, and utilization shares)
+- **Aircraft usage tests** — Added 11 service tests (`aircraftUsage.test.ts`) and 3 component tests (`AircraftUsageDashboard.test.tsx`)
+
+### Changed
+- **Fleet page tabs** — Added a Fleet / Usage Dashboard tab bar to `AircraftList.tsx`, with the dashboard lazy-loaded via `React.lazy` + `Suspense`
+
 ## [v1.7.0] - 2026-08-20
 
 ### Added

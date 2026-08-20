@@ -1,14 +1,16 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { useData } from '../contexts/DataProvider';
 
 
-import { Search, Plus, Trash2, Helicopter, Wrench, ChevronDown, ChevronUp, History } from 'lucide-react';
+import { Search, Plus, Trash2, Helicopter, Wrench, ChevronDown, ChevronUp, History, BarChart3 } from 'lucide-react';
 import SaveButton from './SaveButton';
 import { authService } from '../services/authService';
 import { can as permCan } from '../services/permissionService';
 
 import ConfirmDialog from './ConfirmDialog';
 import AlertDialog from './AlertDialog';
+
+const AircraftUsageDashboard = lazy(() => import('./AircraftUsageDashboard'));
 
 const AircraftList = () => {
   const currentUser = authService.getCurrentUser();
@@ -29,6 +31,7 @@ const AircraftList = () => {
   const [selectedAircraft, setSelectedAircraft] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [auditExpanded, setAuditExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState('fleet');
 
   const aircraft = useMemo(() => {
     const list = [...userAircraft];
@@ -222,8 +225,27 @@ const AircraftList = () => {
   };
 
   return (
-    <div style={{ display: 'flex', gap: '20px', height: 'calc(100vh - 120px)' }}>
-      {/* LEFT COLUMN: LIST */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: 'calc(100vh - 120px)' }}>
+      <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
+        <button
+          className={`btn ${activeTab === 'fleet' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setActiveTab('fleet')}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+        >
+          <Helicopter size={16} /> Fleet
+        </button>
+        <button
+          className={`btn ${activeTab === 'dashboard' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setActiveTab('dashboard')}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+        >
+          <BarChart3 size={16} /> Usage Dashboard
+        </button>
+      </div>
+
+      {activeTab === 'fleet' && (
+        <div style={{ display: 'flex', gap: '20px', flex: 1, minHeight: 0 }}>
+          {/* LEFT COLUMN: LIST */}
       <div className="card" style={{ width: '350px', display: 'flex', flexDirection: 'column', padding: '15px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
           <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -617,19 +639,29 @@ const AircraftList = () => {
           </form>
         )}
       </div>
-      <ConfirmDialog
-        isOpen={confirmDialog.open}
-        title={confirmDialog.title}
-        message={confirmDialog.message}
-        onConfirm={confirmDialog.onConfirm}
-        onCancel={() => setConfirmDialog({ open: false, title: '', message: '', onConfirm: null })}
-      />
-      <AlertDialog
-        isOpen={alertDialog.open}
-        title={alertDialog.title}
-        message={alertDialog.message}
-        onClose={() => setAlertDialog({ open: false, title: '', message: '' })}
-      />
+        <ConfirmDialog
+          isOpen={confirmDialog.open}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog({ open: false, title: '', message: '', onConfirm: null })}
+        />
+        <AlertDialog
+          isOpen={alertDialog.open}
+          title={alertDialog.title}
+          message={alertDialog.message}
+          onClose={() => setAlertDialog({ open: false, title: '', message: '' })}
+        />
+        </div>
+      )}
+
+      {activeTab === 'dashboard' && (
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+          <Suspense fallback={<div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Loading dashboard...</div>}>
+            <AircraftUsageDashboard />
+          </Suspense>
+        </div>
+      )}
     </div>
   );
 };
