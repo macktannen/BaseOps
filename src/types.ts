@@ -26,6 +26,7 @@ export interface FlightLog {
   isLocked?: boolean;
   aircraftTotals?: Record<string, any>;
   auditLog?: string[];
+  flightReadings?: FlightReading[];
   [key: string]: any;
 }
 
@@ -72,6 +73,13 @@ export interface FlightLeg {
   pilotRoles?: Record<string, string>;
   date?: string;
   arrDate?: string;
+  flightHrs?: number | string;
+  landings?: number | string;
+  hobbs?: number | string;
+  engine1Hours?: number | string;
+  engine1Cycles?: number | string;
+  engine2Hours?: number | string;
+  engine2Cycles?: number | string;
   [key: string]: any;
 }
 
@@ -117,8 +125,30 @@ export interface CustomZone {
   [key: string]: any;
 }
 
+export interface MeterBaseline {
+  date: string;
+  totalHours: number;
+  landings: number;
+  hobbs: number;
+  engine1Hours: number;
+  engine1Cycles: number;
+  engine2Hours: number;
+  engine2Cycles: number;
+}
+
+export interface FlightReading {
+  flightHrs?: number | string;
+  landings?: number | string;
+  hobbs?: number | string;
+  engine1Hours?: number | string;
+  engine1Cycles?: number | string;
+  engine2Hours?: number | string;
+  engine2Cycles?: number | string;
+}
+
 export interface Aircraft extends z.infer<typeof AircraftSchema> {
   auditLog?: string[];
+  meterBaseline?: MeterBaseline;
   [key: string]: any;
 }
 

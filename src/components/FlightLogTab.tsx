@@ -21,6 +21,16 @@ interface LegActual {
   fuelPurchased?: string | number;
 }
 
+export interface FlightReading {
+  flightHrs?: number | string;
+  landings?: number | string;
+  hobbs?: number | string;
+  engine1Hours?: number | string;
+  engine1Cycles?: number | string;
+  engine2Hours?: number | string;
+  engine2Cycles?: number | string;
+}
+
 export interface FlightLogAircraftTotals {
   flightBefore?: number | string;
   hobbsBefore?: number | string;
@@ -37,6 +47,7 @@ export interface FlightLogAircraftTotals {
   changeEngine1Cycles?: number;
   changeEngine2Cycles?: number;
   dualEngine?: boolean;
+  flightReadings?: FlightReading[];
 }
 
 interface FlightLog extends DomainFlightLog {

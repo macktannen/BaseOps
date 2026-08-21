@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { useData } from '../contexts/DataProvider';
 
 
-import { Search, Plus, Trash2, Helicopter, Wrench, ChevronDown, ChevronUp, History, BarChart3, ShieldCheck } from 'lucide-react';
+import { Search, Plus, Trash2, Helicopter, Wrench, ChevronDown, ChevronUp, History, BarChart3, ShieldCheck, Calendar, Save, X } from 'lucide-react';
 import SaveButton from './SaveButton';
 import { authService } from '../services/authService';
 import { can as permCan } from '../services/permissionService';
@@ -35,6 +35,8 @@ const AircraftList = () => {
   const [activeTab, setActiveTab] = useState('fleet');
   const [meterDiscrepancies, setMeterDiscrepancies] = useState<MeterDiscrepancy[]>([]);
   const [showMeterResults, setShowMeterResults] = useState(false);
+  const [showBaselineModal, setShowBaselineModal] = useState(false);
+  const [baselineForm, setBaselineForm] = useState<Record<string, number | string> | null>(null);
 
   const aircraft = useMemo(() => {
     const list = [...userAircraft];
@@ -521,6 +523,40 @@ const AircraftList = () => {
                         <ShieldCheck size={12} /> Validate Meters
                       </button>
                     )}
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const ac = editForm;
+                          setBaselineForm({
+                            date: new Date().toISOString().split('T')[0],
+                            totalHours: ac.totalHours || 0,
+                            landings: ac.landings || 0,
+                            hobbs: ac.hobbs || 0,
+                            engine1Hours: ac.engine1Hours || ac.engineHours || ac.totalHours || 0,
+                            engine1Cycles: ac.engine1Cycles || ac.engineCycles || 0,
+                            engine2Hours: ac.engine2Hours || 0,
+                            engine2Cycles: ac.engine2Cycles || 0,
+                          });
+                          setShowBaselineModal(true);
+                        }}
+                        style={{
+                          fontSize: '0.7rem',
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: 'white',
+                          color: 'var(--primary-color)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontWeight: 500
+                        }}
+                      >
+                        <Calendar size={12} /> Set Baseline
+                      </button>
+                    )}
                     <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', backgroundColor: 'white', padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
                       <input 
                         type="checkbox" 
@@ -823,6 +859,159 @@ const AircraftList = () => {
           message={alertDialog.message}
           onClose={() => setAlertDialog({ open: false, title: '', message: '' })}
         />
+        {showBaselineModal && baselineForm && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '24px', width: '100%', maxWidth: '480px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 600, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Calendar size={20} /> Set Meter Baseline for {editForm.id}
+                </h3>
+                <button onClick={() => setShowBaselineModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text-muted)', lineHeight: 1 }}>
+                  <X size={20} />
+                </button>
+              </div>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
+                Set the baseline date and meter values. All signed flights after this date will be validated against these baselines.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 500 }}>Baseline Date</label>
+                  <input
+                    type="date"
+                    value={baselineForm.date}
+                    onChange={(e) => setBaselineForm({...baselineForm, date: e.target.value})}
+                    style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '0.875rem' }}
+                  />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 500 }}>Aircraft Hours</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={baselineForm.totalHours}
+                    onChange={(e) => setBaselineForm({...baselineForm, totalHours: parseFloat(e.target.value) || 0})}
+                    style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '0.875rem' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 500 }}>Aircraft Landings</label>
+                  <input
+                    type="number"
+                    value={baselineForm.landings}
+                    onChange={(e) => setBaselineForm({...baselineForm, landings: parseInt(e.target.value) || 0})}
+                    style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '0.875rem' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 500 }}>Hobbs Meter</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={baselineForm.hobbs}
+                    onChange={(e) => setBaselineForm({...baselineForm, hobbs: parseFloat(e.target.value) || 0})}
+                    style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '0.875rem' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 500 }}>Engine 1 Hours</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={baselineForm.engine1Hours}
+                    onChange={(e) => setBaselineForm({...baselineForm, engine1Hours: parseFloat(e.target.value) || 0})}
+                    style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '0.875rem' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 500 }}>Engine 1 Cycles</label>
+                  <input
+                    type="number"
+                    value={baselineForm.engine1Cycles}
+                    onChange={(e) => setBaselineForm({...baselineForm, engine1Cycles: parseInt(e.target.value) || 0})}
+                    style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '0.875rem' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 500 }}>Engine 2 Hours</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={baselineForm.engine2Hours}
+                    onChange={(e) => setBaselineForm({...baselineForm, engine2Hours: parseFloat(e.target.value) || 0})}
+                    style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '0.875rem' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 500 }}>Engine 2 Cycles</label>
+                  <input
+                    type="number"
+                    value={baselineForm.engine2Cycles}
+                    onChange={(e) => setBaselineForm({...baselineForm, engine2Cycles: parseInt(e.target.value) || 0})}
+                    style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '0.875rem' }}
+                  />
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '24px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowBaselineModal(false)}
+                  style={{
+                    fontSize: '0.875rem',
+                    padding: '8px 16px',
+                    borderRadius: '4px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'white',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const storedAircraft = [...userAircraft];
+                    const acIndex = storedAircraft.findIndex(a => a.id === editForm.id);
+                    if (acIndex >= 0) {
+                      const ac = { ...storedAircraft[acIndex] };
+                      const now = new Date().toLocaleString();
+                      ac.meterBaseline = {
+                        date: baselineForm.date,
+                        totalHours: baselineForm.totalHours,
+                        landings: baselineForm.landings,
+                        hobbs: baselineForm.hobbs,
+                        engine1Hours: baselineForm.engine1Hours,
+                        engine1Cycles: baselineForm.engine1Cycles,
+                        engine2Hours: baselineForm.engine2Hours,
+                        engine2Cycles: baselineForm.engine2Cycles,
+                      };
+                      if (!ac.auditLog) ac.auditLog = [];
+                      ac.auditLog.push(`Meter baseline set by Admin (${currentUser?.name || 'Unknown'}) on ${now}: ${JSON.stringify(ac.meterBaseline)}`);
+                      storedAircraft[acIndex] = ac;
+                      updateData('userAircraft', storedAircraft);
+                    }
+                    setShowBaselineModal(false);
+                    setBaselineForm(null);
+                  }}
+                  style={{
+                    fontSize: '0.875rem',
+                    padding: '8px 16px',
+                    borderRadius: '4px',
+                    border: 'none',
+                    backgroundColor: 'var(--primary-color)',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontWeight: 500
+                  }}
+                >
+                  <Save size={14} style={{ marginRight: '4px' }} /> Save Baseline
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         </div>
         </div>
       )}

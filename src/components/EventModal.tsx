@@ -16,7 +16,7 @@ import useIsMobile from '../hooks/useIsMobile';
 import MobileDropdownMenu from './MobileDropdownMenu';
 import { useData } from '../contexts/DataProvider';
 import { fetchFreshAircraft } from '../services/orgAircraft';
-import { Flight, FlightLeg, FlightLog, FlightUpload, Pilot, Passenger, Aircraft, CustomZone, LocationRef } from '../types';
+import { FlightReading, MeterBaseline } from '../types';
 
 export interface EventModalProps {
   isOpen: boolean;
@@ -901,31 +901,91 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     // STEP 1: Block remote sync overwrites during sign
     suppressSyncRef.current = true;
 
-    // STEP 2: Update aircraft record in single atomic commit
+    // STEP 2: Capture per-flight readings from legsActuals
+    const legs = logData.legsActuals || [];
+    const flightReading: FlightReading = {
+      flightHrs: legs.reduce((sum, l) => sum + (parseFloat(String(l.flightHrs || '0')) || 0), 0),
+      landings: legs.reduce((sum, l) => sum + (parseInt(String(l.landings || '0'), 10) || 0), 0),
+      hobbs: legs.reduce((sum, l) => sum + (parseFloat(String(l.hobbs || '0')) || 0), 0),
+      engine1Hours: legs.reduce((sum, l) => sum + (parseFloat(String(l.engine1Hrs || '0')) || 0), 0),
+      engine1Cycles: legs.reduce((sum, l) => sum + (parseInt(String(l.engine1Cycles || '0'), 10) || 0), 0),
+      engine2Hours: legs.reduce((sum, l) => sum + (parseFloat(String(l.engine2Hrs || '0')) || 0), 0),
+      engine2Cycles: legs.reduce((sum, l) => sum + (parseInt(String(l.engine2Cycles || '0'), 10) || 0), 0),
+    };
+
+    // STEP 3: Update aircraft record based on baseline + all signed flights
     let pendingAircraftUpdate = null;
     try {
       const storedAircraft = [...(userAircraft || [])];
       const acIndex = storedAircraft.findIndex(a => a.id === aircraftId);
       if (acIndex >= 0) {
         const ac = { ...storedAircraft[acIndex] } as Record<string, any>;
+        const baseline = ac.meterBaseline as MeterBaseline | undefined;
         const isTwin = ac.dualEngine || snapshottedTotals.dualEngine;
 
-        ac.totalHours = (Math.round((Number(snapshottedTotals.flightBefore || 0) + Number(snapshottedTotals.changeFlight || 0)) * 10) / 10).toFixed(1);
-        ac.landings = parseInt(String(snapshottedTotals.landingsBefore || 0), 10) + Math.round(Number(snapshottedTotals.changeLandings || 0));
-        ac.hobbs = (Math.round((Number(snapshottedTotals.hobbsBefore || 0) + Number(snapshottedTotals.changeHobbs || 0)) * 10) / 10).toFixed(1);
+        if (baseline) {
+          // Compute sum of all signed flights after baseline (including this one)
+          const allSignedFlights = (userFlights || []).filter(f => 
+            f.aircraftId === aircraftId && 
+            f.flightLog?.signature && 
+            f.date && 
+            f.date >= baseline.date
+          );
+          const sumReadings = allSignedFlights.reduce((sum, f) => {
+            const log = f.flightLog as (FlightLog & { flightReadings?: FlightReading[] }) | undefined;
+            const readings = log?.flightReadings || [];
+            readings.forEach(r => {
+              sum.totalHours += parseFloat(String(r.flightHrs || '0')) || 0;
+              sum.landings += parseInt(String(r.landings || '0'), 10) || 0;
+              sum.hobbs += parseFloat(String(r.hobbs || '0')) || 0;
+              sum.engine1Hours += parseFloat(String(r.engine1Hours || '0')) || 0;
+              sum.engine1Cycles += parseInt(String(r.engine1Cycles || '0'), 10) || 0;
+              sum.engine2Hours += parseFloat(String(r.engine2Hours || '0')) || 0;
+              sum.engine2Cycles += parseInt(String(r.engine2Cycles || '0'), 10) || 0;
+            });
+            return sum;
+          }, { totalHours: 0, landings: 0, hobbs: 0, engine1Hours: 0, engine1Cycles: 0, engine2Hours: 0, engine2Cycles: 0 });
 
-        ac.engine1Hours = (Math.round((Number(snapshottedTotals.engine1Before || 0) + Number(snapshottedTotals.changeEngine1Hours || 0)) * 10) / 10).toFixed(1);
-        ac.engineHours = ac.engine1Hours;
-        ac.engine1Cycles = parseInt(String(snapshottedTotals.cycles1Before || 0), 10) + Math.round(Number(snapshottedTotals.changeEngine1Cycles || 0));
-        ac.engineCycles = ac.engine1Cycles;
+          // Add this flight's reading
+          sumReadings.totalHours += flightReading.flightHrs || 0;
+          sumReadings.landings += flightReading.landings || 0;
+          sumReadings.hobbs += flightReading.hobbs || 0;
+          sumReadings.engine1Hours += flightReading.engine1Hours || 0;
+          sumReadings.engine1Cycles += flightReading.engine1Cycles || 0;
+          sumReadings.engine2Hours += flightReading.engine2Hours || 0;
+          sumReadings.engine2Cycles += flightReading.engine2Cycles || 0;
 
-        if (isTwin) {
-          ac.engine2Hours = (Math.round((Number(snapshottedTotals.engine2Before || 0) + Number(snapshottedTotals.changeEngine2Hours || 0)) * 10) / 10).toFixed(1);
-          ac.engine2Cycles = parseInt(String(snapshottedTotals.cycles2Before || 0), 10) + Math.round(Number(snapshottedTotals.changeEngine2Cycles || 0));
+          // Set aircraft meters = baseline + sum of all signed flights after baseline
+          ac.totalHours = Math.round((baseline.totalHours + sumReadings.totalHours) * 10) / 10;
+          ac.landings = baseline.landings + sumReadings.landings;
+          ac.hobbs = Math.round((baseline.hobbs + sumReadings.hobbs) * 10) / 10;
+          ac.engine1Hours = Math.round((baseline.engine1Hours + sumReadings.engine1Hours) * 10) / 10;
+          ac.engineHours = ac.engine1Hours;
+          ac.engine1Cycles = baseline.engine1Cycles + sumReadings.engine1Cycles;
+          ac.engineCycles = ac.engine1Cycles;
+
+          if (isTwin) {
+            ac.engine2Hours = Math.round((baseline.engine2Hours + sumReadings.engine2Hours) * 10) / 10;
+            ac.engine2Cycles = baseline.engine2Cycles + sumReadings.engine2Cycles;
+          }
+        } else {
+          // No baseline - fall back to snapshot + change (legacy behavior)
+          ac.totalHours = (Math.round((Number(snapshottedTotals.flightBefore || 0) + Number(snapshottedTotals.changeFlight || 0)) * 10) / 10).toFixed(1);
+          ac.landings = parseInt(String(snapshottedTotals.landingsBefore || 0), 10) + Math.round(Number(snapshottedTotals.changeLandings || 0));
+          ac.hobbs = (Math.round((Number(snapshottedTotals.hobbsBefore || 0) + Number(snapshottedTotals.changeHobbs || 0)) * 10) / 10).toFixed(1);
+          ac.engine1Hours = (Math.round((Number(snapshottedTotals.engine1Before || 0) + Number(snapshottedTotals.changeEngine1Hours || 0)) * 10) / 10).toFixed(1);
+          ac.engineHours = ac.engine1Hours;
+          ac.engine1Cycles = parseInt(String(snapshottedTotals.cycles1Before || 0), 10) + Math.round(Number(snapshottedTotals.changeEngine1Cycles || 0));
+          ac.engineCycles = ac.engine1Cycles;
+
+          if (isTwin) {
+            ac.engine2Hours = (Math.round((Number(snapshottedTotals.engine2Before || 0) + Number(snapshottedTotals.changeEngine2Hours || 0)) * 10) / 10).toFixed(1);
+            ac.engine2Cycles = parseInt(String(snapshottedTotals.cycles2Before || 0), 10) + Math.round(Number(snapshottedTotals.changeEngine2Cycles || 0));
+          }
         }
 
         if (!ac.auditLog) ac.auditLog = [];
-        ac.auditLog.push(`Signed flight #${flightNumber || ''} by ${currentUser?.name || 'Pilot'} on ${new Date().toLocaleString()}: +${snapshottedTotals.changeFlight}h`);
+        ac.auditLog.push(`Signed flight #${flightNumber || ''} by ${currentUser?.name || 'Pilot'} on ${new Date().toLocaleString()}: +${flightReading.flightHrs}h`);
 
         storedAircraft[acIndex] = ac as Aircraft;
         pendingAircraftUpdate = storedAircraft;
@@ -934,11 +994,13 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       console.error('Failed to update aircraft on sign:', err);
     }
 
-    // STEP 3: Build the signed flight log
+    // STEP 3: Build the signed flight log with per-flight readings
+    const existingReadings = logData.flightReadings || [];
     const signedLog = {
       ...logData,
       isLocked: true,
       aircraftTotals: snapshottedTotals,
+      flightReadings: [...existingReadings, flightReading],
       signature: {
         name: currentUser?.name || 'Pilot',
         timestamp: new Date().toLocaleString(),
@@ -967,56 +1029,26 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     // STEP 1: Block all sync overwrites immediately
     suppressSyncRef.current = true;
 
-    // STEP 2: Revert aircraft totals from the snapshot
-    let pendingAircraftUpdate = null;
-    const totals = flightLog.aircraftTotals;
-      if (aircraftId && totals) {
-      try {
-        const storedAircraft = [...(userAircraft || [])];
-        const acIndex = storedAircraft.findIndex(a => a.id === aircraftId);
-        if (acIndex >= 0) {
-          const ac = { ...storedAircraft[acIndex] } as Record<string, any>;
-          if (totals.flightBefore !== undefined) ac.totalHours = parseFloat(String(totals.flightBefore)).toFixed(1);
-          if (totals.landingsBefore !== undefined) ac.landings = parseInt(String(totals.landingsBefore), 10);
-          if (totals.hobbsBefore !== undefined) ac.hobbs = parseFloat(String(totals.hobbsBefore)).toFixed(1);
-          if (totals.engine1Before !== undefined) {
-            ac.engine1Hours = parseFloat(String(totals.engine1Before)).toFixed(1);
-            ac.engineHours = ac.engine1Hours;
-          }
-          if (totals.cycles1Before !== undefined) {
-            ac.engine1Cycles = parseInt(String(totals.cycles1Before), 10);
-            ac.engineCycles = ac.engine1Cycles;
-          }
-          if (totals.dualEngine && totals.engine2Before !== undefined) {
-            ac.engine2Hours = parseFloat(String(totals.engine2Before)).toFixed(1);
-            ac.engine2Cycles = parseInt(String(totals.cycles2Before || 0), 10);
-          }
-          if (!ac.auditLog) ac.auditLog = [];
-          ac.auditLog.push(`Signature cleared & meters reverted by ${currentUser?.name || 'Admin'} on ${new Date().toLocaleString()}`);
-          storedAircraft[acIndex] = ac as Aircraft;
-          pendingAircraftUpdate = storedAircraft;
-        }
-      } catch (e) { console.error('Failed to revert aircraft totals:', e); }
-    }
-
-    // STEP 3: Build the clean unsigned flight log
+    // STEP 2: Build the clean unsigned flight log (no signature, no aircraftTotals, no flightReadings)
     const unsignedLog = {
       ...flightLog,
       signature: null,
       isLocked: false,
       aircraftTotals: null,
+      flightReadings: null,
       auditLog: [
         ...(flightLog.auditLog || []),
         `Signature cleared by ${currentUser?.name || 'Admin'} on ${new Date().toLocaleString()}`
       ]
     };
 
-    // STEP 4: Update ALL React state synchronously
+    // STEP 3: Update ALL React state synchronously
     setFlightLog(unsignedLog);
     setStatus('confirmed');
 
-    // STEP 5: Persist atomically via performSave
-    await performSave(unsignedLog, 'confirmed', false, pendingAircraftUpdate ? { userAircraft: pendingAircraftUpdate } : null);
+    // STEP 4: Persist atomically via performSave
+    // No aircraft meter update needed - validation uses baseline + signed flights sum
+    await performSave(unsignedLog, 'confirmed', false, null);
 
     suppressSyncRef.current = false;
   };
@@ -1646,42 +1678,29 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       const oldAcIndex = storedAircraft.findIndex(a => a.id === oldAircraftId);
       if (oldAcIndex >= 0 && flightLog?.aircraftTotals) {
         const ac = { ...storedAircraft[oldAcIndex] } as Record<string, any>;
-        const totals = flightLog.aircraftTotals;
-        if (totals.flightBefore !== undefined) ac.totalHours = parseFloat(String(totals.flightBefore)).toFixed(1);
-        if (totals.landingsBefore !== undefined) ac.landings = parseInt(String(totals.landingsBefore), 10);
-        if (totals.hobbsBefore !== undefined) ac.hobbs = parseFloat(String(totals.hobbsBefore)).toFixed(1);
-        if (totals.engine1Before !== undefined) {
-          ac.engine1Hours = parseFloat(String(totals.engine1Before)).toFixed(1);
-          ac.engineHours = ac.engine1Hours;
-        }
-        if (totals.cycles1Before !== undefined) {
-          ac.engine1Cycles = parseInt(String(totals.cycles1Before), 10);
-          ac.engineCycles = ac.engine1Cycles;
-        }
-        if (totals.dualEngine && totals.engine2Before !== undefined) {
-          ac.engine2Hours = parseFloat(String(totals.engine2Before)).toFixed(1);
-          ac.engine2Cycles = parseInt(String(totals.cycles2Before || 0), 10);
-        }
+        // With baseline approach, we just clear the signature - meters will be correct
+        // based on baseline + sum of signed flights. No need to revert individual meters.
         if (!ac.auditLog) ac.auditLog = [];
         ac.auditLog.push(
-          `Flight log unsigned & meters reverted due to aircraft change to ${newAcId || 'unassigned'} by Admin (${currentUser?.name || 'Admin'}) on ${new Date().toLocaleString()}`
+          `Flight log unsigned & aircraft changed to ${newAcId || 'unassigned'} by Admin (${currentUser?.name || 'Admin'}) on ${new Date().toLocaleString()}`
         );
         storedAircraft[oldAcIndex] = ac as Aircraft;
         updateData('userAircraft', storedAircraft);
       }
     } catch (e) {
-      console.error("Failed to revert old aircraft hours:", e);
+      console.error("Failed to update old aircraft:", e);
     }
 
     const updatedAudit = [
       ...(flightLog.auditLog || []),
-      `Flight log unsigned and ${oldAircraftId} hours reverted due to aircraft change to ${newAcId || 'none'} by Admin (${currentUser?.name || 'Admin'}) on ${new Date().toLocaleString()}`
+      `Flight log unsigned and aircraft changed to ${newAcId || 'none'} by Admin (${currentUser?.name || 'Admin'}) on ${new Date().toLocaleString()}`
     ];
     const nextFlightLog = {
       ...flightLog,
       signature: null,
       isLocked: false,
       aircraftTotals: null,
+      flightReadings: null,
       auditLog: updatedAudit
     };
     setFlightLog(nextFlightLog);
@@ -1689,7 +1708,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     persistFlightLogToFlight(nextFlightLog);
 
     setTimeout(() => {
-      setAlertDialog({ open: true, title: 'Aircraft Changed', message: `Aircraft changed to ${newAcId}.\n\nThe flight is now OPEN and needs to be signed once complete. Committed meter hours on ${oldAircraftId} have been reverted.` });
+      setAlertDialog({ open: true, title: 'Aircraft Changed', message: `Aircraft changed to ${newAcId}.\n\nThe flight is now OPEN and needs to be signed once complete.` });
     }, 100);
   };
 

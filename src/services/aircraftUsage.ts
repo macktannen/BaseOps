@@ -1,5 +1,5 @@
 import { parseISO, differenceInDays } from 'date-fns';
-import type { Flight, Aircraft, FlightLeg } from '../types';
+import type { Flight, Aircraft, FlightLeg, MeterBaseline, FlightReading } from '../types';
 
 export interface DateBounds {
   startStr?: string | null;
@@ -9,11 +9,18 @@ export interface DateBounds {
 interface LegActual {
   fuelPurchased?: number | string;
   flightHrs?: number | string;
+  landings?: number | string;
+  hobbs?: number | string;
+  engine1Hours?: number | string;
+  engine1Cycles?: number | string;
+  engine2Hours?: number | string;
+  engine2Cycles?: number | string;
 }
 
 interface FlightLog {
   legsActuals?: LegActual[];
   signature?: unknown;
+  flightReadings?: FlightReading[];
 }
 
 export interface AircraftUsageStats {
@@ -274,8 +281,63 @@ export interface MeterDiscrepancy {
   label: string;
   stored: number;
   computed: number;
+  baseline: number;
   delta: number;
 }
+
+const sumFlightReadings = (readings: FlightReading[]): Record<string, number> => {
+  return readings.reduce((acc, r) => {
+    acc.totalHours += parseFloat(String(r.flightHrs || '0')) || 0;
+    acc.landings += parseInt(String(r.landings || '0'), 10) || 0;
+    acc.hobbs += parseFloat(String(r.hobbs || '0')) || 0;
+    acc.engine1Hours += parseFloat(String(r.engine1Hours || '0')) || 0;
+    acc.engine1Cycles += parseInt(String(r.engine1Cycles || '0'), 10) || 0;
+    acc.engine2Hours += parseFloat(String(r.engine2Hours || '0')) || 0;
+    acc.engine2Cycles += parseInt(String(r.engine2Cycles || '0'), 10) || 0;
+    return acc;
+  }, {
+    totalHours: 0,
+    landings: 0,
+    hobbs: 0,
+    engine1Hours: 0,
+    engine1Cycles: 0,
+    engine2Hours: 0,
+    engine2Cycles: 0,
+  });
+};
+
+const sumLegReadings = (legs: FlightLeg[]): Record<string, number> => {
+  return legs.reduce((acc, leg) => {
+    acc.totalHours += parseFloat(String(leg.flightHrs || '0')) || 0;
+    acc.landings += parseInt(String(leg.landings || '0'), 10) || 0;
+    acc.hobbs += parseFloat(String(leg.hobbs || '0')) || 0;
+    acc.engine1Hours += parseFloat(String(leg.engine1Hours || '0')) || 0;
+    acc.engine1Cycles += parseInt(String(leg.engine1Cycles || '0'), 10) || 0;
+    acc.engine2Hours += parseFloat(String(leg.engine2Hours || '0')) || 0;
+    acc.engine2Cycles += parseInt(String(leg.engine2Cycles || '0'), 10) || 0;
+    return acc;
+  }, {
+    totalHours: 0,
+    landings: 0,
+    hobbs: 0,
+    engine1Hours: 0,
+    engine1Cycles: 0,
+    engine2Hours: 0,
+    engine2Cycles: 0,
+  });
+};
+
+const getFlightReadings = (flight: Flight): Record<string, number> => {
+  const log = flight.flightLog as (FlightLog & { flightReadings?: FlightReading[] }) | undefined;
+  if (log?.flightReadings?.length) {
+    return sumFlightReadings(log.flightReadings);
+  }
+  const legs = (flight.legs || []) as FlightLeg[];
+  if (legs.length) {
+    return sumLegReadings(legs);
+  }
+  return { totalHours: 0, landings: 0, hobbs: 0, engine1Hours: 0, engine1Cycles: 0, engine2Hours: 0, engine2Cycles: 0 };
+};
 
 export const validateAircraftMeters = (
   aircraft: Aircraft[],
@@ -283,57 +345,52 @@ export const validateAircraftMeters = (
 ): MeterDiscrepancy[] => {
   const discrepancies: MeterDiscrepancy[] = [];
 
+  const meterFields = [
+    { field: 'totalHours', label: 'Aircraft Hours', baselineKey: 'totalHours' },
+    { field: 'landings', label: 'Landings', baselineKey: 'landings' },
+    { field: 'hobbs', label: 'Hobbs', baselineKey: 'hobbs' },
+    { field: 'engine1Hours', label: 'Engine 1 Hours', baselineKey: 'engine1Hours' },
+    { field: 'engine1Cycles', label: 'Engine 1 Cycles', baselineKey: 'engine1Cycles' },
+    { field: 'engine2Hours', label: 'Engine 2 Hours', baselineKey: 'engine2Hours' },
+    { field: 'engine2Cycles', label: 'Engine 2 Cycles', baselineKey: 'engine2Cycles' },
+  ] as const;
+
   for (const ac of aircraft) {
+    const baseline = ac.meterBaseline as MeterBaseline | undefined;
+    if (!baseline) continue;
+
     const acFlights = flights.filter(
-      (f) => f.aircraftId === ac.id && isCompletedFlight(f),
+      (f) => f.aircraftId === ac.id && isCompletedFlight(f) && f.date && f.date >= baseline.date,
     );
 
-    let computedHours = 0;
-    let computedLandings = 0;
+    const totals = acFlights.reduce((acc, flight) => {
+      const readings = getFlightReadings(flight);
+      Object.keys(acc).forEach(key => {
+        acc[key] += readings[key];
+      });
+      return acc;
+    }, { totalHours: 0, landings: 0, hobbs: 0, engine1Hours: 0, engine1Cycles: 0, engine2Hours: 0, engine2Cycles: 0 });
 
-    for (const f of acFlights) {
-      const legs = f.flightLog?.legsActuals?.length
-        ? f.flightLog.legsActuals
-        : f.legs || [];
-
-      for (const leg of legs) {
-        if (leg.flightHrs !== undefined && leg.flightHrs !== null) {
-          computedHours += parseFloat(String(leg.flightHrs)) || 0;
-        } else if (leg.duration !== undefined) {
-          computedHours += (parseFloat(String(leg.duration)) || 0) / 60;
-        }
-        if (leg.landings !== undefined && leg.landings !== null) {
-          computedLandings += parseInt(String(leg.landings), 10) || 0;
-        }
+    for (const { field, label, baselineKey } of meterFields) {
+      const stored = parseFloat(String((ac as Record<string, unknown>)[field] || '0'));
+      const baselineValue = baseline[baselineKey];
+      const computed = baselineValue + totals[field];
+      const roundedComputed = field === 'landings' || field === 'engine1Cycles' || field === 'engine2Cycles'
+        ? Math.round(computed)
+        : Math.round(computed * 10) / 10;
+      const delta = Math.abs(roundedComputed - stored) >= 0.05 ? Math.round((roundedComputed - stored) * 10) / 10 : 0;
+      if (delta !== 0) {
+        discrepancies.push({
+          aircraftId: ac.id,
+          tailNumber: ac.id,
+          field,
+          label,
+          stored,
+          computed: roundedComputed,
+          baseline: baselineValue,
+          delta,
+        });
       }
-    }
-
-    computedHours = Math.round(computedHours * 10) / 10;
-
-    const storedHours = parseFloat(String(ac.totalHours || 0));
-    if (Math.abs(storedHours - computedHours) >= 0.05) {
-      discrepancies.push({
-        aircraftId: ac.id,
-        tailNumber: ac.id,
-        field: 'totalHours',
-        label: 'Aircraft Hours',
-        stored: storedHours,
-        computed: computedHours,
-        delta: Math.round((computedHours - storedHours) * 10) / 10,
-      });
-    }
-
-    const storedLandings = parseInt(String(ac.landings || 0), 10);
-    if (storedLandings !== computedLandings) {
-      discrepancies.push({
-        aircraftId: ac.id,
-        tailNumber: ac.id,
-        field: 'landings',
-        label: 'Landings',
-        stored: storedLandings,
-        computed: computedLandings,
-        delta: computedLandings - storedLandings,
-      });
     }
   }
 
