@@ -349,8 +349,8 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
             <tr>
               <th style={{ borderRight: '1px solid #e2e8f0', padding: '2px 4px' }}></th>
               <th colSpan={3} style={{ textAlign: 'center', borderRight: '1px solid #e2e8f0', padding: '2px 4px', backgroundColor: '#e2e8f0' }}>Utilization</th>
-              <th colSpan={isTwin ? 4 : 2} style={{ textAlign: 'center', borderRight: '1px solid #e2e8f0', padding: '2px 4px', backgroundColor: '#edf2f7' }}>
-                {isTwin ? 'Twin Engine Meters & Cycles' : 'Engine Cycles & Landings'}
+              <th colSpan={isTwin ? 4 : 3} style={{ textAlign: 'center', borderRight: '1px solid #e2e8f0', padding: '2px 4px', backgroundColor: '#edf2f7' }}>
+                {isTwin ? 'Twin Engine Meters & Cycles' : 'Engine Meters & Landings'}
               </th>
               <th colSpan={3} style={{ textAlign: 'center', padding: '2px 4px', backgroundColor: '#e2e8f0' }}>Flight Info</th>
             </tr>
@@ -368,8 +368,11 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
                   <th style={{ borderRight: '1px solid #e2e8f0', padding: '2px 4px' }}>Eng 2 Cyc</th>
                 </>
               ) : (
-                <th style={{ borderRight: '1px solid #e2e8f0', padding: '2px 4px' }}>Engine Cycles</th>
-              )}
+                 <>
+                   <th style={{ padding: '2px 4px' }}>Eng (Hrs)</th>
+                   <th style={{ borderRight: '1px solid #e2e8f0', padding: '2px 4px' }}>Eng Cycles</th>
+                 </>
+               )}
 
               <th style={{ padding: '2px 4px' }}>Landings (#)</th>
               <th style={{ padding: '2px 4px' }}>Landing Type</th>
@@ -401,11 +404,16 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
                           <input type="number" value={String(act.engine2Cycles || '')} disabled={!isEditable} onChange={e => handleUpdateLeg(index, 'engine2Cycles', e.target.value)} style={{ width: '40px', padding: '1px 2px', fontSize: '0.7rem' }} />
                        </td>
                      </>
-                   ) : (
-                     <td style={{ borderRight: '1px solid #e2e8f0', padding: '2px 4px' }}>
-                        <input type="number" value={act.engineCycles !== undefined ? String(act.engineCycles) : String(act.engine1Cycles || '')} disabled={!isEditable} onChange={e => handleUpdateLeg(index, 'engineCycles', e.target.value)} style={{ width: '50px', padding: '1px 2px', fontSize: '0.7rem' }} />
-                     </td>
-                   )}
+                    ) : (
+                      <>
+                        <td style={{ padding: '2px 4px' }}>
+                          <input type="number" step="0.1" value={act.engine1Hrs !== undefined ? String(act.engine1Hrs) : ''} placeholder={String(act.flightHrs || '0.0')} disabled={!isEditable} onChange={e => handleUpdateLeg(index, 'engine1Hrs', e.target.value)} style={{ width: '45px', padding: '1px 2px', fontSize: '0.7rem' }} />
+                        </td>
+                        <td style={{ borderRight: '1px solid #e2e8f0', padding: '2px 4px' }}>
+                           <input type="number" value={act.engineCycles !== undefined ? String(act.engineCycles) : String(act.engine1Cycles || '')} disabled={!isEditable} onChange={e => handleUpdateLeg(index, 'engineCycles', e.target.value)} style={{ width: '50px', padding: '1px 2px', fontSize: '0.7rem' }} />
+                        </td>
+                      </>
+                    )}
 
                     <td style={{ padding: '2px 4px' }}><input type="number" value={String(act.landings || '')} disabled={!isEditable} onChange={e => handleUpdateLeg(index, 'landings', e.target.value)} style={{ width: '45px', padding: '1px 2px', fontSize: '0.7rem' }} /></td>
                     <td style={{ padding: '2px 4px' }}>
@@ -453,15 +461,18 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
               <td style={{ padding: '2px 4px' }}>{totals.block}</td>
               <td style={{ borderRight: '1px solid #e2e8f0', padding: '2px 4px' }}>{totals.hobbs}</td>
               {isTwin ? (
-                <>
-                  <td style={{ padding: '2px 4px' }}>{totals.eng1HrsTotal}</td>
-                  <td style={{ padding: '2px 4px' }}>{totals.eng2HrsTotal}</td>
-                  <td style={{ padding: '2px 4px' }}>{totals.cycles1}</td>
-                  <td style={{ borderRight: '1px solid #e2e8f0', padding: '2px 4px' }}>{totals.cycles2}</td>
-                </>
-              ) : (
-                <td style={{ borderRight: '1px solid #e2e8f0', padding: '2px 4px' }}>{totals.cycles1}</td>
-              )}
+                 <>
+                   <td style={{ padding: '2px 4px' }}>{totals.eng1HrsTotal}</td>
+                   <td style={{ padding: '2px 4px' }}>{totals.eng2HrsTotal}</td>
+                   <td style={{ padding: '2px 4px' }}>{totals.cycles1}</td>
+                   <td style={{ borderRight: '1px solid #e2e8f0', padding: '2px 4px' }}>{totals.cycles2}</td>
+                 </>
+               ) : (
+                 <>
+                   <td style={{ padding: '2px 4px' }}>{totals.eng1HrsTotal}</td>
+                   <td style={{ borderRight: '1px solid #e2e8f0', padding: '2px 4px' }}>{totals.cycles1}</td>
+                 </>
+               )}
               <td style={{ padding: '2px 4px' }}>{totals.lndgs}</td>
               <td style={{ padding: '2px 4px' }}></td>
               <td style={{ padding: '2px 4px', textAlign: 'center', fontSize: '0.7rem' }}>

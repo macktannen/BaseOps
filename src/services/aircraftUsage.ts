@@ -286,7 +286,7 @@ export interface MeterDiscrepancy {
 }
 
 const sumFlightReadings = (readings: FlightReading[]): Record<string, number> => {
-  return readings.reduce((acc, r) => {
+  return readings.reduce((acc: Record<string, number>, r) => {
     acc.totalHours += parseFloat(String(r.flightHrs || '0')) || 0;
     acc.landings += parseInt(String(r.landings || '0'), 10) || 0;
     acc.hobbs += parseFloat(String(r.hobbs || '0')) || 0;
@@ -307,7 +307,7 @@ const sumFlightReadings = (readings: FlightReading[]): Record<string, number> =>
 };
 
 const sumLegReadings = (legs: FlightLeg[]): Record<string, number> => {
-  return legs.reduce((acc, leg) => {
+  return legs.reduce((acc: Record<string, number>, leg) => {
     acc.totalHours += parseFloat(String(leg.flightHrs || '0')) || 0;
     acc.landings += parseInt(String(leg.landings || '0'), 10) || 0;
     acc.hobbs += parseFloat(String(leg.hobbs || '0')) || 0;
