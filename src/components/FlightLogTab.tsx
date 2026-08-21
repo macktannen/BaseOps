@@ -349,8 +349,8 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
             <tr>
               <th style={{ borderRight: '1px solid #e2e8f0', padding: '2px 4px' }}></th>
               <th colSpan={3} style={{ textAlign: 'center', borderRight: '1px solid #e2e8f0', padding: '2px 4px', backgroundColor: '#e2e8f0' }}>Utilization</th>
-              <th colSpan={isTwin ? 4 : 3} style={{ textAlign: 'center', borderRight: '1px solid #e2e8f0', padding: '2px 4px', backgroundColor: '#edf2f7' }}>
-                {isTwin ? 'Twin Engine Meters & Cycles' : 'Engine Meters & Landings'}
+              <th colSpan={isTwin ? 4 : 2} style={{ textAlign: 'center', borderRight: '1px solid #e2e8f0', padding: '2px 4px', backgroundColor: '#edf2f7' }}>
+                {isTwin ? 'Twin Engine Meters & Cycles' : 'Single Engine Meters & Cycles'}
               </th>
               <th colSpan={3} style={{ textAlign: 'center', padding: '2px 4px', backgroundColor: '#e2e8f0' }}>Flight Info</th>
             </tr>
