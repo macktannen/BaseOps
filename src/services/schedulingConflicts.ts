@@ -1,28 +1,9 @@
 import { parseISO, differenceInMinutes } from 'date-fns';
+import type { Flight, FlightLeg } from '../types';
 
-interface Leg {
-  date?: string;
-  arrDate?: string;
-  takeoffTime?: string;
-  landTime?: string;
-  pilots?: (string | undefined)[];
-  pilotId?: string;
-  departure?: { id?: string } | null;
-  destination?: { id?: string } | null;
-}
-
-interface FlightData {
-  id?: string | number;
-  legs?: Leg[];
-  status?: string;
-  aircraftId?: string;
-  flightNumber?: string;
-  title?: string;
-}
-
-interface Conflict {
+export interface Conflict {
   flightId: string | number | undefined;
-  flightNumber: string | undefined;
+  flightNumber: string | number | undefined;
   title: string | undefined;
   overlapLeg: string;
   overlapTime: string;
@@ -35,7 +16,7 @@ interface TimeRange {
   end: number;
 }
 
-const legToRange = (leg: Leg): TimeRange | null => {
+const legToRange = (leg: FlightLeg): TimeRange | null => {
   const depDate = leg.date || null;
   const arrDate = leg.arrDate || depDate;
   if (!depDate) return null;
@@ -70,8 +51,8 @@ const rangesOverlap = (a: TimeRange | null, b: TimeRange | null): boolean => {
 };
 
 export const detectConflicts = (
-  flightData: FlightData | null,
-  allFlights: FlightData[]
+  flightData: Flight | null,
+  allFlights: Flight[]
 ): { pilotConflicts: Conflict[]; aircraftConflicts: Conflict[] } => {
   const pilotConflicts: Conflict[] = [];
   const aircraftConflicts: Conflict[] = [];
@@ -86,7 +67,7 @@ export const detectConflicts = (
 
   const currentLegRanges = flightData.legs
     .map(leg => ({ leg, range: legToRange(leg) }))
-    .filter((l): l is { leg: Leg; range: TimeRange } => l.range !== null);
+    .filter((l): l is { leg: FlightLeg; range: TimeRange } => l.range !== null);
 
   if (currentLegRanges.length === 0) {
     return { pilotConflicts, aircraftConflicts };
@@ -109,7 +90,7 @@ export const detectConflicts = (
 
     const otherLegRanges = other.legs
       .map(leg => ({ leg, range: legToRange(leg) }))
-      .filter((l): l is { leg: Leg; range: TimeRange } => l.range !== null);
+      .filter((l): l is { leg: FlightLeg; range: TimeRange } => l.range !== null);
 
     if (currentAircraftId && other.aircraftId && currentAircraftId === other.aircraftId) {
       for (const { range: curRange } of currentLegRanges) {

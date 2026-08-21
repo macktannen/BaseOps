@@ -33,8 +33,8 @@ const accounts = [
 ];
 
 const flights: Flight[] = [
-  { id: 'f1', aircraftId: 'N123', date: '2026-03-10', status: 'completed', tag: '', legs: [{ duration: 90 }, { duration: 30 }] } as Flight,
-  { id: 'f2', aircraftId: 'N123', date: '2026-03-12', status: 'completed', tag: '', legs: [{ duration: 60 }] } as Flight
+  { id: 'f1', aircraftId: 'N123', date: '2026-03-10', status: 'completed', tag: '', legs: [{ duration: 90 }, { duration: 30 }], flightLog: { signature: { name: 'Chief Pilot' } } } as Flight,
+  { id: 'f2', aircraftId: 'N123', date: '2026-03-12', status: 'completed', tag: '', legs: [{ duration: 60 }], flightLog: { signature: { name: 'Chief Pilot' } } } as Flight
 ];
 
 let mockFlights: Flight[] = flights;
@@ -69,7 +69,7 @@ describe('AircraftUsageDashboard', () => {
 
   it('shows empty state when no flights fall in the selected range', () => {
     mockFlights = [
-      { id: 'f1', aircraftId: 'N123', date: '2026-02-10', status: 'completed', tag: '', legs: [{ duration: 60 }] } as Flight
+      { id: 'f1', aircraftId: 'N123', date: '2026-02-10', status: 'completed', tag: '', legs: [{ duration: 60 }], flightLog: { signature: { name: 'Chief Pilot' } } } as Flight
     ];
     render(<AircraftUsageDashboard />);
 

@@ -1,14 +1,5 @@
 import { AlertTriangle } from 'lucide-react';
-
-interface Conflict {
-  flightId: string | number;
-  flightNumber: string;
-  title: string;
-  pilotId?: string;
-  overlapLeg: string;
-  overlapTime: string;
-  overlapDate: string;
-}
+import type { Conflict } from '../services/schedulingConflicts';
 
 interface ConflictWarningModalProps {
   pilotConflicts: Conflict[];

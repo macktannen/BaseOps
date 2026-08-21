@@ -1,59 +1,47 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
-import { doc, collection, onSnapshot, setDoc, updateDoc, deleteDoc, writeBatch, getDocs, DocumentData } from 'firebase/firestore';
+import { doc, collection, onSnapshot, setDoc, updateDoc, deleteDoc, writeBatch, getDocs, CollectionReference, runTransaction } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuth } from './useAuth';
 import { validateFlight } from '../services/validation';
+import type { Flight, Aircraft, Pilot, Passenger, Account, Vendor, Contact, CustomZone, Expense, CalendarNote, CalendarViewSettings } from '../types';
 
-interface DataContextValue {
-  userFlights: DocumentData[];
-  userAircraft: DocumentData[];
-  userPilots: DocumentData[];
-  userPassengers: DocumentData[];
-  userAccounts: DocumentData[];
-  userVendors: DocumentData[];
-  globalContacts: DocumentData[];
-  userCustomZones: DocumentData[];
-  crewSchedules: Record<string, string>;
-  calendarNotes: Record<string, unknown>;
-  calendarViewSettings: Record<string, unknown>;
-  crewOrder: string[];
-  schedulesGridColorBy: string;
-  locationUsage: Record<string, number>;
-  departmentExpenses: DocumentData[];
+interface DataContextValue extends DataContextState {
   data: DataContextState;
   updateData: (key: string, value: unknown) => Promise<void>;
   updateDataBatch: (updates: Record<string, unknown>) => Promise<void>;
-  saveFlight: (flightData: DocumentData & { id: string | number }) => Promise<void>;
-  saveFlightsBatch: (flightsArray: (DocumentData & { id: string | number })[]) => Promise<void>;
+  saveFlight: (flightData: Flight) => Promise<void>;
+  saveFlightsBatch: (flightsArray: Flight[]) => Promise<void>;
+  saveFlightWithAircraftTransaction: (flightData: Flight, aircraftUpdates: Aircraft[]) => Promise<void>;
   deleteFlight: (flightId: string | number) => Promise<void>;
   loading: boolean;
   error: Error | null;
 }
 
 interface DataContextState {
-  userFlights: DocumentData[];
-  userAircraft: DocumentData[];
-  userPilots: DocumentData[];
-  userPassengers: DocumentData[];
-  userAccounts: DocumentData[];
-  userVendors: DocumentData[];
-  globalContacts: DocumentData[];
-  userCustomZones: DocumentData[];
+  userFlights: Flight[];
+  userAircraft: Aircraft[];
+  userPilots: Pilot[];
+  userPassengers: Passenger[];
+  userAccounts: Account[];
+  userVendors: Vendor[];
+  globalContacts: Contact[];
+  userCustomZones: CustomZone[];
   crewSchedules: Record<string, string>;
-  calendarNotes: Record<string, unknown>;
-  calendarViewSettings: Record<string, unknown>;
+  calendarNotes: Record<string, CalendarNote[]>;
+  calendarViewSettings: CalendarViewSettings;
   crewOrder: string[];
   schedulesGridColorBy: string;
   locationUsage: Record<string, number>;
-  departmentExpenses: DocumentData[];
+  departmentExpenses: Expense[];
 }
 
 interface DataProviderValue {
   data: DataContextState;
   updateData: (key: string, value: unknown) => Promise<void>;
   updateDataBatch: (updates: Record<string, unknown>) => Promise<void>;
-  saveFlight: (flightData: DocumentData & { id: string | number }) => Promise<void>;
-  saveFlightsBatch: (flightsArray: (DocumentData & { id: string | number })[]) => Promise<void>;
+  saveFlight: (flightData: Flight) => Promise<void>;
+  saveFlightsBatch: (flightsArray: Flight[]) => Promise<void>;
+  saveFlightWithAircraftTransaction: (flightData: Flight, aircraftUpdates: Aircraft[]) => Promise<void>;
   deleteFlight: (flightId: string | number) => Promise<void>;
   loading: boolean;
   error: Error | null;
@@ -111,11 +99,12 @@ function getOrgDocRef() {
 }
 
 function getFlightsCollectionRef() {
-  return collection(db, 'orgs', getOrgName(), 'flights');
+  return collection(db, 'orgs', getOrgName(), 'flights') as CollectionReference<Flight>;
 }
 
 function getFlightDocRef(flightId: string | number) {
-  return doc(db, 'orgs', getOrgName(), 'flights', String(flightId));
+  const flightsRef = getFlightsCollectionRef();
+  return doc(flightsRef, String(flightId));
 }
 
 function sanitizeForFirestore(val: unknown): unknown {
@@ -133,6 +122,20 @@ function sanitizeForFirestore(val: unknown): unknown {
   return clean;
 }
 
+function castOrgValue(key: string, val: unknown): unknown {
+  switch (key) {
+    case 'userAircraft': return val as Aircraft[];
+    case 'userPilots': return val as Pilot[];
+    case 'userPassengers': return val as Passenger[];
+    case 'userAccounts': return val as Account[];
+    case 'userVendors': return val as Vendor[];
+    case 'globalContacts': return val as Contact[];
+    case 'userCustomZones': return val as CustomZone[];
+    case 'departmentExpenses': return val as Expense[];
+    default: return val;
+  }
+}
+
 async function migrateFlightsToSubcollection() {
   try {
     const orgRef = getOrgDocRef();
@@ -140,7 +143,7 @@ async function migrateFlightsToSubcollection() {
     if (!orgSnap.exists()) return;
 
     const orgData = orgSnap.data();
-    const legacyFlights = orgData.flights;
+    const legacyFlights = orgData.flights as Flight[] | undefined;
 
     if (!legacyFlights || !Array.isArray(legacyFlights) || legacyFlights.length === 0) return;
 
@@ -154,7 +157,7 @@ async function migrateFlightsToSubcollection() {
     for (const flight of legacyFlights) {
       if (flight && flight.id) {
         const flightRef = getFlightDocRef(flight.id);
-        await setDoc(flightRef, sanitizeForFirestore(flight));
+        await setDoc(flightRef, sanitizeForFirestore(flight) as Flight);
       }
     }
 
@@ -185,13 +188,13 @@ export const DataProvider = ({ children }: DataProviderProps) => {
     const orgRef = getOrgDocRef();
     const unsubscribe = onSnapshot(orgRef, (snap) => {
       if (snap.exists()) {
-        const firestoreData = snap.data();
+        const firestoreData = snap.data() as Record<string, unknown>;
         setData(prev => {
           const newState = { ...prev };
           Object.entries(firestoreData).forEach(([fsKey, val]) => {
             const lsKey = LOCAL_KEY_MAP[fsKey];
             if (lsKey) {
-              (newState as Record<string, unknown>)[lsKey] = val;
+              (newState as Record<string, unknown>)[lsKey] = castOrgValue(lsKey, val);
             }
           });
           return newState;
@@ -213,9 +216,9 @@ export const DataProvider = ({ children }: DataProviderProps) => {
 
     const flightsRef = getFlightsCollectionRef();
     const unsubscribe = onSnapshot(flightsRef, (snap) => {
-      const flights: DocumentData[] = [];
+      const flights: Flight[] = [];
       snap.forEach((docSnap) => {
-        const flightData = docSnap.data();
+        const flightData = docSnap.data() as Flight;
         if (flightData && !flightData._deleted) {
           flights.push(flightData);
         }
@@ -224,8 +227,8 @@ export const DataProvider = ({ children }: DataProviderProps) => {
         const dateA = a.date || '';
         const dateB = b.date || '';
         if (dateA !== dateB) return dateA < dateB ? -1 : 1;
-        const numA = parseInt(a.flightNumber) || 0;
-        const numB = parseInt(b.flightNumber) || 0;
+        const numA = parseInt(String(a.flightNumber)) || 0;
+        const numB = parseInt(String(b.flightNumber)) || 0;
         return numA - numB;
       });
       setData(prev => ({ ...prev, userFlights: flights }));
@@ -240,9 +243,9 @@ export const DataProvider = ({ children }: DataProviderProps) => {
     return () => unsubscribe();
   }, [currentUser]);
 
-  const saveFlight = useCallback(async (flightData: DocumentData & { id: string | number }) => {
+  const saveFlight = useCallback(async (flightData: Flight) => {
     if (!flightData || !flightData.id) throw new Error('Flight must have an id');
-    const sanitized = sanitizeForFirestore({ ...flightData, _lastUpdated: Date.now() }) as DocumentData;
+    const sanitized = sanitizeForFirestore({ ...flightData, _lastUpdated: Date.now() }) as Flight;
 
     const validation = validateFlight(sanitized);
     if (!validation.success) {
@@ -274,10 +277,10 @@ export const DataProvider = ({ children }: DataProviderProps) => {
     }
   }, []);
 
-  const saveFlightsBatch = useCallback(async (flightsArray: (DocumentData & { id: string | number })[]) => {
+  const saveFlightsBatch = useCallback(async (flightsArray: Flight[]) => {
     if (!flightsArray || flightsArray.length === 0) return;
 
-    const sanitized = flightsArray.map(f => sanitizeForFirestore({ ...f, _lastUpdated: Date.now() }) as DocumentData);
+    const sanitized = flightsArray.map(f => sanitizeForFirestore({ ...f, _lastUpdated: Date.now() }) as Flight);
 
     setData(prev => {
       const flightsMap = new Map((prev.userFlights || []).map(f => [String(f.id), f]));
@@ -317,6 +320,46 @@ export const DataProvider = ({ children }: DataProviderProps) => {
       await deleteDoc(flightRef);
     } catch (err) {
       console.error('Failed to delete flight:', err);
+      throw err;
+    }
+  }, []);
+
+  const saveFlightWithAircraftTransaction = useCallback(async (flightData: Flight, aircraftUpdates: Aircraft[]) => {
+    if (!flightData || !flightData.id) throw new Error('Flight must have an id');
+    const sanitized = sanitizeForFirestore({ ...flightData, _lastUpdated: Date.now() }) as Flight;
+    const sanitizedAircraft = sanitizeForFirestore(aircraftUpdates);
+
+    const validation = validateFlight(sanitized);
+    if (!validation.success) {
+      console.error('Flight validation failed:', validation.error);
+      throw new Error(`Invalid flight data: ${validation.error.issues.map((e: { message: string }) => e.message).join(', ')}`);
+    }
+
+    const previousFlights = dataRef.current.userFlights;
+    const previousAircraft = dataRef.current.userAircraft;
+
+    setData(prev => {
+      const flights = [...(prev.userFlights || [])];
+      const idx = flights.findIndex(f => String(f.id) === String(flightData.id));
+      if (idx >= 0) {
+        flights[idx] = sanitized;
+      } else {
+        flights.push(sanitized);
+      }
+      return { ...prev, userFlights: flights, userAircraft: aircraftUpdates };
+    });
+
+    try {
+      await runTransaction(db, async (transaction) => {
+        const flightRef = getFlightDocRef(flightData.id);
+        transaction.set(flightRef, sanitized, { merge: true });
+
+        const orgRef = getOrgDocRef();
+        transaction.set(orgRef, { aircraft: sanitizedAircraft, _lastUpdated: Date.now() }, { merge: true });
+      });
+    } catch (err) {
+      console.error('Failed to save flight with aircraft transaction:', err);
+      setData(prev => ({ ...prev, userFlights: previousFlights, userAircraft: previousAircraft }));
       throw err;
     }
   }, []);
@@ -376,13 +419,13 @@ export const DataProvider = ({ children }: DataProviderProps) => {
       }
     } catch (err) {
       console.error(`Failed to batch update cloud keys:`, err);
-    setData(prev => {
-      const next = { ...prev };
-      for (const key of localKeys) {
-        (next as unknown as Record<string, unknown>)[key] = (dataRef.current as unknown as Record<string, unknown>)[key];
-      }
-      return next;
-    });
+      setData(prev => {
+        const next = { ...prev };
+        for (const key of localKeys) {
+          (next as unknown as Record<string, unknown>)[key] = (dataRef.current as unknown as Record<string, unknown>)[key];
+        }
+        return next;
+      });
       throw err;
     }
   }, []);
@@ -393,10 +436,11 @@ export const DataProvider = ({ children }: DataProviderProps) => {
     updateDataBatch,
     saveFlight,
     saveFlightsBatch,
+    saveFlightWithAircraftTransaction,
     deleteFlight,
     loading,
     error
-  }), [data, updateData, updateDataBatch, saveFlight, saveFlightsBatch, deleteFlight, loading, error]);
+  }), [data, updateData, updateDataBatch, saveFlight, saveFlightsBatch, saveFlightWithAircraftTransaction, deleteFlight, loading, error]);
 
   return (
     <DataContext.Provider value={contextValue}>

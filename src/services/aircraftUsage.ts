@@ -1,17 +1,9 @@
 import { parseISO, differenceInDays } from 'date-fns';
-import type { Flight, Aircraft } from '../data';
+import type { Flight, Aircraft, FlightLeg } from '../types';
 
 export interface DateBounds {
   startStr?: string | null;
   endStr?: string | null;
-}
-
-interface FlightLeg {
-  date?: string;
-  arrDate?: string;
-  takeoffTime?: string;
-  landTime?: string;
-  duration?: number;
 }
 
 interface LegActual {
@@ -82,11 +74,8 @@ const normalizeStatus = (status?: string | null): string => {
 };
 
 const isCompletedFlight = (flight: Flight): boolean => {
-  const status = normalizeStatus(flight.status);
-  if (status === 'completed') return true;
   const log = flight.flightLog as FlightLog | undefined;
-  if (log?.signature) return true;
-  return false;
+  return Boolean(log?.signature);
 };
 
 const getFlightDateString = (flight: Flight): string | null => {

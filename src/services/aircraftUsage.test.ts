@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { filterFlightsByDate, computeAircraftUsage } from './aircraftUsage';
 import type { Flight, Aircraft } from '../data';
+import type { FlightLeg } from '../types';
 
 const ac1: Aircraft = { id: 'N123', tailNumber: 'N123', make: 'Robinson', model: 'R44', status: 'active' };
 const ac2: Aircraft = { id: 'N456', tailNumber: 'N456', make: 'Airbus', model: 'H125', status: 'active' };
@@ -10,7 +11,7 @@ const makeFlight = (
   id: string | number,
   aircraftId: string,
   date: string,
-  legs: unknown[],
+  legs: FlightLeg[],
   status = 'completed',
   tag = '',
   extra: Record<string, unknown> = {}
@@ -73,8 +74,8 @@ describe('computeAircraftUsage', () => {
 
   it('sums mission count and flight hours across multiple legs', () => {
     const flights: Flight[] = [
-      makeFlight('f1', 'N123', '2026-03-10', [{ duration: 90 }, { duration: 30 }]),
-      makeFlight('f2', 'N123', '2026-03-12', [{ duration: 60 }]),
+      makeFlight('f1', 'N123', '2026-03-10', [{ duration: 90 }, { duration: 30 }], 'completed', '', { flightLog: { signature: 'signed' } }),
+      makeFlight('f2', 'N123', '2026-03-12', [{ duration: 60 }], 'completed', '', { flightLog: { signature: 'signed' } }),
     ];
     const result = computeAircraftUsage(flights, [ac1]);
     const acStats = result.aircraft[0];
@@ -87,7 +88,7 @@ describe('computeAircraftUsage', () => {
 
   it('falls back to takeoff and land times when duration is missing', () => {
     const flights: Flight[] = [
-      makeFlight('f1', 'N456', '2026-04-05', [{ takeoffTime: '08:00', landTime: '10:30' }]),
+      makeFlight('f1', 'N456', '2026-04-05', [{ takeoffTime: '08:00', landTime: '10:30' }], 'completed', '', { flightLog: { signature: 'signed' } }),
     ];
     const result = computeAircraftUsage(flights, [ac2]);
     expect(result.aircraft[0].totalHours).toBe(2.5);
@@ -97,7 +98,7 @@ describe('computeAircraftUsage', () => {
     const flights: Flight[] = [
       makeFlight('f1', 'N123', '2026-05-01', [
         { date: '2026-05-01', arrDate: '2026-05-02', takeoffTime: '22:00', landTime: '02:00' },
-      ]),
+      ], 'completed', '', { flightLog: { signature: 'signed' } }),
     ];
     const result = computeAircraftUsage(flights, [ac1]);
     expect(result.aircraft[0].totalHours).toBe(4);
@@ -119,9 +120,9 @@ describe('computeAircraftUsage', () => {
 
   it('calculates fleet totals and utilization shares', () => {
     const flights: Flight[] = [
-      makeFlight('f1', 'N123', '2026-07-01', [{ duration: 120 }]),
-      makeFlight('f2', 'N456', '2026-07-02', [{ duration: 60 }]),
-      makeFlight('f3', 'N456', '2026-07-03', [{ duration: 60 }]),
+      makeFlight('f1', 'N123', '2026-07-01', [{ duration: 120 }], 'completed', '', { flightLog: { signature: 'signed' } }),
+      makeFlight('f2', 'N456', '2026-07-02', [{ duration: 60 }], 'completed', '', { flightLog: { signature: 'signed' } }),
+      makeFlight('f3', 'N456', '2026-07-03', [{ duration: 60 }], 'completed', '', { flightLog: { signature: 'signed' } }),
     ];
     const result = computeAircraftUsage(flights, [ac1, ac2, ac3]);
     expect(result.fleet.totalAircraft).toBe(3);
@@ -138,9 +139,9 @@ describe('computeAircraftUsage', () => {
 
   it('respects date bounds when aggregating', () => {
     const flights: Flight[] = [
-      makeFlight('f1', 'N123', '2026-08-01', [{ duration: 120 }]),
-      makeFlight('f2', 'N123', '2026-08-15', [{ duration: 60 }]),
-      makeFlight('f3', 'N123', '2026-09-01', [{ duration: 30 }]),
+      makeFlight('f1', 'N123', '2026-08-01', [{ duration: 120 }], 'completed', '', { flightLog: { signature: 'signed' } }),
+      makeFlight('f2', 'N123', '2026-08-15', [{ duration: 60 }], 'completed', '', { flightLog: { signature: 'signed' } }),
+      makeFlight('f3', 'N123', '2026-09-01', [{ duration: 30 }], 'completed', '', { flightLog: { signature: 'signed' } }),
     ];
     const result = computeAircraftUsage(flights, [ac1], { startStr: '2026-08-01', endStr: '2026-08-31' });
     expect(result.aircraft[0].missionCount).toBe(2);
@@ -149,15 +150,34 @@ describe('computeAircraftUsage', () => {
     expect(result.aircraft[0].hoursByMonth['2026-09']).toBeUndefined();
   });
 
-  it('filters to completed flights by default', () => {
+  it('excludes completed flights without a signature by default', () => {
     const flights: Flight[] = [
       makeFlight('f1', 'N123', '2026-10-01', [{ duration: 60 }], 'completed'),
       makeFlight('f2', 'N123', '2026-10-02', [{ duration: 60 }], 'confirmed'),
       makeFlight('f3', 'N123', '2026-10-03', [{ duration: 60 }], 'on hold'),
     ];
     const result = computeAircraftUsage(flights, [ac1]);
-    expect(result.aircraft[0].missionCount).toBe(1);
-    expect(result.aircraft[0].totalHours).toBe(1);
+    expect(result.aircraft[0].missionCount).toBe(0);
+    expect(result.aircraft[0].totalHours).toBe(0);
+  });
+
+  it('includes signed flights regardless of status by default', () => {
+    const flights: Flight[] = [
+      makeFlight('f1', 'N123', '2026-10-01', [{ duration: 60 }], 'confirmed', '', { flightLog: { signature: 'signed' } }),
+      makeFlight('f2', 'N123', '2026-10-02', [{ duration: 60 }], 'on hold', '', { flightLog: { signature: 'signed' } }),
+    ];
+    const result = computeAircraftUsage(flights, [ac1]);
+    expect(result.aircraft[0].missionCount).toBe(2);
+    expect(result.aircraft[0].totalHours).toBe(2);
+  });
+
+  it('ignores empty signature values', () => {
+    const flights: Flight[] = [
+      makeFlight('f1', 'N123', '2026-10-01', [{ duration: 60 }], 'completed', '', { flightLog: { signature: '' } }),
+      makeFlight('f2', 'N123', '2026-10-02', [{ duration: 60 }], 'completed', '', { flightLog: { signature: null } }),
+    ];
+    const result = computeAircraftUsage(flights, [ac1]);
+    expect(result.aircraft[0].missionCount).toBe(0);
   });
 
   it('includes all flights when completedOnly is false', () => {
@@ -171,7 +191,7 @@ describe('computeAircraftUsage', () => {
     expect(result.aircraft[0].totalHours).toBe(3);
   });
 
-  it('treats signed flights as completed', () => {
+  it('counts signed flights and excludes unsigned ones', () => {
     const flights: Flight[] = [
       makeFlight('f1', 'N123', '2026-11-01', [{ duration: 60 }], 'confirmed', '', { flightLog: { signature: 'signed' } }),
       makeFlight('f2', 'N123', '2026-11-02', [{ duration: 60 }], 'confirmed'),
@@ -184,10 +204,10 @@ describe('computeAircraftUsage', () => {
   it('aggregates fuel gallons from flight log', () => {
     const flights: Flight[] = [
       makeFlight('f1', 'N123', '2026-12-01', [{ duration: 60 }], 'completed', '', {
-        flightLog: { legsActuals: [{ fuelPurchased: 50 }, { fuelPurchased: 30 }] }
+        flightLog: { signature: 'signed', legsActuals: [{ fuelPurchased: 50 }, { fuelPurchased: 30 }] }
       }),
       makeFlight('f2', 'N123', '2026-12-02', [{ duration: 60 }], 'completed', '', {
-        flightLog: { legsActuals: [{ fuelPurchased: 45 }] }
+        flightLog: { signature: 'signed', legsActuals: [{ fuelPurchased: 45 }] }
       }),
     ];
     const result = computeAircraftUsage(flights, [ac1]);
@@ -197,9 +217,9 @@ describe('computeAircraftUsage', () => {
 
   it('breaks down by account', () => {
     const flights: Flight[] = [
-      makeFlight('f1', 'N123', '2026-12-01', [{ duration: 60 }], 'completed', '', { accountId: 'dept-a' }),
-      makeFlight('f2', 'N123', '2026-12-02', [{ duration: 60 }], 'completed', '', { accountId: 'dept-b' }),
-      makeFlight('f3', 'N123', '2026-12-03', [{ duration: 60 }], 'completed', '', { accountId: 'dept-a' }),
+      makeFlight('f1', 'N123', '2026-12-01', [{ duration: 60 }], 'completed', '', { accountId: 'dept-a', flightLog: { signature: 'signed' } }),
+      makeFlight('f2', 'N123', '2026-12-02', [{ duration: 60 }], 'completed', '', { accountId: 'dept-b', flightLog: { signature: 'signed' } }),
+      makeFlight('f3', 'N123', '2026-12-03', [{ duration: 60 }], 'completed', '', { accountId: 'dept-a', flightLog: { signature: 'signed' } }),
     ];
     const result = computeAircraftUsage(flights, [ac1]);
     expect(result.fleet.byAccount['dept-a']?.hours).toBe(2);
@@ -211,10 +231,10 @@ describe('computeAircraftUsage', () => {
   it('breaks down by tag with fuel', () => {
     const flights: Flight[] = [
       makeFlight('f1', 'N123', '2026-12-01', [{ duration: 60 }], 'completed', 'emergency', {
-        flightLog: { legsActuals: [{ fuelPurchased: 100 }] }
+        flightLog: { signature: 'signed', legsActuals: [{ fuelPurchased: 100 }] }
       }),
       makeFlight('f2', 'N123', '2026-12-02', [{ duration: 60 }], 'completed', 'training', {
-        flightLog: { legsActuals: [{ fuelPurchased: 50 }] }
+        flightLog: { signature: 'signed', legsActuals: [{ fuelPurchased: 50 }] }
       }),
     ];
     const result = computeAircraftUsage(flights, [ac1]);

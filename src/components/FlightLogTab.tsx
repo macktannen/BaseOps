@@ -1,11 +1,65 @@
 import { useState, useEffect } from 'react';
 import { Lock, Unlock, PenTool, Trash2, ChevronDown, ChevronUp, History } from 'lucide-react';
 import { authService } from '../services/authService';
+import type { SessionUser } from '../services/authService';
 import useIsMobile from '../hooks/useIsMobile';
 import MobileDropdownMenu from './MobileDropdownMenu';
 import { useData } from '../contexts/DataProvider';
+import type { FlightLog as DomainFlightLog, FlightLeg, Aircraft, Pilot } from '../types';
 
-const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign, onClearSignature, onToggleLock, aircraftId, aircraftList, pilotsList }) => {
+interface LegActual {
+  flightHrs?: string | number;
+  blockHrs?: string | number;
+  hobbs?: string | number;
+  engineCycles?: string | number;
+  engine1Cycles?: string | number;
+  engine2Cycles?: string | number;
+  engine1Hrs?: string | number;
+  engine2Hrs?: string | number;
+  landings?: string | number;
+  landingType?: string;
+  fuelPurchased?: string | number;
+}
+
+export interface FlightLogAircraftTotals {
+  flightBefore?: number | string;
+  hobbsBefore?: number | string;
+  landingsBefore?: number | string;
+  engine1Before?: number | string;
+  engine2Before?: number | string;
+  cycles1Before?: number | string;
+  cycles2Before?: number | string;
+  changeFlight?: number;
+  changeHobbs?: number;
+  changeLandings?: number;
+  changeEngine1Hours?: number;
+  changeEngine2Hours?: number;
+  changeEngine1Cycles?: number;
+  changeEngine2Cycles?: number;
+  dualEngine?: boolean;
+}
+
+interface FlightLog extends DomainFlightLog {
+  legsActuals?: LegActual[];
+  aircraftTotals?: FlightLogAircraftTotals;
+}
+
+interface FlightLogTabProps {
+  legs: FlightLeg[];
+  flightLog?: unknown;
+  setFlightLog?: (log: FlightLog) => void;
+  persistFlightLog?: (log: FlightLog) => void;
+  onSign?: (log: FlightLog, totals: FlightLogAircraftTotals) => void;
+  onClearSignature?: () => void;
+  onToggleLock?: (locked: boolean) => void;
+  aircraftId?: string;
+  aircraftList?: Aircraft[];
+  pilotsList?: Pilot[];
+  authoritativeBaseline?: FlightLogAircraftTotals | null;
+  refreshAircraft?: () => Promise<Aircraft[] | null>;
+}
+
+const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign, onClearSignature, onToggleLock, aircraftId, aircraftList, pilotsList, authoritativeBaseline, refreshAircraft }: FlightLogTabProps) => {
   const isMobile = useIsMobile();
   const [auditExpanded, setAuditExpanded] = useState(false);
   const { userAircraft } = useData();
@@ -14,31 +68,31 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
     flightHrs: '', blockHrs: '', hobbs: '', engineCycles: '', engine1Cycles: '', engine2Cycles: '', engine1Hrs: '', engine2Hrs: '', landings: '', landingType: '', fuelPurchased: ''
   }));
 
-  const log = flightLog && typeof flightLog === 'object' ? flightLog : {};
+  const log = flightLog && typeof flightLog === 'object' ? (flightLog as FlightLog) : {};
   const legsActuals = (log.legsActuals && log.legsActuals.length > 0) ? log.legsActuals : defaultLegsActuals;
 
-  const currentUser = authService.getCurrentUser() || { name: 'Admin', role: 'admin' };
+  const currentUser: SessionUser = authService.getCurrentUser() || { id: 'admin', uid: 'admin', name: 'Admin', email: '', roles: ['admin'], role: 'admin', viewOwnFlightsOnly: false };
   const isAdmin = currentUser?.role === 'admin';
   const firstLegPilots = legs[0]?.pilots && legs[0]?.pilots.length > 0
     ? legs[0].pilots
     : (legs[0]?.pilotId ? [legs[0].pilotId] : []);
   
-  const assignedPilotNames = firstLegPilots.map(pId => {
+  const assignedPilotNames = firstLegPilots.map((pId: string) => {
     const p = pilotsList?.find(item => item.id === pId || item.name === pId);
     return p ? p.name : pId;
   });
 
   const canSign = isAdmin || assignedPilotNames.some(name => name === currentUser?.name || name === currentUser?.id);
   const isEditable = !log.isLocked;
-  const [aircraft, setAircraft] = useState(null);
+  const [aircraft, setAircraft] = useState<Aircraft | null>(null);
 
   // Sync directly to parent and persistent storage
-  const updateLog = (updater) => {
-    const current = {
+  const updateLog = (updater: FlightLog | ((current: FlightLog) => FlightLog)) => {
+    const current: FlightLog = {
       legsActuals,
       signature: log.signature || null,
       isLocked: log.isLocked || false,
-      aircraftTotals: log.aircraftTotals || null,
+      aircraftTotals: log.aircraftTotals || undefined,
       auditLog: log.auditLog || [],
       ...log
     };
@@ -58,9 +112,24 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
     }
   }, [aircraftId, aircraftList, userAircraft]);
 
+  useEffect(() => {
+    if (!refreshAircraft || !aircraftId) return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const fresh = await refreshAircraft();
+        if (cancelled || !Array.isArray(fresh)) return;
+        const ac = fresh.find(a => a.id === aircraftId);
+        if (ac) setAircraft(ac);
+      } catch (err) { console.error(err); }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [aircraftId, refreshAircraft]);
+
   const isTwin = aircraft?.dualEngine || log.aircraftTotals?.dualEngine || false;
 
-  const handleUpdateLeg = (index, field, value) => {
+  const handleUpdateLeg = (index: number, field: keyof LegActual, value: string) => {
     const newLegs = [...legsActuals];
     if (!newLegs[index]) {
        newLegs[index] = { flightHrs: '', blockHrs: '', hobbs: '', engineCycles: '', engine1Cycles: '', engine2Cycles: '', engine1Hrs: '', engine2Hrs: '', landings: '', landingType: '', fuelPurchased: '' };
@@ -76,30 +145,30 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
     let fuelPurchasedTotal = 0;
 
     legsActuals.forEach((l, idx) => {
-      const fHrs = parseFloat(l.flightHrs || 0);
+      const fHrs = parseFloat(String(l.flightHrs || 0));
       flight += fHrs;
-      block += parseFloat(l.blockHrs || 0);
-      hobbs += parseFloat(l.hobbs || 0);
-      lndgs += parseInt(l.landings || 0);
-      fuelPurchasedTotal += parseFloat(l.fuelPurchased || 0);
+      block += parseFloat(String(l.blockHrs || 0));
+      hobbs += parseFloat(String(l.hobbs || 0));
+      lndgs += parseInt(String(l.landings || 0), 10);
+      fuelPurchasedTotal += parseFloat(String(l.fuelPurchased || 0));
 
       // Auto-calculate PAX from passengers input on the flight plan page
       const legObj = legs[idx];
-      const legPaxCount = Array.isArray(legObj?.passengers) 
-        ? legObj.passengers.length 
-        : (parseInt(legObj?.passengers || legObj?.pax || 0) || 0);
+      const legPaxCount = Array.isArray(legObj?.passengers)
+        ? legObj.passengers.length
+        : (parseInt(String(legObj?.passengers || legObj?.pax || 0), 10) || 0);
       pax += legPaxCount;
 
       // Engine 1
-      const c1 = parseInt(l.engine1Cycles !== undefined && l.engine1Cycles !== '' ? l.engine1Cycles : (l.engineCycles || 0));
+      const c1 = parseInt(String(l.engine1Cycles !== undefined && l.engine1Cycles !== '' ? l.engine1Cycles : (l.engineCycles || 0)), 10);
       cycles1 += c1;
-      const e1h = l.engine1Hrs !== undefined && l.engine1Hrs !== '' ? parseFloat(l.engine1Hrs) : fHrs;
+      const e1h = l.engine1Hrs !== undefined && l.engine1Hrs !== '' ? parseFloat(String(l.engine1Hrs)) : fHrs;
       eng1HrsTotal += e1h;
 
       // Engine 2
-      const c2 = parseInt(l.engine2Cycles || 0);
+      const c2 = parseInt(String(l.engine2Cycles || 0), 10);
       cycles2 += c2;
-      const e2h = l.engine2Hrs !== undefined && l.engine2Hrs !== '' ? parseFloat(l.engine2Hrs) : fHrs;
+      const e2h = l.engine2Hrs !== undefined && l.engine2Hrs !== '' ? parseFloat(String(l.engine2Hrs)) : fHrs;
       eng2HrsTotal += e2h;
     });
 
@@ -128,61 +197,71 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
   const changeEngine1Hours = parseFloat(totals.eng1HrsTotal) || 0;
   const changeEngine2Hours = parseFloat(totals.eng2HrsTotal) || 0;
 
-  // Baseline meters before this flight (Self-healing: uses snapshot, or dynamically infers if signed)
   const isCurrentlySigned = !!(log.signature);
 
-  const flightBefore = log.aircraftTotals?.flightBefore !== undefined
-    ? parseFloat(log.aircraftTotals.flightBefore)
-    : (isCurrentlySigned
-        ? Math.max(0, parseFloat(aircraft?.totalHours || 0) - changeFlight)
-        : parseFloat(aircraft?.totalHours || 0));
+  const toNum = (val: unknown): number => {
+    const parsed = parseFloat(String(val ?? ''));
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
 
-  const landingsBefore = log.aircraftTotals?.landingsBefore !== undefined
-    ? parseInt(log.aircraftTotals.landingsBefore)
-    : (isCurrentlySigned
-        ? Math.max(0, parseInt(aircraft?.landings || 0) - changeLandings)
-        : parseInt(aircraft?.landings || 0));
+  const toInt = (val: unknown): number => {
+    const parsed = parseInt(String(val ?? ''), 10);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
 
-  const hobbsBefore = log.aircraftTotals?.hobbsBefore !== undefined
-    ? parseFloat(log.aircraftTotals.hobbsBefore)
-    : (isCurrentlySigned
-        ? Math.max(0, parseFloat(aircraft?.hobbs || 0) - changeHobbs)
-        : parseFloat(aircraft?.hobbs || 0));
+  const resolveBaselines = (ac: Aircraft | null) => {
+    const snapshot = log.aircraftTotals;
+    const authored = authoritativeBaseline;
 
-  const engine1Before = log.aircraftTotals?.engine1Before !== undefined
-    ? parseFloat(log.aircraftTotals.engine1Before)
-    : (isCurrentlySigned
-        ? Math.max(0, parseFloat(aircraft?.engine1Hours || aircraft?.engineHours || aircraft?.totalHours || 0) - changeEngine1Hours)
-        : parseFloat(aircraft?.engine1Hours || aircraft?.engineHours || aircraft?.totalHours || 0));
+    const resolveHours = (snapshotVal: number | string | undefined, authoredVal: number | string | undefined, currentVal: unknown, change: number): number => {
+      if (snapshotVal !== undefined) return toNum(snapshotVal);
+      const source = authoredVal !== undefined ? toNum(authoredVal) : toNum(currentVal);
+      return isCurrentlySigned ? Math.max(0, source - change) : source;
+    };
 
-  const cycles1Before = log.aircraftTotals?.cycles1Before !== undefined
-    ? parseInt(log.aircraftTotals.cycles1Before)
-    : (isCurrentlySigned
-        ? Math.max(0, parseInt(aircraft?.engine1Cycles || aircraft?.engineCycles || 0) - changeEngine1Cycles)
-        : parseInt(aircraft?.engine1Cycles || aircraft?.engineCycles || 0));
+    const resolveCount = (snapshotVal: number | string | undefined, authoredVal: number | string | undefined, currentVal: unknown, change: number): number => {
+      if (snapshotVal !== undefined) return toInt(snapshotVal);
+      const source = authoredVal !== undefined ? toInt(authoredVal) : toInt(currentVal);
+      return isCurrentlySigned ? Math.max(0, source - change) : source;
+    };
 
-  const engine2Before = log.aircraftTotals?.engine2Before !== undefined
-    ? parseFloat(log.aircraftTotals.engine2Before)
-    : (isCurrentlySigned
-        ? Math.max(0, parseFloat(aircraft?.engine2Hours || 0) - changeEngine2Hours)
-        : parseFloat(aircraft?.engine2Hours || 0));
+    return {
+      flightBefore: resolveHours(snapshot?.flightBefore, authored?.flightBefore, ac?.totalHours || 0, changeFlight),
+      landingsBefore: resolveCount(snapshot?.landingsBefore, authored?.landingsBefore, ac?.landings || 0, changeLandings),
+      hobbsBefore: resolveHours(snapshot?.hobbsBefore, authored?.hobbsBefore, ac?.hobbs || 0, changeHobbs),
+      engine1Before: resolveHours(snapshot?.engine1Before, authored?.engine1Before, ac?.engine1Hours || ac?.engineHours || ac?.totalHours || 0, changeEngine1Hours),
+      cycles1Before: resolveCount(snapshot?.cycles1Before, authored?.cycles1Before, ac?.engine1Cycles || ac?.engineCycles || 0, changeEngine1Cycles),
+      engine2Before: resolveHours(snapshot?.engine2Before, authored?.engine2Before, ac?.engine2Hours || 0, changeEngine2Hours),
+      cycles2Before: resolveCount(snapshot?.cycles2Before, authored?.cycles2Before, ac?.engine2Cycles || 0, changeEngine2Cycles)
+    };
+  };
 
-  const cycles2Before = log.aircraftTotals?.cycles2Before !== undefined
-    ? parseInt(log.aircraftTotals.cycles2Before)
-    : (isCurrentlySigned
-        ? Math.max(0, parseInt(aircraft?.engine2Cycles || 0) - changeEngine2Cycles)
-        : parseInt(aircraft?.engine2Cycles || 0));
+  const baselines = resolveBaselines(aircraft);
+  const { flightBefore, landingsBefore, hobbsBefore, engine1Before, cycles1Before, engine2Before, cycles2Before } = baselines;
 
 
-  const handleSign = () => {
-    const snapshottedTotals = {
-      flightBefore: parseFloat(flightBefore || 0),
-      hobbsBefore: parseFloat(hobbsBefore || 0),
-      landingsBefore: parseInt(landingsBefore || 0),
-      engine1Before: parseFloat(engine1Before || 0),
-      engine2Before: parseFloat(engine2Before || 0),
-      cycles1Before: parseInt(cycles1Before || 0),
-      cycles2Before: parseInt(cycles2Before || 0),
+  const handleSign = async () => {
+    let baselineSource = aircraft;
+    if (refreshAircraft && aircraftId) {
+      try {
+        const fresh = await refreshAircraft();
+        const ac = Array.isArray(fresh) ? fresh.find(a => a.id === aircraftId) : undefined;
+        if (ac) {
+          setAircraft(ac);
+          baselineSource = ac;
+        }
+      } catch (err) { console.error(err); }
+    }
+
+    const freshBaselines = resolveBaselines(baselineSource);
+    const snapshottedTotals: FlightLogAircraftTotals = {
+      flightBefore: freshBaselines.flightBefore,
+      hobbsBefore: freshBaselines.hobbsBefore,
+      landingsBefore: freshBaselines.landingsBefore,
+      engine1Before: freshBaselines.engine1Before,
+      engine2Before: freshBaselines.engine2Before,
+      cycles1Before: freshBaselines.cycles1Before,
+      cycles2Before: freshBaselines.cycles2Before,
       changeFlight,
       changeHobbs,
       changeLandings,
@@ -196,6 +275,13 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
     if (onSign) {
       onSign(log, snapshottedTotals);
     }
+  };
+
+  const handleClearSignatureClick = async () => {
+    if (refreshAircraft) {
+      try { await refreshAircraft(); } catch (err) { console.error(err); }
+    }
+    if (onClearSignature) onClearSignature();
   };
 
   // handleClearSignature is now handled entirely by the parent (EventModal)
@@ -222,7 +308,7 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
     }
   };
 
-  const handleDeleteAuditEntry = (originalIndex) => {
+  const handleDeleteAuditEntry = (originalIndex: number) => {
     const updatedAudit = (log.auditLog || []).filter((_, idx) => idx !== originalIndex);
     const nextLog = {
       ...log,
@@ -234,10 +320,11 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
     }
   };
 
-  const formatLoc = (loc) => {
-    if (!loc) return '';
-    if (loc.type === 'airport') return loc.id;
-    return loc.id || 'Custom';
+  const formatLoc = (loc: unknown) => {
+    if (!loc || typeof loc !== 'object') return '';
+    const typed = loc as { type?: string; id?: string };
+    if (typed.type === 'airport') return typed.id;
+    return typed.id || 'Custom';
   };
 
 
@@ -250,11 +337,11 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
           <thead>
             <tr>
               <th style={{ borderRight: '1px solid #e2e8f0', padding: '2px 4px' }}></th>
-              <th colSpan="3" style={{ textAlign: 'center', borderRight: '1px solid #e2e8f0', padding: '2px 4px', backgroundColor: '#e2e8f0' }}>Utilization</th>
+              <th colSpan={3} style={{ textAlign: 'center', borderRight: '1px solid #e2e8f0', padding: '2px 4px', backgroundColor: '#e2e8f0' }}>Utilization</th>
               <th colSpan={isTwin ? 4 : 2} style={{ textAlign: 'center', borderRight: '1px solid #e2e8f0', padding: '2px 4px', backgroundColor: '#edf2f7' }}>
                 {isTwin ? 'Twin Engine Meters & Cycles' : 'Engine Cycles & Landings'}
               </th>
-              <th colSpan="3" style={{ textAlign: 'center', padding: '2px 4px', backgroundColor: '#e2e8f0' }}>Flight Info</th>
+              <th colSpan={3} style={{ textAlign: 'center', padding: '2px 4px', backgroundColor: '#e2e8f0' }}>Flight Info</th>
             </tr>
             <tr style={{ backgroundColor: '#f7fafc' }}>
               <th style={{ minWidth: '90px', padding: '2px 4px', borderRight: '1px solid #e2e8f0' }}>MSN #</th>
@@ -284,38 +371,38 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
                return (
                  <tr key={index}>
                    <td style={{ fontWeight: 'bold', padding: '2px 4px', borderRight: '1px solid #e2e8f0' }}>{formatLoc(leg.departure)} &rarr; {formatLoc(leg.destination)}</td>
-                   <td style={{ padding: '2px 4px' }}><input type="number" step="0.1" value={act.flightHrs} disabled={!isEditable} onChange={e => handleUpdateLeg(index, 'flightHrs', e.target.value)} style={{ width: '45px', padding: '1px 2px', fontSize: '0.7rem' }} /></td>
-                   <td style={{ padding: '2px 4px' }}><input type="number" step="0.1" value={act.blockHrs} disabled={!isEditable} onChange={e => handleUpdateLeg(index, 'blockHrs', e.target.value)} style={{ width: '45px', padding: '1px 2px', fontSize: '0.7rem' }} /></td>
-                   <td style={{ borderRight: '1px solid #e2e8f0', padding: '2px 4px' }}><input type="number" step="0.1" value={act.hobbs} disabled={!isEditable} onChange={e => handleUpdateLeg(index, 'hobbs', e.target.value)} style={{ width: '45px', padding: '1px 2px', fontSize: '0.7rem' }} /></td>
+                    <td style={{ padding: '2px 4px' }}><input type="number" step="0.1" value={String(act.flightHrs || '')} disabled={!isEditable} onChange={e => handleUpdateLeg(index, 'flightHrs', e.target.value)} style={{ width: '45px', padding: '1px 2px', fontSize: '0.7rem' }} /></td>
+                    <td style={{ padding: '2px 4px' }}><input type="number" step="0.1" value={String(act.blockHrs || '')} disabled={!isEditable} onChange={e => handleUpdateLeg(index, 'blockHrs', e.target.value)} style={{ width: '45px', padding: '1px 2px', fontSize: '0.7rem' }} /></td>
+                    <td style={{ borderRight: '1px solid #e2e8f0', padding: '2px 4px' }}><input type="number" step="0.1" value={String(act.hobbs || '')} disabled={!isEditable} onChange={e => handleUpdateLeg(index, 'hobbs', e.target.value)} style={{ width: '45px', padding: '1px 2px', fontSize: '0.7rem' }} /></td>
 
                    {isTwin ? (
                      <>
                        <td style={{ padding: '2px 4px' }}>
-                         <input type="number" step="0.1" value={act.engine1Hrs !== undefined ? act.engine1Hrs : ''} placeholder={act.flightHrs || '0.0'} disabled={!isEditable} onChange={e => handleUpdateLeg(index, 'engine1Hrs', e.target.value)} style={{ width: '45px', padding: '1px 2px', fontSize: '0.7rem' }} />
+                          <input type="number" step="0.1" value={act.engine1Hrs !== undefined ? String(act.engine1Hrs) : ''} placeholder={String(act.flightHrs || '0.0')} disabled={!isEditable} onChange={e => handleUpdateLeg(index, 'engine1Hrs', e.target.value)} style={{ width: '45px', padding: '1px 2px', fontSize: '0.7rem' }} />
                        </td>
                        <td style={{ padding: '2px 4px' }}>
-                         <input type="number" step="0.1" value={act.engine2Hrs !== undefined ? act.engine2Hrs : ''} placeholder={act.flightHrs || '0.0'} disabled={!isEditable} onChange={e => handleUpdateLeg(index, 'engine2Hrs', e.target.value)} style={{ width: '45px', padding: '1px 2px', fontSize: '0.7rem' }} />
+                          <input type="number" step="0.1" value={act.engine2Hrs !== undefined ? String(act.engine2Hrs) : ''} placeholder={String(act.flightHrs || '0.0')} disabled={!isEditable} onChange={e => handleUpdateLeg(index, 'engine2Hrs', e.target.value)} style={{ width: '45px', padding: '1px 2px', fontSize: '0.7rem' }} />
                        </td>
                        <td style={{ padding: '2px 4px' }}>
-                         <input type="number" value={act.engine1Cycles !== undefined ? act.engine1Cycles : (act.engineCycles || '')} disabled={!isEditable} onChange={e => handleUpdateLeg(index, 'engine1Cycles', e.target.value)} style={{ width: '40px', padding: '1px 2px', fontSize: '0.7rem' }} />
+                          <input type="number" value={act.engine1Cycles !== undefined ? String(act.engine1Cycles) : String(act.engineCycles || '')} disabled={!isEditable} onChange={e => handleUpdateLeg(index, 'engine1Cycles', e.target.value)} style={{ width: '40px', padding: '1px 2px', fontSize: '0.7rem' }} />
                        </td>
                        <td style={{ borderRight: '1px solid #e2e8f0', padding: '2px 4px' }}>
-                         <input type="number" value={act.engine2Cycles || ''} disabled={!isEditable} onChange={e => handleUpdateLeg(index, 'engine2Cycles', e.target.value)} style={{ width: '40px', padding: '1px 2px', fontSize: '0.7rem' }} />
+                          <input type="number" value={String(act.engine2Cycles || '')} disabled={!isEditable} onChange={e => handleUpdateLeg(index, 'engine2Cycles', e.target.value)} style={{ width: '40px', padding: '1px 2px', fontSize: '0.7rem' }} />
                        </td>
                      </>
                    ) : (
                      <td style={{ borderRight: '1px solid #e2e8f0', padding: '2px 4px' }}>
-                       <input type="number" value={act.engineCycles !== undefined ? act.engineCycles : (act.engine1Cycles || '')} disabled={!isEditable} onChange={e => handleUpdateLeg(index, 'engineCycles', e.target.value)} style={{ width: '50px', padding: '1px 2px', fontSize: '0.7rem' }} />
+                        <input type="number" value={act.engineCycles !== undefined ? String(act.engineCycles) : String(act.engine1Cycles || '')} disabled={!isEditable} onChange={e => handleUpdateLeg(index, 'engineCycles', e.target.value)} style={{ width: '50px', padding: '1px 2px', fontSize: '0.7rem' }} />
                      </td>
                    )}
 
-                   <td style={{ padding: '2px 4px' }}><input type="number" value={act.landings} disabled={!isEditable} onChange={e => handleUpdateLeg(index, 'landings', e.target.value)} style={{ width: '45px', padding: '1px 2px', fontSize: '0.7rem' }} /></td>
+                    <td style={{ padding: '2px 4px' }}><input type="number" value={String(act.landings || '')} disabled={!isEditable} onChange={e => handleUpdateLeg(index, 'landings', e.target.value)} style={{ width: '45px', padding: '1px 2px', fontSize: '0.7rem' }} /></td>
                     <td style={{ padding: '2px 4px' }}>
                        {isMobile ? (
                          <MobileDropdownMenu
                            value={act.landingType}
                            disabled={!isEditable}
-                           onChange={val => handleUpdateLeg(index, 'landingType', val)}
+                            onChange={val => handleUpdateLeg(index, 'landingType', String(val))}
                            options={[
                              { value: '', label: 'Select...' },
                              { value: 'Day', label: 'Day' },
@@ -335,16 +422,16 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
                        )}
                     </td>
                    <td style={{ padding: '2px 4px', textAlign: 'center' }}>
-                     <input 
-                       type="number" 
-                       step="any"
-                       placeholder="0"
-                       value={act.fuelPurchased !== undefined && act.fuelPurchased !== null ? act.fuelPurchased : ''} 
-                       disabled={!isEditable} 
-                       onChange={e => handleUpdateLeg(index, 'fuelPurchased', e.target.value)} 
-                       style={{ width: '55px', padding: '1px 2px', fontSize: '0.7rem', textAlign: 'right' }} 
-                       title="Fuel purchased for this leg in gallons"
-                     />
+                      <input
+                        type="number"
+                        step="any"
+                        placeholder="0"
+                        value={act.fuelPurchased !== undefined && act.fuelPurchased !== null ? String(act.fuelPurchased) : ''}
+                        disabled={!isEditable}
+                        onChange={e => handleUpdateLeg(index, 'fuelPurchased', e.target.value)}
+                        style={{ width: '55px', padding: '1px 2px', fontSize: '0.7rem', textAlign: 'right' }}
+                        title="Fuel purchased for this leg in gallons"
+                      />
                    </td>
                  </tr>
                );
@@ -417,48 +504,48 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
           <tbody>
             <tr>
               <td style={{ fontWeight: 'bold', padding: '2px 4px' }}>Aircraft Hours</td>
-              <td style={{ padding: '2px 4px' }}>{flightBefore}</td>
-              <td style={{ padding: '2px 4px' }}>{(parseFloat(flightBefore) + changeFlight).toFixed(1)}</td>
+              <td style={{ padding: '2px 4px' }}>{flightBefore.toFixed(1)}</td>
+              <td style={{ padding: '2px 4px' }}>{(flightBefore + changeFlight).toFixed(1)}</td>
               <td style={{ textAlign: 'right', color: changeFlight > 0 ? 'green' : 'inherit', padding: '2px 4px' }}>+{changeFlight.toFixed(1)}</td>
             </tr>
             <tr>
               <td style={{ fontWeight: 'bold', padding: '2px 4px' }}>Aircraft Landings</td>
               <td style={{ padding: '2px 4px' }}>{landingsBefore}</td>
-              <td style={{ padding: '2px 4px' }}>{parseInt(landingsBefore) + changeLandings}</td>
+              <td style={{ padding: '2px 4px' }}>{landingsBefore + changeLandings}</td>
               <td style={{ textAlign: 'right', color: changeLandings > 0 ? 'green' : 'inherit', padding: '2px 4px' }}>+{changeLandings}</td>
             </tr>
             <tr>
               <td style={{ fontWeight: 'bold', padding: '2px 4px' }}>{isTwin ? 'Engine 1 Hours' : 'Engine Hours'}</td>
-              <td style={{ padding: '2px 4px' }}>{engine1Before}</td>
-              <td style={{ padding: '2px 4px' }}>{(parseFloat(engine1Before) + changeEngine1Hours).toFixed(1)}</td>
+              <td style={{ padding: '2px 4px' }}>{engine1Before.toFixed(1)}</td>
+              <td style={{ padding: '2px 4px' }}>{(engine1Before + changeEngine1Hours).toFixed(1)}</td>
               <td style={{ textAlign: 'right', color: changeEngine1Hours > 0 ? 'green' : 'inherit', padding: '2px 4px' }}>+{changeEngine1Hours.toFixed(1)}</td>
             </tr>
             <tr>
               <td style={{ fontWeight: 'bold', padding: '2px 4px' }}>{isTwin ? 'Engine 1 Cycles' : 'Engine Cycles'}</td>
               <td style={{ padding: '2px 4px' }}>{cycles1Before}</td>
-              <td style={{ padding: '2px 4px' }}>{parseInt(cycles1Before) + changeEngine1Cycles}</td>
+              <td style={{ padding: '2px 4px' }}>{cycles1Before + changeEngine1Cycles}</td>
               <td style={{ textAlign: 'right', color: changeEngine1Cycles > 0 ? 'green' : 'inherit', padding: '2px 4px' }}>+{changeEngine1Cycles}</td>
             </tr>
             {isTwin && (
               <>
                 <tr>
                   <td style={{ fontWeight: 'bold', padding: '2px 4px' }}>Engine 2 Hours</td>
-                  <td style={{ padding: '2px 4px' }}>{engine2Before}</td>
-                  <td style={{ padding: '2px 4px' }}>{(parseFloat(engine2Before) + changeEngine2Hours).toFixed(1)}</td>
+                  <td style={{ padding: '2px 4px' }}>{engine2Before.toFixed(1)}</td>
+                  <td style={{ padding: '2px 4px' }}>{(engine2Before + changeEngine2Hours).toFixed(1)}</td>
                   <td style={{ textAlign: 'right', color: changeEngine2Hours > 0 ? 'green' : 'inherit', padding: '2px 4px' }}>+{changeEngine2Hours.toFixed(1)}</td>
                 </tr>
                 <tr>
                   <td style={{ fontWeight: 'bold', padding: '2px 4px' }}>Engine 2 Cycles</td>
                   <td style={{ padding: '2px 4px' }}>{cycles2Before}</td>
-                  <td style={{ padding: '2px 4px' }}>{parseInt(cycles2Before) + changeEngine2Cycles}</td>
+                  <td style={{ padding: '2px 4px' }}>{cycles2Before + changeEngine2Cycles}</td>
                   <td style={{ textAlign: 'right', color: changeEngine2Cycles > 0 ? 'green' : 'inherit', padding: '2px 4px' }}>+{changeEngine2Cycles}</td>
                 </tr>
               </>
             )}
             <tr>
               <td style={{ fontWeight: 'bold', padding: '2px 4px' }}>Hobbs Meter</td>
-              <td style={{ padding: '2px 4px' }}>{hobbsBefore}</td>
-              <td style={{ padding: '2px 4px' }}>{(parseFloat(hobbsBefore) + changeHobbs).toFixed(1)}</td>
+              <td style={{ padding: '2px 4px' }}>{hobbsBefore.toFixed(1)}</td>
+              <td style={{ padding: '2px 4px' }}>{(hobbsBefore + changeHobbs).toFixed(1)}</td>
               <td style={{ textAlign: 'right', color: changeHobbs > 0 ? 'green' : 'inherit', padding: '2px 4px' }}>+{changeHobbs.toFixed(1)}</td>
             </tr>
           </tbody>
@@ -497,7 +584,7 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
                   sicIds = legPilots.filter(id => id !== picId);
                 }
 
-                const getPilotDisplayName = (pId) => {
+                const getPilotDisplayName = (pId: string) => {
                   if (!pId) return '';
                   const p = pilotsList?.find(item => item.id === pId || item.name === pId);
                   return p ? p.name : pId;
@@ -505,9 +592,9 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
 
                 const picName = picId ? getPilotDisplayName(picId) : 'Unknown';
                 const sicName = sicIds.map(getPilotDisplayName).join(', ');
-                const legPaxCount = Array.isArray(leg.passengers) 
-                  ? leg.passengers.length 
-                  : (parseInt(leg.passengers || leg.pax || 0) || 0);
+                const legPaxCount = Array.isArray(leg.passengers)
+                  ? leg.passengers.length
+                  : (parseInt(String(leg.passengers || leg.pax || 0), 10) || 0);
 
                 return (
                   <tr key={index}>
@@ -623,7 +710,7 @@ const FlightLogTab = ({ legs, flightLog, setFlightLog, persistFlightLog, onSign,
 
       {/* 5. ACTION BUTTONS */}
       <div style={{ display: 'flex', gap: '8px', marginTop: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <button type="button" className="btn" style={{ backgroundColor: '#e53e3e', color: 'white', fontWeight: 'bold', padding: '4px 8px', fontSize: '0.7rem' }} onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (onClearSignature) onClearSignature(); }} disabled={!log.signature || (!isAdmin && !canSign)}>
+        <button type="button" className="btn" style={{ backgroundColor: '#e53e3e', color: 'white', fontWeight: 'bold', padding: '4px 8px', fontSize: '0.7rem' }} onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleClearSignatureClick(); }} disabled={!log.signature || (!isAdmin && !canSign)}>
            <Trash2 size={12} style={{ marginRight: '4px' }} /> CLEAR SIGNATURE
         </button>
         {log.signature && (() => {

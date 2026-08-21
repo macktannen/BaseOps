@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { X, Trash2, MapPin, Plus, GripVertical, BookOpen, Clock, ChevronLeft, ChevronRight, ChevronDown, Upload, FileText, Download, Paperclip, Eye, Image, File } from 'lucide-react';
 import { getAirportById, airports } from '../data/airportsIndex';
 import tzlookup from 'tz-lookup';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
-import FlightLogTab from './FlightLogTab';
+import FlightLogTab, { type FlightLogAircraftTotals } from './FlightLogTab';
 import ExpensesTab from './ExpensesTab';
 import SaveButton from './SaveButton';
 import ConflictWarningModal from './ConflictWarningModal';
@@ -15,8 +15,25 @@ import { authService } from '../services/authService';
 import useIsMobile from '../hooks/useIsMobile';
 import MobileDropdownMenu from './MobileDropdownMenu';
 import { useData } from '../contexts/DataProvider';
+import { fetchFreshAircraft } from '../services/orgAircraft';
+import { Flight, FlightLeg, FlightLog, FlightUpload, Pilot, Passenger, Aircraft, CustomZone, LocationRef } from '../types';
 
-const getDefaultPilotForDate = (dateStr, schedules, storedPilots) => {
+export interface EventModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (flightData: Flight, shouldClose?: boolean, extraUpdates?: Record<string, unknown>) => Promise<void> | void;
+  onDelete: (flightId: string | number) => void;
+  onDuplicate?: (flight: Flight) => void;
+  onNavigate?: (direction: 'prev' | 'next') => void;
+  hasPrev?: boolean;
+  hasNext?: boolean;
+  initialDate?: Date | string;
+  flight?: Flight;
+  flightsCount?: number;
+  defaultActiveView?: string;
+}
+
+const getDefaultPilotForDate = (dateStr?: string, schedules?: Record<string, string>, storedPilots?: Pilot[]) => {
   if (!dateStr || !schedules) return '';
   const allPilots = storedPilots || [];
 
@@ -30,7 +47,7 @@ const getDefaultPilotForDate = (dateStr, schedules, storedPilots) => {
   return '';
 };
 
-const getDefaultPassengersForDate = (dateStr, schedules, storedPax) => {
+const getDefaultPassengersForDate = (dateStr?: string, schedules?: Record<string, string>, storedPax?: Passenger[]) => {
   if (!dateStr || !schedules || !storedPax) return [];
   
   const onDutyPax = [];
@@ -47,7 +64,14 @@ const getDefaultPassengersForDate = (dateStr, schedules, storedPax) => {
 };
 
 // --- CUSTOM ZONE CREATION MODAL ---
-const CustomZoneModal = ({ isOpen, onClose, onSave, initialSearch }) => {
+interface CustomZoneModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (zone: CustomZone) => void;
+  initialSearch?: string;
+}
+
+const CustomZoneModal = ({ isOpen, onClose, onSave, initialSearch }: CustomZoneModalProps) => {
   const [id, setId] = useState('');
   const [title, setTitle] = useState('');
   const [address, setAddress] = useState('');
@@ -151,7 +175,14 @@ const CustomZoneModal = ({ isOpen, onClose, onSave, initialSearch }) => {
   );
 };
 
-const NewPassengerModal = ({ isOpen, onClose, onSave, passenger }) => {
+interface NewPassengerModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (passengerData: Passenger, originalId?: string | number | null) => void;
+  passenger?: Passenger | null;
+}
+
+const NewPassengerModal = ({ isOpen, onClose, onSave, passenger }: NewPassengerModalProps) => {
   const [name, setName] = useState('');
   const [weight, setWeight] = useState(180);
   const [email, setEmail] = useState('');
@@ -162,7 +193,7 @@ const NewPassengerModal = ({ isOpen, onClose, onSave, passenger }) => {
   useEffect(() => {
     if (passenger) {
       setName(passenger.name || '');
-      setWeight(passenger.weight || 180);
+      setWeight(typeof passenger.weight === 'number' ? passenger.weight : (parseInt(passenger.weight as string, 10) || 180));
       setEmail(passenger.email || '');
       setPhone(passenger.phone || '');
       setCompany(passenger.company || '');
@@ -188,7 +219,7 @@ const NewPassengerModal = ({ isOpen, onClose, onSave, passenger }) => {
     const passengerData = {
       id: isEditing ? passenger.id : trimmedName,
       name: trimmedName,
-      weight: parseInt(weight) || 180,
+      weight: typeof weight === 'number' ? weight : (parseInt(weight as string, 10) || 180),
       email,
       phone,
       company,
@@ -226,7 +257,7 @@ const NewPassengerModal = ({ isOpen, onClose, onSave, passenger }) => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>Weight (lbs)</label>
-              <input type="number" value={weight} onChange={(e) => setWeight(e.target.value)}
+              <input type="number" value={weight} onChange={(e) => setWeight(parseInt(e.target.value, 10) || 0)}
                 style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)' }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
@@ -267,7 +298,14 @@ const NewPassengerModal = ({ isOpen, onClose, onSave, passenger }) => {
 
 
 // --- LOCATION SELECT ---
-const LocationSelect = ({ value, onChange, label, placeholder }) => {
+interface LocationSelectProps {
+  value?: LocationRef | null;
+  onChange: (value: LocationRef) => void;
+  label?: string;
+  placeholder?: string;
+}
+
+const LocationSelect = ({ value, onChange, label, placeholder }: LocationSelectProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [visibleCount, setVisibleCount] = useState(30);
@@ -305,7 +343,9 @@ const LocationSelect = ({ value, onChange, label, placeholder }) => {
     ...airports.map(ap => {
       const override = storedZones.find(s => s.id === ap.id);
       const data = override || ap;
-      return { ...data, isCustom: false, displayName: `${data.id} - ${data.title || data.name}`, searchString: `${data.id} ${data.title || data.name} ${data.address || data.municipality}`.toLowerCase(), usageCount: getUsageCount(data.id) };
+      const dataName = 'title' in data && data.title ? data.title : ('name' in data && data.name ? data.name : data.id);
+      const dataAddress = 'address' in data && data.address ? data.address : ('municipality' in data && data.municipality ? data.municipality : '');
+      return { ...data, isCustom: false, displayName: `${data.id} - ${dataName}`, searchString: `${data.id} ${dataName} ${dataAddress}`.toLowerCase(), usageCount: getUsageCount(data.id) };
     })
   ];
 
@@ -480,7 +520,14 @@ const DURATION_ITEMS = (() => {
   return items;
 })();
 
-const DurationPicker = ({ value, onChange, color, style }) => {
+interface DurationPickerProps {
+  value?: string | number;
+  onChange: (value: string) => void;
+  color?: string;
+  style?: React.CSSProperties;
+}
+
+const DurationPicker = ({ value, onChange, color, style }: DurationPickerProps) => {
   const [open, setOpen] = useState(false);
   const [inputVal, setInputVal] = useState(value || '');
   const listRef = useRef(null);
@@ -509,7 +556,7 @@ const DurationPicker = ({ value, onChange, color, style }) => {
   }, [open]);
 
   const commitInput = () => {
-    const num = parseFloat(inputVal);
+    const num = parseFloat(String(inputVal));
     if (!isNaN(num) && num >= 0) {
       const clamped = Math.min(24, Math.max(0, Math.round(num * 10) / 10));
       onChange(String(clamped.toFixed(1)));
@@ -548,7 +595,7 @@ const DurationPicker = ({ value, onChange, color, style }) => {
           {DURATION_ITEMS.map(item => (
             <div
               key={item.value}
-              onMouseDown={(e) => { e.preventDefault(); onChange(item.value); setOpen(false); }}
+              onMouseDown={(e) => { e.preventDefault(); onChange(String(item.value)); setOpen(false); }}
               style={{
                 padding: '6px 10px', fontSize: '0.85rem', cursor: 'pointer', textAlign: 'center',
                 backgroundColor: String(item.value) === String(currentValue) ? 'var(--primary-light)' : 'transparent',
@@ -566,7 +613,20 @@ const DurationPicker = ({ value, onChange, color, style }) => {
   );
 };
 
-const MobileScrollPicker = ({ value, items, onChange, color, style }) => {
+interface ScrollItem {
+  value: string | number;
+  label: string;
+}
+
+interface MobileScrollPickerProps {
+  value?: string | number;
+  items: ScrollItem[];
+  onChange: (value: string) => void;
+  color?: string;
+  style?: React.CSSProperties;
+}
+
+const MobileScrollPicker = ({ value, items, onChange, color, style }: MobileScrollPickerProps) => {
   const [open, setOpen] = useState(false);
   const listRef = useRef(null);
   const wrapRef = useRef(null);
@@ -602,7 +662,7 @@ const MobileScrollPicker = ({ value, items, onChange, color, style }) => {
         {items.map(item => (
           <div
             key={item.value}
-            onMouseDown={(e) => { e.preventDefault(); onChange(item.value); setOpen(false); }}
+            onMouseDown={(e) => { e.preventDefault(); onChange(String(item.value)); setOpen(false); }}
             style={{
               padding: '7px 12px', fontSize: '0.85rem', cursor: 'pointer', textAlign: 'center',
               backgroundColor: String(item.value) === String(value) ? 'var(--primary-light)' : 'transparent',
@@ -620,7 +680,7 @@ const MobileScrollPicker = ({ value, items, onChange, color, style }) => {
 };
 
 
-const normalizeStatus = (s) => {
+const normalizeStatus = (s?: string | number | null): string => {
   if (!s) return 'confirmed';
   const lower = String(s).toLowerCase().trim();
   if (lower === 'completed') return 'completed';
@@ -632,7 +692,7 @@ const normalizeStatus = (s) => {
 };
 
 // --- EVENT MODAL ---
-const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate, hasPrev, hasNext, initialDate, flight, flightsCount, defaultActiveView = 'Plan' }) => {
+const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate, hasPrev, hasNext, initialDate, flight, flightsCount, defaultActiveView = 'Plan' }: EventModalProps) => {
   const isMobile = useIsMobile();
   const [isSaved, setIsSaved] = useState(false);
   const [headerCollapsed, setHeaderCollapsed] = useState(false);
@@ -667,7 +727,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   
   const [activeView, setActiveView] = useState(defaultActiveView || 'Plan'); // 'Plan' or 'Log' or 'Expenses'
   const prevFlightIdRef = useRef(flight?.id ? String(flight.id) : (flight ? String(flight.flightNumber || 'new') : 'new'));
-  const [flightLog, setFlightLog] = useState(() => flight?.flightLog || {});
+  const [flightLog, setFlightLog] = useState<FlightLog>(() => flight?.flightLog || {});
   const suppressSyncRef = useRef(false); // Guard against sync overwrites during active unsign
   const hasInitialSyncedRef = useRef(false); // Skip banner on first sync
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -678,13 +738,14 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const [showNewPassengerModal, setShowNewPassengerModal] = useState(false);
   const [newPassengerLegIndex, setNewPassengerLegIndex] = useState(null);
   const [editingPassenger, setEditingPassenger] = useState(null);
-  const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; message: string; danger?: boolean; onConfirm: (() => void) | null }>({ open: false, title: '', message: '', danger: false, onConfirm: null });
   const [alertDialog, setAlertDialog] = useState({ open: false, title: '', message: '' });
 
-  const { userPilots, userAircraft, userPassengers, userAccounts, userVendors, userFlights, userCustomZones, crewSchedules, locationUsage, updateData, saveFlight } = useData();
+  const { userPilots, userAircraft, userPassengers, userAccounts, userVendors, userFlights, userCustomZones, crewSchedules, locationUsage, updateData, saveFlight, saveFlightWithAircraftTransaction } = useData();
 
   const pilotsList = useMemo(() => userPilots || [], [userPilots]);
   const aircraftList = useMemo(() => userAircraft || [], [userAircraft]);
+
   const passengersList = useMemo(() => userPassengers || [], [userPassengers]);
   const accountsList = useMemo(() => userAccounts || [], [userAccounts]);
   const vendorsList = useMemo(() => userVendors || [], [userVendors]);
@@ -710,16 +771,39 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     });
   }, [passengersList, userFlights]);
 
-  const [legs, setLegs] = useState([
-    { departure: null, destination: null, takeoffTime: '08:00', landTime: '09:00', duration: 60, passengers: [], pilotId: getDefaultPilotForDate(initialDateStr, crewSchedules, pilotsList), date: initialDateStr }
+  const [legs, setLegs] = useState<FlightLeg[]>([
+    { departure: null, destination: null, takeoffTime: '08:00', landTime: '09:00', duration: 60, passengers: [], pilots: [], pilotId: getDefaultPilotForDate(initialDateStr, crewSchedules, pilotsList), date: initialDateStr, arrDate: initialDateStr }
   ]);
 
   const [aircraftId, setAircraftId] = useState('');
   const [showUploads, setShowUploads] = useState(false);
-  const [uploads, setUploads] = useState(flight?.uploads || []);
+  const [uploads, setUploads] = useState<FlightUpload[]>(flight?.uploads || []);
   const [uploading, setUploading] = useState(false);
   const [viewerFile, setViewerFile] = useState(null);
   const fileInputRef = useRef(null);
+
+  const refreshAircraft = useCallback(async () => {
+    try {
+      return await fetchFreshAircraft();
+    } catch (err) {
+      console.error('Failed to refresh aircraft from Firestore:', err);
+      return null;
+    }
+  }, []);
+
+  const authoritativeBaseline = useMemo<Partial<FlightLogAircraftTotals>>(() => {
+    const ac = (userAircraft || []).find(a => a.id === aircraftId);
+    if (!ac) return {};
+    return {
+      flightBefore: ac.totalHours,
+      landingsBefore: ac.landings,
+      hobbsBefore: ac.hobbs,
+      engine1Before: ac.engine1Hours ?? ac.engineHours ?? ac.totalHours,
+      engine2Before: ac.engine2Hours,
+      cycles1Before: ac.engine1Cycles ?? ac.engineCycles,
+      cycles2Before: ac.engine2Cycles
+    };
+  }, [userAircraft, aircraftId]);
 
   const VIEWABLE_TYPES = {
     'image/png': true, 'image/jpeg': true, 'image/jpg': true, 'image/gif': true,
@@ -811,7 +895,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
   const isFlightSigned = !!(flightLog?.signature);
 
   // ── ATOMIC SIGN FLIGHT LOG ──
-  const handleSignFlight = (logData, snapshottedTotals) => {
+  const handleSignFlight = async (logData: FlightLog, snapshottedTotals: Record<string, unknown>) => {
     if (!aircraftId) return;
 
     // STEP 1: Block remote sync overwrites during sign
@@ -823,27 +907,27 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       const storedAircraft = [...(userAircraft || [])];
       const acIndex = storedAircraft.findIndex(a => a.id === aircraftId);
       if (acIndex >= 0) {
-        const ac = { ...storedAircraft[acIndex] };
+        const ac = { ...storedAircraft[acIndex] } as Record<string, any>;
         const isTwin = ac.dualEngine || snapshottedTotals.dualEngine;
 
-        ac.totalHours = (Math.round((parseFloat(snapshottedTotals.flightBefore || 0) + snapshottedTotals.changeFlight) * 10) / 10).toFixed(1);
-        ac.landings = parseInt(snapshottedTotals.landingsBefore || 0) + snapshottedTotals.changeLandings;
-        ac.hobbs = (Math.round((parseFloat(snapshottedTotals.hobbsBefore || 0) + snapshottedTotals.changeHobbs) * 10) / 10).toFixed(1);
+        ac.totalHours = (Math.round((Number(snapshottedTotals.flightBefore || 0) + Number(snapshottedTotals.changeFlight || 0)) * 10) / 10).toFixed(1);
+        ac.landings = parseInt(String(snapshottedTotals.landingsBefore || 0), 10) + Math.round(Number(snapshottedTotals.changeLandings || 0));
+        ac.hobbs = (Math.round((Number(snapshottedTotals.hobbsBefore || 0) + Number(snapshottedTotals.changeHobbs || 0)) * 10) / 10).toFixed(1);
 
-        ac.engine1Hours = (Math.round((parseFloat(snapshottedTotals.engine1Before || 0) + snapshottedTotals.changeEngine1Hours) * 10) / 10).toFixed(1);
+        ac.engine1Hours = (Math.round((Number(snapshottedTotals.engine1Before || 0) + Number(snapshottedTotals.changeEngine1Hours || 0)) * 10) / 10).toFixed(1);
         ac.engineHours = ac.engine1Hours;
-        ac.engine1Cycles = parseInt(snapshottedTotals.cycles1Before || 0) + snapshottedTotals.changeEngine1Cycles;
+        ac.engine1Cycles = parseInt(String(snapshottedTotals.cycles1Before || 0), 10) + Math.round(Number(snapshottedTotals.changeEngine1Cycles || 0));
         ac.engineCycles = ac.engine1Cycles;
 
         if (isTwin) {
-          ac.engine2Hours = (Math.round((parseFloat(snapshottedTotals.engine2Before || 0) + snapshottedTotals.changeEngine2Hours) * 10) / 10).toFixed(1);
-          ac.engine2Cycles = parseInt(snapshottedTotals.cycles2Before || 0) + snapshottedTotals.changeEngine2Cycles;
+          ac.engine2Hours = (Math.round((Number(snapshottedTotals.engine2Before || 0) + Number(snapshottedTotals.changeEngine2Hours || 0)) * 10) / 10).toFixed(1);
+          ac.engine2Cycles = parseInt(String(snapshottedTotals.cycles2Before || 0), 10) + Math.round(Number(snapshottedTotals.changeEngine2Cycles || 0));
         }
 
         if (!ac.auditLog) ac.auditLog = [];
         ac.auditLog.push(`Signed flight #${flightNumber || ''} by ${currentUser?.name || 'Pilot'} on ${new Date().toLocaleString()}: +${snapshottedTotals.changeFlight}h`);
-        
-        storedAircraft[acIndex] = ac;
+
+        storedAircraft[acIndex] = ac as Aircraft;
         pendingAircraftUpdate = storedAircraft;
       }
     } catch (err) {
@@ -871,14 +955,13 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     setStatus('completed');
 
     // STEP 5: Persist flight + aircraft in single batched write
-    performSave(signedLog, 'completed', false, pendingAircraftUpdate ? { userAircraft: pendingAircraftUpdate } : null);
+    await performSave(signedLog, 'completed', false, pendingAircraftUpdate ? { userAircraft: pendingAircraftUpdate } : null);
 
-    // STEP 6: Release sync guard
-    setTimeout(() => { suppressSyncRef.current = false; }, 10000);
+    suppressSyncRef.current = false;
   };
 
   // ── CLEAR SIGNATURE (single atomic operation) ──
-  const handleClearSignature = () => {
+  const handleClearSignature = async () => {
     if (!flightLog?.signature) return;
     
     // STEP 1: Block all sync overwrites immediately
@@ -887,30 +970,30 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     // STEP 2: Revert aircraft totals from the snapshot
     let pendingAircraftUpdate = null;
     const totals = flightLog.aircraftTotals;
-    if (aircraftId && totals) {
+      if (aircraftId && totals) {
       try {
         const storedAircraft = [...(userAircraft || [])];
         const acIndex = storedAircraft.findIndex(a => a.id === aircraftId);
         if (acIndex >= 0) {
-          const ac = { ...storedAircraft[acIndex] };
-          if (totals.flightBefore !== undefined) ac.totalHours = parseFloat(totals.flightBefore).toFixed(1);
-          if (totals.landingsBefore !== undefined) ac.landings = parseInt(totals.landingsBefore);
-          if (totals.hobbsBefore !== undefined) ac.hobbs = parseFloat(totals.hobbsBefore).toFixed(1);
+          const ac = { ...storedAircraft[acIndex] } as Record<string, any>;
+          if (totals.flightBefore !== undefined) ac.totalHours = parseFloat(String(totals.flightBefore)).toFixed(1);
+          if (totals.landingsBefore !== undefined) ac.landings = parseInt(String(totals.landingsBefore), 10);
+          if (totals.hobbsBefore !== undefined) ac.hobbs = parseFloat(String(totals.hobbsBefore)).toFixed(1);
           if (totals.engine1Before !== undefined) {
-            ac.engine1Hours = parseFloat(totals.engine1Before).toFixed(1);
+            ac.engine1Hours = parseFloat(String(totals.engine1Before)).toFixed(1);
             ac.engineHours = ac.engine1Hours;
           }
           if (totals.cycles1Before !== undefined) {
-            ac.engine1Cycles = parseInt(totals.cycles1Before);
+            ac.engine1Cycles = parseInt(String(totals.cycles1Before), 10);
             ac.engineCycles = ac.engine1Cycles;
           }
           if (totals.dualEngine && totals.engine2Before !== undefined) {
-            ac.engine2Hours = parseFloat(totals.engine2Before).toFixed(1);
-            ac.engine2Cycles = parseInt(totals.cycles2Before || 0);
+            ac.engine2Hours = parseFloat(String(totals.engine2Before)).toFixed(1);
+            ac.engine2Cycles = parseInt(String(totals.cycles2Before || 0), 10);
           }
           if (!ac.auditLog) ac.auditLog = [];
           ac.auditLog.push(`Signature cleared & meters reverted by ${currentUser?.name || 'Admin'} on ${new Date().toLocaleString()}`);
-          storedAircraft[acIndex] = ac;
+          storedAircraft[acIndex] = ac as Aircraft;
           pendingAircraftUpdate = storedAircraft;
         }
       } catch (e) { console.error('Failed to revert aircraft totals:', e); }
@@ -933,14 +1016,13 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     setStatus('confirmed');
 
     // STEP 5: Persist atomically via performSave
-    performSave(unsignedLog, 'confirmed', false, pendingAircraftUpdate ? { userAircraft: pendingAircraftUpdate } : null);
+    await performSave(unsignedLog, 'confirmed', false, pendingAircraftUpdate ? { userAircraft: pendingAircraftUpdate } : null);
 
-    // STEP 6: Release the sync guard after Firestore echo settles
-    setTimeout(() => { suppressSyncRef.current = false; }, 10000);
+    suppressSyncRef.current = false;
   };
 
   // ── TOGGLE LOCK (single atomic operation) ──
-  const handleToggleLock = (newLocked) => {
+  const handleToggleLock = async (newLocked: boolean) => {
     if (!aircraftId) return;
 
     let pendingAircraftUpdate = null;
@@ -948,36 +1030,37 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       const storedAircraft = [...(userAircraft || [])];
       const acIndex = storedAircraft.findIndex(a => a.id === aircraftId);
       if (acIndex >= 0) {
-        const ac = { ...storedAircraft[acIndex] };
+        const ac = { ...storedAircraft[acIndex] } as Record<string, any>;
         const totals = flightLog?.aircraftTotals;
         if (totals) {
           const isTwin = ac.dualEngine || totals.dualEngine;
           const multiplier = newLocked ? 1 : -1;
 
-          ac.totalHours = (Math.round((parseFloat(totals.flightBefore || 0) + (totals.changeFlight || 0) * multiplier) * 10) / 10).toFixed(1);
-          ac.landings = parseInt(totals.landingsBefore || 0) + Math.round((totals.changeLandings || 0) * multiplier);
-          ac.hobbs = (Math.round((parseFloat(totals.hobbsBefore || 0) + (totals.changeHobbs || 0) * multiplier) * 10) / 10).toFixed(1);
-          ac.engine1Hours = (Math.round((parseFloat(totals.engine1Before || 0) + (totals.changeEngine1Hours || 0) * multiplier) * 10) / 10).toFixed(1);
+          ac.totalHours = (Math.round((Number(totals.flightBefore || 0) + Number(totals.changeFlight || 0) * multiplier) * 10) / 10).toFixed(1);
+          ac.landings = parseInt(String(totals.landingsBefore || 0), 10) + Math.round(Number(totals.changeLandings || 0) * multiplier);
+          ac.hobbs = (Math.round((Number(totals.hobbsBefore || 0) + Number(totals.changeHobbs || 0) * multiplier) * 10) / 10).toFixed(1);
+          ac.engine1Hours = (Math.round((Number(totals.engine1Before || 0) + Number(totals.changeEngine1Hours || 0) * multiplier) * 10) / 10).toFixed(1);
           ac.engineHours = ac.engine1Hours;
-          ac.engine1Cycles = parseInt(totals.cycles1Before || 0) + Math.round((totals.changeEngine1Cycles || 0) * multiplier);
+          ac.engine1Cycles = parseInt(String(totals.cycles1Before || 0), 10) + Math.round(Number(totals.changeEngine1Cycles || 0) * multiplier);
           ac.engineCycles = ac.engine1Cycles;
           if (isTwin) {
-            ac.engine2Hours = (Math.round((parseFloat(totals.engine2Before || 0) + (totals.changeEngine2Hours || 0) * multiplier) * 10) / 10).toFixed(1);
-            ac.engine2Cycles = parseInt(totals.cycles2Before || 0) + Math.round((totals.changeEngine2Cycles || 0) * multiplier);
+            ac.engine2Hours = (Math.round((Number(totals.engine2Before || 0) + Number(totals.changeEngine2Hours || 0) * multiplier) * 10) / 10).toFixed(1);
+            ac.engine2Cycles = parseInt(String(totals.cycles2Before || 0), 10) + Math.round(Number(totals.changeEngine2Cycles || 0) * multiplier);
           }
 
           if (!ac.auditLog) ac.auditLog = [];
           const action = newLocked ? 'Locked' : 'Unlocked';
           ac.auditLog.push(`${action} flight #${flightNumber || ''} by ${currentUser?.name || 'Admin'} on ${new Date().toLocaleString()}`);
         }
-        storedAircraft[acIndex] = ac;
+        storedAircraft[acIndex] = ac as Aircraft;
         pendingAircraftUpdate = storedAircraft;
       }
     } catch (err) {
       console.error('Failed to update aircraft on toggle lock:', err);
     }
 
-    performSave(null, null, false, pendingAircraftUpdate ? { userAircraft: pendingAircraftUpdate } : null);
+    await performSave(null, null, false, pendingAircraftUpdate ? { userAircraft: pendingAircraftUpdate } : null);
+    suppressSyncRef.current = false;
   };
 
   const persistFlightLogToFlight = (nextFlightLog) => {
@@ -1026,13 +1109,13 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     }
   };
 
-  const handleFileUpload = async (e) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
     const flightId = flight?.id || `new_${Date.now()}`;
     setUploading(true);
     try {
-      const results = await Promise.all(files.map(f => FileStorageService.saveFile(flightId, f)));
+      const results = await Promise.all(files.map(f => FileStorageService.saveFile(String(flightId), f)));
       const resizeFailures = results.filter(r => r.resizeFailed);
       if (resizeFailures.length > 0) {
         const names = resizeFailures.map(r => r.name).join(', ');
@@ -1192,7 +1275,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, flight, initialDateStr]);
 
-  const usageAccumulatorRef = useRef({});
+  const usageAccumulatorRef = useRef<Record<string, number>>({});
 
   if (!isOpen) return null;
 
@@ -1296,7 +1379,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       const storedZones = userCustomZones || [];
       const cz = storedZones.find(c => c.id === locationVal.id);
       if (!cz) return null;
-      if (cz.lat && cz.lon) return { lat: parseFloat(cz.lat), lon: parseFloat(cz.lon) };
+      if (cz.lat && cz.lon) return { lat: parseFloat(String(cz.lat)), lon: parseFloat(String(cz.lon)) };
       if (cz.coordinates) {
         const parts = cz.coordinates.split(',');
         if (parts.length === 2) return { lat: parseFloat(parts[0]), lon: parseFloat(parts[1]) };
@@ -1556,34 +1639,34 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
 
   const allFlights = userFlights || [];
 
-  const performAircraftChange = (newAcId) => {
+  const performAircraftChange = (newAcId: string) => {
     const oldAircraftId = aircraftId;
     try {
       const storedAircraft = [...(userAircraft || [])];
       const oldAcIndex = storedAircraft.findIndex(a => a.id === oldAircraftId);
       if (oldAcIndex >= 0 && flightLog?.aircraftTotals) {
-        const ac = { ...storedAircraft[oldAcIndex] };
+        const ac = { ...storedAircraft[oldAcIndex] } as Record<string, any>;
         const totals = flightLog.aircraftTotals;
-        if (totals.flightBefore !== undefined) ac.totalHours = parseFloat(totals.flightBefore).toFixed(1);
-        if (totals.landingsBefore !== undefined) ac.landings = parseInt(totals.landingsBefore);
-        if (totals.hobbsBefore !== undefined) ac.hobbs = parseFloat(totals.hobbsBefore).toFixed(1);
+        if (totals.flightBefore !== undefined) ac.totalHours = parseFloat(String(totals.flightBefore)).toFixed(1);
+        if (totals.landingsBefore !== undefined) ac.landings = parseInt(String(totals.landingsBefore), 10);
+        if (totals.hobbsBefore !== undefined) ac.hobbs = parseFloat(String(totals.hobbsBefore)).toFixed(1);
         if (totals.engine1Before !== undefined) {
-          ac.engine1Hours = parseFloat(totals.engine1Before).toFixed(1);
+          ac.engine1Hours = parseFloat(String(totals.engine1Before)).toFixed(1);
           ac.engineHours = ac.engine1Hours;
         }
         if (totals.cycles1Before !== undefined) {
-          ac.engine1Cycles = parseInt(totals.cycles1Before);
+          ac.engine1Cycles = parseInt(String(totals.cycles1Before), 10);
           ac.engineCycles = ac.engine1Cycles;
         }
         if (totals.dualEngine && totals.engine2Before !== undefined) {
-          ac.engine2Hours = parseFloat(totals.engine2Before).toFixed(1);
-          ac.engine2Cycles = parseInt(totals.cycles2Before || 0);
+          ac.engine2Hours = parseFloat(String(totals.engine2Before)).toFixed(1);
+          ac.engine2Cycles = parseInt(String(totals.cycles2Before || 0), 10);
         }
         if (!ac.auditLog) ac.auditLog = [];
         ac.auditLog.push(
           `Flight log unsigned & meters reverted due to aircraft change to ${newAcId || 'unassigned'} by Admin (${currentUser?.name || 'Admin'}) on ${new Date().toLocaleString()}`
         );
-        storedAircraft[oldAcIndex] = ac;
+        storedAircraft[oldAcIndex] = ac as Aircraft;
         updateData('userAircraft', storedAircraft);
       }
     } catch (e) {
@@ -1610,7 +1693,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
     }, 100);
   };
 
-  const handleAircraftChange = (newAcId) => {
+  const handleAircraftChange = (newAcId: string) => {
     if (newAcId === aircraftId) return;
 
     if (isFlightSigned) {
@@ -1751,7 +1834,15 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
 
       const allExtraUpdates = { locationUsage: pendingUsage, ...extraUpdates };
 
-      if (onSave) {
+      if (allExtraUpdates?.userAircraft && saveFlightWithAircraftTransaction) {
+        const { userAircraft: aircraftUpdates, ...remainingUpdates } = allExtraUpdates;
+        await saveFlightWithAircraftTransaction(flightPayload, aircraftUpdates);
+        if (onSave && Object.keys(remainingUpdates).length > 0) {
+          await onSave(flightPayload, shouldClose, remainingUpdates);
+        } else if (onSave) {
+          await onSave(flightPayload, shouldClose);
+        }
+      } else if (onSave) {
         await onSave(flightPayload, shouldClose, allExtraUpdates);
       }
 
@@ -1759,9 +1850,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       setTimeout(() => {
         setIsSaved(true);
       }, 50);
-      setTimeout(() => {
-        suppressSyncRef.current = false;
-      }, 10000);
+      suppressSyncRef.current = false;
     } catch (err) {
       console.error("performSave error:", err);
       suppressSyncRef.current = false;
@@ -1789,8 +1878,8 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
       safeIsoDate = new Date().toISOString();
     }
 
-    const flightData = {
-      id: flight ? flight.id : undefined,
+    const flightData: Flight = {
+      id: flight ? flight.id : Date.now(),
       flightNumber,
       title,
       accountId,
@@ -1829,26 +1918,25 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
 
     if (expenses.some(e => e._dirty)) return true;
 
-    const origFlight = flight || {};
-    if (title !== (origFlight.title || '')) return true;
-    if (comments !== (origFlight.comments || '')) return true;
-    if (opsNotes !== (origFlight.opsNotes || '')) return true;
-    if (tag !== (origFlight.tag || '')) return true;
-    if (accountId !== (origFlight.accountId || '')) return true;
-    if (aircraftId !== (origFlight.aircraftId || '')) return true;
+    if (title !== (flight.title || '')) return true;
+    if (comments !== (flight.comments || '')) return true;
+    if (opsNotes !== (flight.opsNotes || '')) return true;
+    if (tag !== (flight.tag || '')) return true;
+    if (accountId !== (flight.accountId || '')) return true;
+    if (aircraftId !== (flight.aircraftId || '')) return true;
 
-    const origDate = origFlight.date ? origFlight.date.split('T')[0] : '';
+    const origDate = flight.date ? flight.date.split('T')[0] : '';
     if (date !== origDate) return true;
 
-    const origFlightNumber = origFlight.flightNumber != null
-      ? String(origFlight.flightNumber).replace(/^FLT-/i, '')
+    const origFlightNumber = flight.flightNumber != null
+      ? String(flight.flightNumber).replace(/^FLT-/i, '')
       : '';
     if (flightNumber !== origFlightNumber) return true;
 
-    const origStatus = normalizeStatus(origFlight.status || 'on hold');
+    const origStatus = normalizeStatus(flight.status || 'on hold');
     if (status !== origStatus) return true;
 
-    const origLegs = origFlight.legs || [];
+    const origLegs = flight.legs || [];
     if (JSON.stringify(legs) !== JSON.stringify(origLegs)) return true;
 
     return false;
@@ -1986,7 +2074,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                {isMobile ? (
                  <MobileDropdownMenu
                    value={accountId}
-                   onChange={val => setAccountId(val)}
+                    onChange={val => setAccountId(String(val))}
                    options={[{ value: '', label: 'Select Account...' }, ...accountsList.map(a => ({ value: a.id, label: a.name }))]}
                    placeholder="Select Account..."
                    style={{ border: 'none', backgroundColor: 'transparent', fontWeight: '500', fontSize: '0.8rem' }}
@@ -2004,7 +2092,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                {isMobile ? (
                   <MobileDropdownMenu
                     value={aircraftId}
-                    onChange={handleAircraftChange}
+                    onChange={val => handleAircraftChange(String(val))}
                     disabled={isFlightSigned && !isAdmin}
                     options={[{ value: '', label: 'Select Aircraft...' }, ...aircraftList.map(a => ({ value: a.id, label: `${a.id} (${a.model})` }))]}
                     placeholder="Select Aircraft..."
@@ -2090,7 +2178,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
               {isMobile ? (
                 <MobileDropdownMenu
                   value={tag}
-                  onChange={val => setTag(val)}
+                  onChange={val => setTag(String(val))}
                   options={[
                     { value: '', label: 'TAGS' },
                     { value: 'Emergency', label: 'Emergency' },
@@ -2192,7 +2280,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                 <span style={{ display: 'block', fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: '2px' }}>Account</span>
                 <MobileDropdownMenu
                   value={accountId}
-                  onChange={val => setAccountId(val)}
+                  onChange={val => setAccountId(String(val))}
                   options={[{ value: '', label: 'Select Account...' }, ...accountsList.map(a => ({ value: a.id, label: a.name }))]}
                   placeholder="Select Account..."
                   style={{ border: 'none', fontWeight: '500', fontSize: '0.85rem', backgroundColor: 'transparent', color: accountId ? 'var(--text-main)' : 'var(--text-muted)' }}
@@ -2202,7 +2290,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                 <span style={{ display: 'block', fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: '2px' }}>Aircraft</span>
                 <MobileDropdownMenu
                   value={aircraftId}
-                  onChange={handleAircraftChange}
+                  onChange={val => handleAircraftChange(String(val))}
                   disabled={isFlightSigned && !isAdmin}
                   options={[{ value: '', label: 'Select Aircraft...' }, ...aircraftList.map(a => ({ value: a.id, label: `${a.id} (${a.model})` }))]}
                   placeholder="Select Aircraft..."
@@ -2251,7 +2339,7 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                   <BookOpen size={12}/>
                   <MobileDropdownMenu
                     value={tag}
-                    onChange={val => setTag(val)}
+                    onChange={val => setTag(String(val))}
                     options={[
                       { value: '', label: 'TAGS' },
                       { value: 'Emergency', label: 'Emergency' },
@@ -2635,12 +2723,12 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                                    setShowNewPassengerModal(true);
                                    return;
                                  }
-                                 const paxId = val;
-                                 const current = leg.passengers || [];
-                                 if (!current.includes(paxId)) {
-                                   handleUpdateLeg(index, 'passengers', [...current, paxId]);
-                                 }
-                               }}
+                                  const paxId = String(val);
+                                  const current = leg.passengers || [];
+                                  if (!current.includes(paxId)) {
+                                    handleUpdateLeg(index, 'passengers', [...current, paxId]);
+                                  }
+                                }}
                                options={[{ value: '', label: 'Add Passenger...' }, ...sortedPassengersList.map(p => ({ value: p.id, label: p.name })), { value: '__new__', label: '+ Add New Passenger...' }]}
                                placeholder="Add Passenger..."
                                style={{ fontSize: '0.75rem' }}
@@ -2806,7 +2894,9 @@ const EventModal = ({ isOpen, onClose, onSave, onDelete, onDuplicate, onNavigate
                 aircraftId={aircraftId}
                 aircraftList={aircraftList}
                 pilotsList={pilotsList}
-             />
+                authoritativeBaseline={authoritativeBaseline}
+                refreshAircraft={refreshAircraft}
+              />
            </div>
         ) : (
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>

@@ -13,13 +13,13 @@ If you are ever working in a different directory (e.g., `C:\Users\chadm\Projects
 Never create new project folders outside of `C:\Users\chadm\.gemini\antigravity\scratch\` without explicit permission.
 
 ## Current State
-- Last updated: 2026-08-20
+- Last updated: 2026-08-21
 - Last tool: opencode
 - Last commit: v1.8.0
-- In progress: nothing
-- Next planned: TypeScript strict mode rollout (Phases C/D — type large components, flip strict: true)
+- In progress: TypeScript strict mode rollout (Phases C/D — type large components, flip strict: true)
+- Next planned: continue typing remaining large components
 - Known issues: Firestore writes blocked client-side by ad-blocker/extension (v0.3.6 offline queue handles this gracefully)
-- Last action: released Aircraft Usage Dashboard on the Fleet page (v1.8.0)
+- Last action: added saveFlightWithAircraftTransaction to DataProvider using Firestore runTransaction for atomic flight+aircraft writes; updated EventModal.performSave to use transactional method when extraUpdates.userAircraft is present (sign/unsign/lock); lint/test/build verified, typecheck unchanged (pre-existing AIInvoiceUploader error only)
 
 ## Project Overview
 Helicopter scheduling app built with React + Vite. Uses Leaflet for maps, date-fns for time handling, Firebase for auth/Firestore/Storage.
