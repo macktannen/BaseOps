@@ -1,75 +1,38 @@
-# HANDOFF - baseops
+# HANDOFF - BaseOps
 
-- **Timestamp:** Aug 19, 2026
+- **Timestamp:** 2026-08-20
 - **Tool used:** opencode
 - **Branch:** main
-- **Last commit:** (uncommitted — v1.2.0 changes)
+- **Last commit:** 48703d8 — fix: eagerly load CalendarView (default tab) to eliminate initial loading delay
 
 ## Project Overview
-Helicopter Scheduler Web App (`baseops`). Manages flights, crew schedules, expenses, fleet, and documents with Firebase/Firestore backend.
+BaseOps is a helicopter scheduling/operations web app built with React 19, Vite 8, Firebase (Auth/Firestore/Storage), Leaflet for maps, and recharts for dashboards. It supports flight planning, crew scheduling, fleet management, expense tracking with AI invoice parsing, and digital flight log signing.
 
-## Architecture
-- **Firestore structure:** `orgs/{orgName}` (org doc for lists) + `orgs/{orgName}/flights/{flightId}` (per-entity flight documents)
-- **Dev sandbox:** `orgs/dev_sandbox`, **Production:** `orgs/default`
-- **DataProvider.jsx** exposes: `updateData`, `updateDataBatch`, `saveFlight`, `saveFlightsBatch`, `deleteFlight`
-- `userFlights` reads from flights subcollection subscription; all other data reads from org document subscription
-
-## What Was Just Completed (Aug 18)
-1. **Firestore write optimization (93% reduction):** Deferred expense writes to flight save, batched flight save + location usage + aircraft updates, batched crew/pilot/passenger deletes, batched vendor remap
-2. **Client-side image resizing:** Images resized to 1024px max, JPEG 80% quality before Firebase Storage upload. Shows alert on resize failure.
-3. **Expense save flow:** "Save Expense" button persists to Firestore immediately; auto-fill expenses require explicit Save Expense click
-4. **Unsaved changes warning:** Modal warns before close if status, flightNumber, date, or other fields changed
-5. **Receipt delete deferral:** Receipt files not deleted from Storage until Save Expense or Save Flight clicked
-6. **File delete error alerts:** Storage deletion failures now show user-facing alerts
-7. **Aircraft update consolidation:** Flight sign/clear/toggle lock all route through single batched write path
-8. **Crew schedule deferral:** Status changes update locally; sticky bar with Save/Discard appears
-9. **Remote change detection:** When another user saves a flight you have open, banner shows which fields changed with See Latest/Keep Mine options
-10. **Flight log signature priority:** Signature changes always auto-sync regardless of unsaved changes
-11. **Per-entity flight documents:** Flights now live in `orgs/{org}/flights/{flightId}` subcollection, eliminating last-write-wins race condition for flight saves
-
-## What Was Just Completed (Aug 19)
-12. **Add New Passenger from Flight Modal** — "+ Add New Passenger..." option in passenger dropdown opens a modal to create a new passenger (Name, Weight, Phone, Email, Company, Title). Saves to system-wide `userPassengers` list and adds to current flight leg. Works on both desktop and mobile. Passenger ID = Name.
-13. **Edit Passenger from Flight Modal** — Clicking a passenger name badge in the flight leg opens the same modal in edit mode with pre-filled info. Changes persist to system-wide list.
-14. **Passenger dropdown sorted by usage** — Passenger selector now sorts by flight count (most used first), then alphabetically.
-15. **Passenger modal cleanup** — Removed placeholder text from all Add/Edit Passenger modal fields.
-16. **Code audit & cleanup (v1.3.0)** — Fixed 2 critical bugs (conditional hook, stale closure), 3 high issues (memoization, DRY, context perf), removed unused code, added ErrorBoundary, extracted magic numbers. Lint reduced from 14 issues to 3.
-17. **Removed dead mock data (v1.3.1)** — Deleted `data.js` and cleaned up all mock data imports/references across 9 files.
-18. **Styled ConfirmDialog (v1.4.0)** — New ConfirmDialog component replaces native window.confirm(). First use: unsaved changes prompt in EventModal.
-19. **All native dialogs replaced (v1.5.0)** — All 54 window.confirm/alert calls across 14 files now use styled ConfirmDialog/AlertDialog. Zero native browser dialogs remain.
-
-## Files Changed (Aug 18 session)
-- `src/contexts/DataProvider.jsx` — Flights subscription from subcollection, saveFlight/deleteFlight/saveFlightsBatch API
-- `src/services/FileStorageService.js` — Image resize, resizeFailed flag, throw on delete errors
-- `src/components/EventModal.jsx` — Batched performSave, deferred receipt deletion, remote changes banner, unsaved changes detection, aircraft toggle lock callback
-- `src/components/ExpensesTab.jsx` — Deferred expense writes, saveFlight for persistExpensesToFlight, dirty on receipt delete
-- `src/components/ExpensesPage.jsx` — saveFlight/deleteFlight for all flight writes
-- `src/components/CalendarView.jsx` — saveFlight/deleteFlight, crew schedule deferral bar
-- `src/components/CrewSchedule.jsx` — saveFlight/deleteFlight
-- `src/components/FlightLogTab.jsx` — onToggleLock callback (no direct updateData)
-- `src/components/MobileExpenses.jsx` — saveFlight
-- `src/components/MobileLayout.jsx` — saveFlight/deleteFlight
-- `src/components/SettingsView.jsx` — deleteFlight for clear all
+## What Was Just Completed
+- **v1.7.0:** Gemini API key proxy (serverless function), filtered airports to eastern US (8,208 of 16,169), component tests, dead code removal, noUnusedLocals/noUnusedParameters enabled
+- **v1.8.0:** Aircraft Usage Dashboard on Fleet page with period selector, fuel tracking, account pie chart, tag breakdown, fleet/aircraft filtering
+- **Post-release fixes:** Resolved account IDs showing raw IDs (now resolved to names), changed Plane→Helicopter icon, aircraft dropdown now filters dashboard instead of showing separate view, eager-loaded CalendarView to fix perceived slowness
+- **CI fixes:** Switched from jsdom to happy-dom for Node.js 24 compatibility, simplified CI workflow
 
 ## Pending Tasks
-1. **Redo layout for schedules grid** (Not started)
-2. **Fleet view layout** (Not started)
+- **TypeScript strict mode (Phases C/D):** ~400 type errors remain in large components (EventModal, MobileLayout, SettingsView, CrewSchedule, etc.). Need to type props and state properly, then flip `strict: true` in tsconfig.json.
+- **TypeScript strict in CI:** Currently `npm run typecheck || true` (non-blocking). Should be made blocking after Phase C/D.
+- **Gemini API key:** Server-side `GEMINI_API_KEY` env var is set in Vercel. Client no longer needs `VITE_GEMINI_API_KEY`.
+- **Firestore rules:** Need to deploy updated rules with `firebase deploy --only firestore:rules` for the admin write check on user docs.
+- **Mobile Fleet page:** Doesn't have the Usage Dashboard tab yet (desktop only).
 
-## Remaining Data Loss Risks
-- **#4:** suppressSyncRef 10-second window (medium — can be fixed with writeId detection)
-- **#12-16:** Notes/CustomZone modals close without confirmation; persist functions silently fail
-- **#18-25:** Various edge cases (stale localStorage, conflict detection bypass, etc.)
+## Contextual Notes
+- **AGENTS.md conventions:** No comments unless asked. Run `npm run lint`, `npm run test`, and `npm run build` before committing.
+- **Versioning:** Version is in `package.json`. `APP_VERSION` derives from it in `App.tsx` and `MobileLayout.tsx`.
+- **Lint warnings:** 3 pre-existing warnings (DataProvider fast-refresh, EventModal exhaustive-deps) — these are intentional/acceptable.
+- **Typecheck:** 400+ errors in large components (strict:false). Services/contexts/hooks are well-typed.
+- **Test environment:** happy-dom (not jsdom) for Node.js 24 compatibility.
+- **Firebase:** `dev_sandbox` org for localhost, `default` org for production.
+- **Flight hours:** Dashboard uses `flightLog.legsActuals[].flightHrs` (pilot-signed) when available, falls back to `leg.duration` (planned).
+- **Completed flights only:** Dashboard filters to `status === 'completed'` OR signed logbooks (`flightLog.signature`).
 
-## Key APIs
-- `saveFlight(flightData)` — Writes one flight to flights subcollection
-- `saveFlightsBatch(flightsArray)` — Batch-writes multiple flights
-- `deleteFlight(flightId)` — Deletes one flight from subcollection
-- `updateData(key, value)` — Writes to org document (for lists, schedules, etc.)
-- `updateDataBatch(updates)` — Batch-writes multiple keys to org document
-
-## Deployment Workflow (Standing Instructions)
-For every app change:
-1. Bump version in `package.json`
-2. Update `CHANGELOG.md` with the change
-3. Update `HANDOFF.md` (timestamp, last commit, completed work, files changed)
-4. Commit and push to `origin/main`
-5. Vercel auto-deploys from git main — no manual deploy needed
+## Next Steps
+1. Commit any pending work (currently clean)
+2. Continue TypeScript strict mode rollout (Phase C: type large components, Phase D: flip `strict: true`)
+3. Add component tests for remaining components
+4. Deploy Firestore rules update
