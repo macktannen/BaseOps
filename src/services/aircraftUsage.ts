@@ -266,3 +266,76 @@ export const computeAircraftUsage = (
     },
   };
 };
+
+export interface MeterDiscrepancy {
+  aircraftId: string;
+  tailNumber: string;
+  field: string;
+  label: string;
+  stored: number;
+  computed: number;
+  delta: number;
+}
+
+export const validateAircraftMeters = (
+  aircraft: Aircraft[],
+  flights: Flight[],
+): MeterDiscrepancy[] => {
+  const discrepancies: MeterDiscrepancy[] = [];
+
+  for (const ac of aircraft) {
+    const acFlights = flights.filter(
+      (f) => f.aircraftId === ac.id && isCompletedFlight(f),
+    );
+
+    let computedHours = 0;
+    let computedLandings = 0;
+
+    for (const f of acFlights) {
+      const legs = f.flightLog?.legsActuals?.length
+        ? f.flightLog.legsActuals
+        : f.legs || [];
+
+      for (const leg of legs) {
+        if (leg.flightHrs !== undefined && leg.flightHrs !== null) {
+          computedHours += parseFloat(String(leg.flightHrs)) || 0;
+        } else if (leg.duration !== undefined) {
+          computedHours += (parseFloat(String(leg.duration)) || 0) / 60;
+        }
+        if (leg.landings !== undefined && leg.landings !== null) {
+          computedLandings += parseInt(String(leg.landings), 10) || 0;
+        }
+      }
+    }
+
+    computedHours = Math.round(computedHours * 10) / 10;
+
+    const storedHours = parseFloat(String(ac.totalHours || 0));
+    if (Math.abs(storedHours - computedHours) >= 0.05) {
+      discrepancies.push({
+        aircraftId: ac.id,
+        tailNumber: ac.id,
+        field: 'totalHours',
+        label: 'Aircraft Hours',
+        stored: storedHours,
+        computed: computedHours,
+        delta: Math.round((computedHours - storedHours) * 10) / 10,
+      });
+    }
+
+    const storedLandings = parseInt(String(ac.landings || 0), 10);
+    if (storedLandings !== computedLandings) {
+      discrepancies.push({
+        aircraftId: ac.id,
+        tailNumber: ac.id,
+        field: 'landings',
+        label: 'Landings',
+        stored: storedLandings,
+        computed: computedLandings,
+        delta: computedLandings - storedLandings,
+      });
+    }
+  }
+
+  return discrepancies;
+};

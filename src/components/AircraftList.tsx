@@ -2,13 +2,14 @@ import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { useData } from '../contexts/DataProvider';
 
 
-import { Search, Plus, Trash2, Helicopter, Wrench, ChevronDown, ChevronUp, History, BarChart3 } from 'lucide-react';
+import { Search, Plus, Trash2, Helicopter, Wrench, ChevronDown, ChevronUp, History, BarChart3, ShieldCheck } from 'lucide-react';
 import SaveButton from './SaveButton';
 import { authService } from '../services/authService';
 import { can as permCan } from '../services/permissionService';
 
 import ConfirmDialog from './ConfirmDialog';
 import AlertDialog from './AlertDialog';
+import { validateAircraftMeters, type MeterDiscrepancy } from '../services/aircraftUsage';
 
 const AircraftUsageDashboard = lazy(() => import('./AircraftUsageDashboard'));
 
@@ -32,6 +33,8 @@ const AircraftList = () => {
   const [editForm, setEditForm] = useState(null);
   const [auditExpanded, setAuditExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState('fleet');
+  const [meterDiscrepancies, setMeterDiscrepancies] = useState<MeterDiscrepancy[]>([]);
+  const [showMeterResults, setShowMeterResults] = useState(false);
 
   const aircraft = useMemo(() => {
     const list = [...userAircraft];
@@ -222,6 +225,68 @@ const AircraftList = () => {
     } catch {
       console.error('Failed to save aircraft.');
     }
+  };
+
+  const handleValidateMeters = () => {
+    const discrepancies = validateAircraftMeters(userAircraft, flights);
+    setMeterDiscrepancies(discrepancies);
+    setShowMeterResults(true);
+  };
+
+  const handleFixMeter = (disc: MeterDiscrepancy) => {
+    const storedAircraft = [...userAircraft];
+    const acIndex = storedAircraft.findIndex(a => a.id === disc.aircraftId);
+    if (acIndex < 0) return;
+
+    const ac = { ...storedAircraft[acIndex] };
+    const oldVal = ac[disc.field];
+
+    if (disc.field === 'totalHours') {
+      ac.totalHours = disc.computed;
+      ac.engine1Hours = disc.computed;
+      ac.engineHours = disc.computed;
+    } else if (disc.field === 'landings') {
+      ac.landings = disc.computed;
+    }
+
+    if (!ac.auditLog) ac.auditLog = [];
+    ac.auditLog.push(`Meters validated by Admin (${currentUser?.name || 'Unknown'}) on ${new Date().toLocaleString()}: ${disc.label} from '${oldVal}' to '${disc.computed}' (corrected from signed flight logs)`);
+
+    storedAircraft[acIndex] = ac;
+    updateData('userAircraft', storedAircraft);
+
+    setMeterDiscrepancies(prev => prev.filter(d => !(d.aircraftId === disc.aircraftId && d.field === disc.field)));
+  };
+
+  const handleFixAllMeters = () => {
+    const storedAircraft = [...userAircraft];
+    const now = new Date().toLocaleString();
+    const name = currentUser?.name || 'Unknown';
+
+    for (const disc of meterDiscrepancies) {
+      const acIndex = storedAircraft.findIndex(a => a.id === disc.aircraftId);
+      if (acIndex < 0) continue;
+
+      const ac = { ...storedAircraft[acIndex] };
+      const oldVal = ac[disc.field];
+
+      if (disc.field === 'totalHours') {
+        ac.totalHours = disc.computed;
+        ac.engine1Hours = disc.computed;
+        ac.engineHours = disc.computed;
+      } else if (disc.field === 'landings') {
+        ac.landings = disc.computed;
+      }
+
+      if (!ac.auditLog) ac.auditLog = [];
+      ac.auditLog.push(`Meters validated by Admin (${name}) on ${now}: ${disc.label} from '${oldVal}' to '${disc.computed}' (corrected from signed flight logs)`);
+
+      storedAircraft[acIndex] = ac;
+    }
+
+    updateData('userAircraft', storedAircraft);
+    setMeterDiscrepancies([]);
+    setShowMeterResults(false);
   };
 
   return (
@@ -434,15 +499,38 @@ const AircraftList = () => {
                   <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Helicopter size={16} /> Logbook Totals
                   </label>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', backgroundColor: 'white', padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={editForm.dualEngine || false} 
-                      onChange={(e) => setEditForm({...editForm, dualEngine: e.target.checked})} 
-                      style={{ cursor: 'pointer' }}
-                    />
-                    <span>Twin Engine</span>
-                  </label>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={handleValidateMeters}
+                        style={{
+                          fontSize: '0.7rem',
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: 'white',
+                          color: 'var(--primary-color)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontWeight: 500
+                        }}
+                      >
+                        <ShieldCheck size={12} /> Validate Meters
+                      </button>
+                    )}
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', backgroundColor: 'white', padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={editForm.dualEngine || false} 
+                        onChange={(e) => setEditForm({...editForm, dualEngine: e.target.checked})} 
+                        style={{ cursor: 'pointer' }}
+                      />
+                      <span>Twin Engine</span>
+                    </label>
+                  </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
@@ -485,6 +573,90 @@ const AircraftList = () => {
                 </div>
               </div>
               
+              {/* Meter Validation Results */}
+              {showMeterResults && (
+                <div style={{ flex: '1 1 100%', padding: '15px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: meterDiscrepancies.length === 0 ? '#f0fff4' : '#fffbeb' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <label style={{ fontSize: '0.875rem', fontWeight: 600, color: meterDiscrepancies.length === 0 ? '#276749' : '#975a16', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <ShieldCheck size={16} /> Meter Validation Results
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {meterDiscrepancies.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleFixAllMeters}
+                          style={{
+                            fontSize: '0.75rem',
+                            padding: '4px 10px',
+                            borderRadius: '4px',
+                            border: 'none',
+                            backgroundColor: '#276749',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontWeight: 500
+                          }}
+                        >
+                          Fix All ({meterDiscrepancies.length})
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setShowMeterResults(false)}
+                        style={{
+                          fontSize: '0.75rem',
+                          padding: '4px 10px',
+                          borderRadius: '4px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: 'white',
+                          color: 'var(--text-muted)',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  </div>
+                  {meterDiscrepancies.length === 0 ? (
+                    <div style={{ fontSize: '0.85rem', color: '#276749' }}>
+                      All meters are correct. No discrepancies found.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {meterDiscrepancies.map((disc, i) => (
+                        <div key={`${disc.aircraftId}-${disc.field}-${i}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: 'white', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '0.8rem' }}>
+                          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                            <strong>{disc.tailNumber}</strong>
+                            <span style={{ color: 'var(--text-muted)' }}>{disc.label}:</span>
+                            <span>Stored: {disc.stored}</span>
+                            <span>→</span>
+                            <span style={{ color: '#276749', fontWeight: 600 }}>Correct: {disc.computed}</span>
+                            <span style={{ color: disc.delta > 0 ? '#c53030' : '#2b6cb0', fontWeight: 500 }}>
+                              ({disc.delta > 0 ? '+' : ''}{disc.delta})
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleFixMeter(disc)}
+                            style={{
+                              fontSize: '0.7rem',
+                              padding: '3px 8px',
+                              borderRadius: '4px',
+                              border: '1px solid #276749',
+                              backgroundColor: 'white',
+                              color: '#276749',
+                              cursor: 'pointer',
+                              fontWeight: 500
+                            }}
+                          >
+                            Fix
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Maintenance Tracking */}
               <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '15px', padding: '15px', border: '1px solid var(--border-color)', borderRadius: '6px' }}>
                 <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -638,7 +810,6 @@ const AircraftList = () => {
             </div>
           </form>
         )}
-      </div>
         <ConfirmDialog
           isOpen={confirmDialog.open}
           title={confirmDialog.title}
@@ -652,6 +823,7 @@ const AircraftList = () => {
           message={alertDialog.message}
           onClose={() => setAlertDialog({ open: false, title: '', message: '' })}
         />
+        </div>
         </div>
       )}
 
